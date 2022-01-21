@@ -18,9 +18,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#ifndef INCLUDE_MAIN_H__
-#define INCLUDE_MAIN_H__
+pub type Data = i64;
 
-// tbd...
+pub type Path = &'static str;
 
-#endif  // INCLUDE_MAIN_H__
+pub type Atom = &'static String;

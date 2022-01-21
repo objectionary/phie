@@ -18,9 +18,21 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#ifndef PROGRAM_H__
-#define PROGRAM_H__
+#[derive(Default)]
+pub struct Directive {
+  mnemo : String,
+  args : Vec<String>
+}
 
+#[derive(Default)]
+pub struct Directives {
+  all : Vec<Directive>
+}
 
+impl Directives {
 
-#endif  // PROGRAM_H__
+  pub fn parse(text: String) {
+    // nothing
+  }
+
+}

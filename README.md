@@ -1,4 +1,4 @@
-[![new](https://github.com/yegor256/phiVM/actions/workflows/make.yml/badge.svg)](https://github.com/yegor256/phiVM/actions/workflows/make.yml)
+[![new](https://github.com/yegor256/phiPUemu/actions/workflows/make.yml/badge.svg)](https://github.com/yegor256/phiPUemu/actions/workflows/make.yml)
 
 It'a s simple virtual machine that can execute 
 [EO](https://www.eolang.org) programs. 

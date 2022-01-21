@@ -1,3 +1,2 @@
 .idea/
-asm/
-bin/
+target/

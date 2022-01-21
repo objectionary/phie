@@ -18,6 +18,17 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include "./main.h"
+pub mod obs;
+pub mod primitives;
+pub mod directives;
 
-// tbd
+use self::obs::Obs;
+use self::directives::Directives;
+
+#[derive(Default)]
+pub struct Emu {
+  pub obses: Vec<Obs>,
+  pub registers: [i64; 16],
+  pub stack: Vec<i16>,
+  pub directives: Directives
+}
