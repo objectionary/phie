@@ -78,5 +78,5 @@ impl Obs {
 
 #[test]
 pub fn makes_empty_obs() {
-    assert!(Obs::empty().a0 == "")
+    assert!(Obs::empty().args.is_empty())
 }
