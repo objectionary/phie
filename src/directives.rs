@@ -20,19 +20,19 @@
 
 #[derive(Default)]
 pub struct Directive {
-  mnemo : String,
-  args : Vec<String>
+    mnemo: String,
+    args: Vec<String>,
 }
 
 #[derive(Default)]
 pub struct Directives {
-  all : Vec<Directive>
+    all: Vec<Directive>,
 }
 
 impl Directives {
-
-  pub fn parse(text: String) {
-    // nothing
-  }
-
+    pub fn parse(text: &'static str) -> Directives {
+        Directives {
+            all: vec![]
+        }
+    }
 }

@@ -18,65 +18,20 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-use crate::primitives::*;
+use crate::directives::Directives;
+use crate::obs::Obs;
+use crate::primitives::Data;
 
 #[derive(Default)]
-pub struct Obs {
-    pub atom: i16,
-    pub data: Data,
-    pub phi: Path,
-    pub rho: Path,
-    pub sup: Path,
-    pub args: Vec<Path>
+pub struct Emu {
+    pub obses: Vec<Obs>,
+    pub registers: [i64; 16],
+    pub stack: Vec<i16>,
+    pub directives: Directives,
 }
 
-impl Obs {
-    pub fn with(self, a: Path) -> Obs {
-        let mut nargs = Vec::new();
-        nargs.extend(self.args);
-        nargs.push(a);
-        Obs {
-            args: nargs,
-            ..self
-        }
+impl Emu {
+    pub fn dataize(self, obs: i16) -> Data {
+        return 1;
     }
-
-    pub fn empty() -> Obs {
-        Obs {
-            ..Default::default()
-        }
-    }
-
-    pub fn data(sup: Path, data: Data) -> Obs {
-        Obs {
-            sup, data,
-            ..Default::default()
-        }
-    }
-
-    pub fn copy(sup: Path) -> Obs {
-        Obs {
-            sup,
-            ..Default::default()
-        }
-    }
-
-    pub fn atom(atom: i16, rho: Path) -> Obs {
-        Obs {
-            atom, rho,
-            ..Default::default()
-        }
-    }
-
-    pub fn decorate(phi: Path) -> Obs {
-        Obs {
-            phi,
-            ..Default::default()
-        }
-    }
-}
-
-#[test]
-pub fn makes_empty_obs() {
-    assert!(Obs::empty().a0 == "")
 }
