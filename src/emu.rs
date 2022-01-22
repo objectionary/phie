@@ -31,7 +31,25 @@ pub struct Emu {
 }
 
 impl Emu {
-    pub fn dataize(self, obs: i16) -> Data {
+    pub fn empty() -> Emu {
+        Emu { ..Default::default() }
+    }
+
+    pub fn with(self, obs : Obs) -> Emu {
+        Emu { obses: [self.obses, vec![obs]].concat(), ..self }
+    }
+
+    pub fn dataize(self, id: usize) -> Data {
+        let obs = &self.obses[id];
+        if obs.data.is_some() {
+            return obs.data.unwrap();
+        }
         return 1;
     }
+}
+
+#[test]
+pub fn dataize_simple_data() {
+    let emu = Emu::empty().with(Obs::data("v3", 42));
+    assert_eq!(42, emu.dataize(0));
 }

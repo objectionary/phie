@@ -20,10 +20,10 @@
 
 use crate::primitives::*;
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct Obs {
     pub atom: i16,
-    pub data: Data,
+    pub data: Option<Data>,
     pub phi: Path,
     pub rho: Path,
     pub sup: Path,
@@ -32,11 +32,8 @@ pub struct Obs {
 
 impl Obs {
     pub fn with(self, a: Path) -> Obs {
-        let mut nargs = Vec::new();
-        nargs.extend(self.args);
-        nargs.push(a);
         Obs {
-            args: nargs,
+            args: [self.args, vec![a]].concat(),
             ..self
         }
     }
@@ -49,7 +46,8 @@ impl Obs {
 
     pub fn data(sup: Path, data: Data) -> Obs {
         Obs {
-            sup, data,
+            sup,
+            data: Some(data),
             ..Default::default()
         }
     }
