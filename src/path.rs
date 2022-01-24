@@ -47,9 +47,9 @@ pub struct Path {
 
 #[macro_export]
 macro_rules! ph {
-    ($s:expr) => {{
+    ($s:expr) => {
         Path::from_str($s).unwrap()
-    }};
+    };
 }
 
 impl Path {
