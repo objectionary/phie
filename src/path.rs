@@ -29,15 +29,15 @@ pub struct PathError {
     msg : String
 }
 
-#[derive(Debug, Clone)]
-enum Item {
+#[derive(Debug, Clone, PartialEq)]
+pub enum Item {
     Root,
     Rho,
     Phi,
     Xi,
     Sigma,
     Arg(i8),
-    Obs(i16)
+    Obs(usize)
 }
 
 #[derive(Debug, Clone)]
@@ -54,6 +54,12 @@ macro_rules! ph {
     };
 }
 
+impl Path {
+    pub fn item(&self, id : usize) -> Option<&Item> {
+        self.items.get(id)
+    }
+}
+
 impl str::FromStr for Item {
     type Err = PathError;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -65,7 +71,7 @@ impl str::FromStr for Item {
             return Ok(Item::Arg(s.parse::<i8>().unwrap()))
         }
         if RE_OBS.is_match(s) {
-            return Ok(Item::Obs(s[1..].parse::<i16>().unwrap()))
+            return Ok(Item::Obs(s[1..].parse::<usize>().unwrap()))
         }
         match s {
             "R" => Ok(Item::Root),
@@ -139,7 +145,7 @@ impl fmt::Display for Path {
     }
 }
 
-#[rstest(input,
+#[rstest(path,
   case("R"),
   case("&"),
   case("$"),
@@ -148,25 +154,32 @@ impl fmt::Display for Path {
   case("v78"),
   case("0"),
   case("22"))]
-fn parses_all_items(input : String) {
-    assert_eq!(Item::from_str(&input).unwrap().to_string(), input)
+fn parses_all_items(path: String) {
+    assert_eq!(Item::from_str(&path).unwrap().to_string(), path)
 }
 
-#[rstest(input,
+#[rstest(path,
   case("v5.&.0.^.@.$.81"),
   case("R.0.&.3.^"),
   case("$.0"),
   case("$.0"))]
-pub fn parses_and_prints(input : String) {
-    assert_eq!(ph!(&input).to_string(), input)
+pub fn parses_and_prints(path: String) {
+    assert_eq!(ph!(&path).to_string(), path)
 }
 
-#[rstest(input,
+#[rstest(path,
   #[should_panic] case("v5.0.v3"),
   #[should_panic] case("R.R"),
   #[should_panic] case("5"),
   #[should_panic] case("invalid syntax"),
   #[should_panic] case("$  .  5"))]
-pub fn fails_on_incorrect_path(input : String) {
-    ph!(&input);
+pub fn fails_on_incorrect_path(path: String) {
+    ph!(&path);
+}
+
+#[rstest]
+#[case("$.0", 0, Item::Xi)]
+pub fn fetches_item_from_path(#[case] path : String, #[case] idx : usize,
+    #[case] expected : Item) {
+    assert_eq!(*ph!(&path).item(idx).unwrap(), expected);
 }

@@ -82,7 +82,6 @@ pub fn main() {
         ),
         ..Default::default()
     };
-    let x = 17;
-    let fibo = emu.dataize(x);
-    print!("{}th Fibonacci number is {}\n", x, fibo)
+    let fibo = emu.dataize(0);
+    print!("17th Fibonacci number is {}\n", fibo)
 }

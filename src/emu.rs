@@ -21,6 +21,7 @@
 use crate::directives::Directives;
 use crate::obs::Obs;
 use crate::primitives::Data;
+use crate::path::{Item, Path};
 
 #[derive(Default)]
 pub struct Emu {
@@ -39,7 +40,7 @@ impl Emu {
         Emu { obses: [self.obses, vec![obs]].concat(), ..self }
     }
 
-    pub fn dataize(self, id: usize) -> Data {
+    pub fn dataize(&self, id: usize) -> Data {
         let obs = &self.obses[id];
         match obs {
             Obs::Empty => {
@@ -49,7 +50,10 @@ impl Emu {
                 *data
             },
             Obs::Abstract(phi, args) => {
-                self.dataize(1)
+                match phi.item(0).unwrap() {
+                    Item::Obs(id) => self.dataize(*id),
+                    _ => panic!("Invalid path")
+                }
             },
             Obs::Atom(id, rho, args) => {
                 0
