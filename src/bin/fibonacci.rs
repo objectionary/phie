@@ -21,29 +21,29 @@
 extern crate phi_emu;
 
 use phi_emu::directives::Directives;
-use phi_emu::obs::Obs;
 use phi_emu::emu::Emu;
+use phi_emu::obs::Obs;
 use phi_emu::path::Path;
-use std::str::FromStr;
 use phi_emu::ph;
+use std::str::FromStr;
 
 pub fn main() {
     let emu = Emu {
         obses: Vec::from([
-            Obs::Data(ph!("v3"), 0x11), // v0
-            Obs::Copy(ph!("v2"), vec![ph!("v0")]), // v1
-            Obs::Abstract(ph!("v12"), vec![]), // v2
-            Obs::Empty, // v3
-            Obs::Data(ph!("v3"), 0x02), // v4
-            Obs::Atom(7, ph!("$.0"), vec![ph!("v4")]), // v5
-            Obs::Data(ph!("v3"), 0x01), // v6
-            Obs::Atom(7, ph!("$.0"), vec![ph!("v6")]), // v7
-            Obs::Copy(ph!("v2"), vec![ph!("v7")]), // v8
-            Obs::Copy(ph!("v2"), vec![ph!("v5")]), // v9
-            Obs::Atom(11, ph!("v8"), vec![ph!("v9")]), // v10
-            Obs::Atom(5, ph!("$.0"), vec![ph!("v4")]), // v11
+            Obs::Data(ph!("v3"), 0x11),                             // v0
+            Obs::Copy(ph!("v2"), vec![ph!("v0")]),                  // v1
+            Obs::Abstract(ph!("v12"), vec![]),                      // v2
+            Obs::Empty,                                             // v3
+            Obs::Data(ph!("v3"), 0x02),                             // v4
+            Obs::Atom(7, ph!("$.0"), vec![ph!("v4")]),              // v5
+            Obs::Data(ph!("v3"), 0x01),                             // v6
+            Obs::Atom(7, ph!("$.0"), vec![ph!("v6")]),              // v7
+            Obs::Copy(ph!("v2"), vec![ph!("v7")]),                  // v8
+            Obs::Copy(ph!("v2"), vec![ph!("v5")]),                  // v9
+            Obs::Atom(11, ph!("v8"), vec![ph!("v9")]),              // v10
+            Obs::Atom(5, ph!("$.0"), vec![ph!("v4")]),              // v11
             Obs::Atom(15, ph!("v11"), vec![ph!("v6"), ph!("v10")]), // v12
-            Obs::Empty, // v13
+            Obs::Empty,                                             // v13
         ]),
         directives: Directives::parse(
             "

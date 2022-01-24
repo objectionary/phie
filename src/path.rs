@@ -18,15 +18,15 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+use lazy_static::lazy_static;
+use regex::Regex;
+use rstest::rstest;
 use std::fmt;
 use std::str::{self, FromStr};
-use regex::Regex;
-use lazy_static::lazy_static;
-use rstest::rstest;
 
 #[derive(Debug, Clone)]
 pub struct PathError {
-    msg : String
+    msg: String,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -37,25 +37,23 @@ pub enum Item {
     Xi,
     Sigma,
     Arg(i8),
-    Obs(usize)
+    Obs(usize),
 }
 
 #[derive(Debug, Clone)]
 pub struct Path {
-    items : Vec<Item>
+    items: Vec<Item>,
 }
 
 #[macro_export]
 macro_rules! ph {
-    ($s:expr) => {
-        {
-            Path::from_str($s).unwrap()
-        }
-    };
+    ($s:expr) => {{
+        Path::from_str($s).unwrap()
+    }};
 }
 
 impl Path {
-    pub fn item(&self, id : usize) -> Option<&Item> {
+    pub fn item(&self, id: usize) -> Option<&Item> {
         self.items.get(id)
     }
 }
@@ -68,10 +66,10 @@ impl str::FromStr for Item {
             static ref RE_OBS: Regex = Regex::new("^v\\d+$").unwrap();
         }
         if RE_ARG.is_match(s) {
-            return Ok(Item::Arg(s.parse::<i8>().unwrap()))
+            return Ok(Item::Arg(s.parse::<i8>().unwrap()));
         }
         if RE_OBS.is_match(s) {
-            return Ok(Item::Obs(s[1..].parse::<usize>().unwrap()))
+            return Ok(Item::Obs(s[1..].parse::<usize>().unwrap()));
         }
         match s {
             "R" => Ok(Item::Root),
@@ -79,21 +77,23 @@ impl str::FromStr for Item {
             "$" => Ok(Item::Xi),
             "@" => Ok(Item::Phi),
             "&" => Ok(Item::Sigma),
-            _ => Err(PathError { msg: format!("Unknown item '{}'", s) })
+            _ => Err(PathError {
+                msg: format!("Unknown item '{}'", s),
+            }),
         }
     }
 }
 
 impl fmt::Display for Item {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let s : String = match self {
+        let s: String = match self {
             Item::Root => "R".to_owned(),
             Item::Rho => "^".to_owned(),
             Item::Phi => "@".to_owned(),
             Item::Xi => "$".to_owned(),
             Item::Sigma => "&".to_owned(),
             Item::Arg(i) => format!("{}", i),
-            Item::Obs(i) => format!("v{}", i)
+            Item::Obs(i) => format!("v{}", i),
         };
         f.write_str(&*s)
     }
@@ -101,35 +101,41 @@ impl fmt::Display for Item {
 
 type CheckFn = fn(&Path) -> Option<&Item>;
 struct Check {
-    check : CheckFn,
-    msg : &'static str
+    check: CheckFn,
+    msg: &'static str,
 }
 
 impl str::FromStr for Path {
     type Err = PathError;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         lazy_static! {
-            static ref CHECKS : [Check; 3] = [
+            static ref CHECKS: [Check; 3] = [
                 Check {
-                    check: |p : &Path| p.items[1..].iter().find(|i| matches!(i, Item::Obs(_))),
+                    check: |p: &Path| p.items[1..].iter().find(|i| matches!(i, Item::Obs(_))),
                     msg: "Obs can only stay at the first position"
                 },
                 Check {
-                    check: |p : &Path| p.items[1..].iter().find(|i| matches!(i, Item::Root)),
+                    check: |p: &Path| p.items[1..].iter().find(|i| matches!(i, Item::Root)),
                     msg: "Can only start a path"
                 },
                 Check {
-                    check: |p : &Path| p.items[0..1].iter().find(|i| matches!(i, Item::Arg(_))),
+                    check: |p: &Path| p.items[0..1].iter().find(|i| matches!(i, Item::Arg(_))),
                     msg: "Argument number can't start a path"
                 }
             ];
         }
-        let p = Path { items : s.split('.').map(|i| Item::from_str(i).unwrap()).collect() };
+        let p = Path {
+            items: s.split('.').map(|i| Item::from_str(i).unwrap()).collect(),
+        };
         for (pos, check) in CHECKS.iter().enumerate() {
             let item = (check.check)(&p);
             if item.is_some() {
-                let mut msg : String = String::new();
-                msg.push_str(&format!("The {}th item '{}' is wrong; ", pos, item.unwrap()));
+                let mut msg: String = String::new();
+                msg.push_str(&format!(
+                    "The {}th item '{}' is wrong; ",
+                    pos,
+                    item.unwrap()
+                ));
                 msg.push_str(check.msg);
                 msg.push_str(&format!("; in '{}'", s));
                 return Err(PathError { msg });
@@ -141,28 +147,39 @@ impl str::FromStr for Path {
 
 impl fmt::Display for Path {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.write_str(&self.items.iter().map(|i| i.to_string()).collect::<Vec<String>>().join("."))
+        f.write_str(
+            &self
+                .items
+                .iter()
+                .map(|i| i.to_string())
+                .collect::<Vec<String>>()
+                .join("."),
+        )
     }
 }
 
-#[rstest(path,
-  case("R"),
-  case("&"),
-  case("$"),
-  case("^"),
-  case("@"),
-  case("v78"),
-  case("0"),
-  case("22"))]
+#[rstest(
+    path,
+    case("R"),
+    case("&"),
+    case("$"),
+    case("^"),
+    case("@"),
+    case("v78"),
+    case("0"),
+    case("22")
+)]
 fn parses_all_items(path: String) {
     assert_eq!(Item::from_str(&path).unwrap().to_string(), path)
 }
 
-#[rstest(path,
-  case("v5.&.0.^.@.$.81"),
-  case("R.0.&.3.^"),
-  case("$.0"),
-  case("$.0"))]
+#[rstest(
+    path,
+    case("v5.&.0.^.@.$.81"),
+    case("R.0.&.3.^"),
+    case("$.0"),
+    case("$.0")
+)]
 pub fn parses_and_prints(path: String) {
     assert_eq!(ph!(&path).to_string(), path)
 }
@@ -179,7 +196,6 @@ pub fn fails_on_incorrect_path(path: String) {
 
 #[rstest]
 #[case("$.0", 0, Item::Xi)]
-pub fn fetches_item_from_path(#[case] path : String, #[case] idx : usize,
-    #[case] expected : Item) {
+pub fn fetches_item_from_path(#[case] path: String, #[case] idx: usize, #[case] expected: Item) {
     assert_eq!(*ph!(&path).item(idx).unwrap(), expected);
 }

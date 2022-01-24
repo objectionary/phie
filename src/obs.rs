@@ -18,8 +18,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-use crate::primitives::*;
 use crate::path::Path;
+use crate::primitives::*;
 
 #[derive(Clone)]
 pub enum Obs {
@@ -36,5 +36,5 @@ pub enum Obs {
     Abstract(Path, Vec<Path>), // phi + args
 
     // seq 42 7
-    Copy(Path, Vec<Path>) // sup + args
+    Copy(Path, Vec<Path>), // sup + args
 }

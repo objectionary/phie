@@ -31,8 +31,6 @@ pub struct Directives {
 
 impl Directives {
     pub fn parse(text: &'static str) -> Directives {
-        Directives {
-            all: vec![]
-        }
+        Directives { all: vec![] }
     }
 }

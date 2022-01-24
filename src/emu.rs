@@ -20,8 +20,8 @@
 
 use crate::directives::Directives;
 use crate::obs::Obs;
-use crate::primitives::Data;
 use crate::path::{Item, Path};
+use crate::primitives::Data;
 
 #[derive(Default)]
 pub struct Emu {
@@ -33,11 +33,16 @@ pub struct Emu {
 
 impl Emu {
     pub fn empty() -> Emu {
-        Emu { ..Default::default() }
+        Emu {
+            ..Default::default()
+        }
     }
 
-    pub fn with(self, obs : Obs) -> Emu {
-        Emu { obses: [self.obses, vec![obs]].concat(), ..self }
+    pub fn with(self, obs: Obs) -> Emu {
+        Emu {
+            obses: [self.obses, vec![obs]].concat(),
+            ..self
+        }
     }
 
     pub fn dataize(&self, id: usize) -> Data {
@@ -45,22 +50,14 @@ impl Emu {
         match obs {
             Obs::Empty => {
                 panic!("Can't dataize an empty object")
-            },
-            Obs::Data(sup, data) => {
-                *data
-            },
-            Obs::Abstract(phi, args) => {
-                match phi.item(0).unwrap() {
-                    Item::Obs(id) => self.dataize(*id),
-                    _ => panic!("Invalid path")
-                }
-            },
-            Obs::Atom(id, rho, args) => {
-                0
-            },
-            Obs::Copy(rho, args) => {
-                0
             }
+            Obs::Data(sup, data) => *data,
+            Obs::Abstract(phi, args) => match phi.item(0).unwrap() {
+                Item::Obs(id) => self.dataize(*id),
+                _ => panic!("Invalid path"),
+            },
+            Obs::Atom(id, rho, args) => 0,
+            Obs::Copy(rho, args) => 0,
         }
     }
 }
