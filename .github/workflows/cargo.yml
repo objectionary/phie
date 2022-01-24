@@ -10,6 +10,6 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
-      - run: cargo run
       - run: cargo test
+      - run: target/debug/fibonacci 17 100
       - run: cargo fmt --check
