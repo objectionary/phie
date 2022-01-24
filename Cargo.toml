@@ -4,3 +4,6 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+regex = "1.5.4"
+lazy_static = "1.4.0"
+rstest = "0.12.0"

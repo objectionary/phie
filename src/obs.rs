@@ -19,62 +19,22 @@
 // SOFTWARE.
 
 use crate::primitives::*;
+use crate::path::Path;
 
-#[derive(Default, Clone)]
-pub struct Obs {
-    pub atom: i16,
-    pub data: Option<Data>,
-    pub phi: Path,
-    pub rho: Path,
-    pub sup: Path,
-    pub args: Vec<Path>
-}
+#[derive(Clone)]
+pub enum Obs {
+    Empty,
 
-impl Obs {
-    pub fn with(self, a: Path) -> Obs {
-        Obs {
-            args: [self.args, vec![a]].concat(),
-            ..self
-        }
-    }
+    // int(42)
+    Data(Path, Data), // sup + data
 
-    pub fn empty() -> Obs {
-        Obs {
-            ..Default::default()
-        }
-    }
+    // 42.add 7
+    Atom(i16, Path, Vec<Path>), // atom + rho + args
 
-    pub fn data(sup: Path, data: Data) -> Obs {
-        Obs {
-            sup,
-            data: Some(data),
-            ..Default::default()
-        }
-    }
+    // [a b] > foo
+    //   stdout "Hello" > @
+    Abstract(Path, Vec<Path>), // phi + args
 
-    pub fn copy(sup: Path) -> Obs {
-        Obs {
-            sup,
-            ..Default::default()
-        }
-    }
-
-    pub fn atom(atom: i16, rho: Path) -> Obs {
-        Obs {
-            atom, rho,
-            ..Default::default()
-        }
-    }
-
-    pub fn decorate(phi: Path) -> Obs {
-        Obs {
-            phi,
-            ..Default::default()
-        }
-    }
-}
-
-#[test]
-pub fn makes_empty_obs() {
-    assert!(Obs::empty().args.is_empty())
+    // seq 42 7
+    Copy(Path, Vec<Path>) // sup + args
 }

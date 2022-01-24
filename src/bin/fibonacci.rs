@@ -23,31 +23,34 @@ extern crate phi_emu;
 use phi_emu::directives::Directives;
 use phi_emu::obs::Obs;
 use phi_emu::emu::Emu;
+use phi_emu::path::Path;
+use std::str::FromStr;
+use phi_emu::ph;
 
 pub fn main() {
     let emu = Emu {
         obses: Vec::from([
-            Obs::data("v3", 0x11), // v0
-            Obs::copy("v2").with("v0"), // v1
-            Obs::decorate("v12"), // v2
-            Obs::empty(), // v3
-            Obs::data("v3", 0x02), // v4
-            Obs::atom(7, "$.0").with("v4"), // v5
-            Obs::data("v3", 0x01), // v6
-            Obs::atom(7, "$.0").with("v6"), // v7
-            Obs::copy("v2").with("v7"), // v8
-            Obs::copy("v2").with("v5"), // v9
-            Obs::atom(11, "v8").with("v9"), // v10
-            Obs::atom(5, "$.0").with("v4"), // v11
-            Obs::atom(15, "v11").with("v6").with("v10"), // v12
-            Obs::empty(), // v13
+            Obs::Data(ph!("v3"), 0x11), // v0
+            Obs::Copy(ph!("v2"), vec![ph!("v0")]), // v1
+            Obs::Abstract(ph!("v12"), vec![]), // v2
+            Obs::Empty, // v3
+            Obs::Data(ph!("v3"), 0x02), // v4
+            Obs::Atom(7, ph!("$.0"), vec![ph!("v4")]), // v5
+            Obs::Data(ph!("v3"), 0x01), // v6
+            Obs::Atom(7, ph!("$.0"), vec![ph!("v6")]), // v7
+            Obs::Copy(ph!("v2"), vec![ph!("v7")]), // v8
+            Obs::Copy(ph!("v2"), vec![ph!("v5")]), // v9
+            Obs::Atom(11, ph!("v8"), vec![ph!("v9")]), // v10
+            Obs::Atom(5, ph!("$.0"), vec![ph!("v4")]), // v11
+            Obs::Atom(15, ph!("v11"), vec![ph!("v6"), ph!("v10")]), // v12
+            Obs::Empty, // v13
         ]),
         directives: Directives::parse(
             "
             int.less::
-              DATAIZE .^
-              DATAIZE .0
-              SUB .0 FROM .^ TO r1
+              DATAIZE $.^
+              DATAIZE $.0
+              SUB $.0 FROM $.^ TO r1
               JUMP less IF r1 GT
               WRITE 0x00 TO r2
               RETURN r2
@@ -55,25 +58,25 @@ pub fn main() {
               WRITE 0x01 TO r2
               RETURN r2
             int.sub::
-              DATAIZE .^
-              DATAIZE .0
-              SUB .0 FROM .^ TO r1
+              DATAIZE $.^
+              DATAIZE $.0
+              SUB $.0 FROM $.^ TO r1
               RETURN r1
             int.add::
-              DATAIZE .^
-              DATAIZE .0
-              ADD .^ AND .0 TO r1
+              DATAIZE $.^
+              DATAIZE $.0
+              ADD $.^ AND $.0 TO r1
               RETURN r1
             bool.if::
-              DATAIZE .^
-              SUB 0x01 FROM .^ TO r1
+              DATAIZE $.^
+              SUB 0x01 FROM $.^ TO r1
               JUMP yes IF r1 EQ
-              DATAIZE .1
-              READ .1 TO r1
+              DATAIZE $.1
+              READ $.1 TO r1
               RETURN r1
               yes:
-              DATAIZE .0
-              READ .0 TO r1
+              DATAIZE $.0
+              READ $.0 TO r1
               RETURN r1
             ",
         ),

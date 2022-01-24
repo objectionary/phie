@@ -20,6 +20,4 @@
 
 pub type Data = i64;
 
-pub type Path = &'static str;
-
 pub type Atom = &'static String;

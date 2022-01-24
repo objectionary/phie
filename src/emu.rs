@@ -41,15 +41,36 @@ impl Emu {
 
     pub fn dataize(self, id: usize) -> Data {
         let obs = &self.obses[id];
-        if obs.data.is_some() {
-            return obs.data.unwrap();
+        match obs {
+            Obs::Empty => {
+                panic!("Can't dataize an empty object")
+            },
+            Obs::Data(sup, data) => {
+                *data
+            },
+            Obs::Abstract(phi, args) => {
+                self.dataize(1)
+            },
+            Obs::Atom(id, rho, args) => {
+                0
+            },
+            Obs::Copy(rho, args) => {
+                0
+            }
         }
-        return 1;
     }
 }
 
 #[test]
 pub fn dataize_simple_data() {
-    let emu = Emu::empty().with(Obs::data("v3", 42));
+    let emu = Emu::empty().with(Obs::Data("R".parse().unwrap(), 42));
     assert_eq!(42, emu.dataize(0));
+}
+
+#[test]
+pub fn with_simple_decorator() {
+    let emu = Emu::empty()
+        .with(Obs::Data("R".parse().unwrap(), 42))
+        .with(Obs::Abstract("v0".parse().unwrap(), vec![]));
+    assert_eq!(42, emu.dataize(1));
 }

@@ -21,4 +21,5 @@
 pub mod directives;
 pub mod emu;
 pub mod obs;
+pub mod path;
 pub mod primitives;
