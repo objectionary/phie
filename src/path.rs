@@ -40,7 +40,7 @@ pub enum Item {
     Obs(usize),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Path {
     items: Vec<Item>,
 }

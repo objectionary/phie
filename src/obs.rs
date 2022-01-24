@@ -19,7 +19,7 @@
 // SOFTWARE.
 
 use crate::path::Path;
-use crate::primitives::*;
+use crate::Data;
 
 #[derive(Clone)]
 pub enum Obs {

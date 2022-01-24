@@ -20,7 +20,7 @@
 
 extern crate phi_emu;
 
-use phi_emu::directives::Directives;
+use phi_emu::atoms::Atom;
 use phi_emu::emu::Emu;
 use phi_emu::obs::Obs;
 use phi_emu::path::Path;
@@ -33,57 +33,75 @@ pub fn main() {
     let input = args[1].parse().unwrap();
     let cycles = args[2].parse().unwrap();
     let emu = Emu {
-        obses: Vec::from([
-            Obs::Data(ph!("v3"), input),                            // v0
-            Obs::Copy(ph!("v2"), vec![ph!("v0")]),                  // v1
-            Obs::Abstract(ph!("v12"), vec![]),                      // v2
-            Obs::Empty,                                             // v3
-            Obs::Data(ph!("v3"), 0x02),                             // v4
-            Obs::Atom(7, ph!("$.0"), vec![ph!("v4")]),              // v5
-            Obs::Data(ph!("v3"), 0x01),                             // v6
-            Obs::Atom(7, ph!("$.0"), vec![ph!("v6")]),              // v7
-            Obs::Copy(ph!("v2"), vec![ph!("v7")]),                  // v8
-            Obs::Copy(ph!("v2"), vec![ph!("v5")]),                  // v9
-            Obs::Atom(11, ph!("v8"), vec![ph!("v9")]),              // v10
-            Obs::Atom(5, ph!("$.0"), vec![ph!("v4")]),              // v11
-            Obs::Atom(15, ph!("v11"), vec![ph!("v6"), ph!("v10")]), // v12
-            Obs::Empty,                                             // v13
-        ]),
-        directives: Directives::parse(
-            "
-            int.less::
-              DATAIZE $.^
-              DATAIZE $.0
-              SUB $.0 FROM $.^ TO r1
-              JUMP less IF r1 GT
-              WRITE 0x00 TO r2
-              RETURN r2
-              less:
-              WRITE 0x01 TO r2
-              RETURN r2
-            int.sub::
-              DATAIZE $.^
-              DATAIZE $.0
-              SUB $.0 FROM $.^ TO r1
-              RETURN r1
-            int.add::
-              DATAIZE $.^
-              DATAIZE $.0
-              ADD $.^ AND $.0 TO r1
-              RETURN r1
-            bool.if::
-              DATAIZE $.^
-              SUB 0x01 FROM $.^ TO r1
-              JUMP yes IF r1 EQ
-              DATAIZE $.1
-              READ $.1 TO r1
-              RETURN r1
-              yes:
-              DATAIZE $.0
-              READ $.0 TO r1
-              RETURN r1
-            ",
-        ),
+        obses: vec![
+            Obs::Data(ph!("v3"), input),                           // v0
+            Obs::Copy(ph!("v2"), vec![ph!("v0")]),                 // v1
+            Obs::Abstract(ph!("v12"), vec![]),                     // v2
+            Obs::Empty,                                            // v3
+            Obs::Data(ph!("v3"), 0x02),                            // v4
+            Obs::Atom(1, ph!("$.0"), vec![ph!("v4")]),             // v5
+            Obs::Data(ph!("v3"), 0x01),                            // v6
+            Obs::Atom(1, ph!("$.0"), vec![ph!("v6")]),             // v7
+            Obs::Copy(ph!("v2"), vec![ph!("v7")]),                 // v8
+            Obs::Copy(ph!("v2"), vec![ph!("v5")]),                 // v9
+            Obs::Atom(2, ph!("v8"), vec![ph!("v9")]),              // v10
+            Obs::Atom(0, ph!("$.0"), vec![ph!("v4")]),             // v11
+            Obs::Atom(3, ph!("v11"), vec![ph!("v6"), ph!("v10")]), // v12
+            Obs::Empty,                                            // v13
+        ],
+        atoms: vec![
+            Atom::from_str(
+                // int.less
+                "
+                DATAIZE $.^
+                DATAIZE $.0
+                SUB $.0 FROM $.^ TO #0
+                JUMP less IF #0 GT
+                WRITE 0x00 TO #1
+                RETURN #1
+                less:
+                WRITE 0x01 TO #1
+                RETURN #1
+                ",
+            )
+            .unwrap(),
+            Atom::from_str(
+                // int.sub
+                "
+                DATAIZE $.^
+                DATAIZE $.0
+                SUB $.0 FROM $.^ TO r#0
+                RETURN #0
+                ",
+            )
+            .unwrap(),
+            Atom::from_str(
+                // int.add
+                "
+                DATAIZE $.^
+                DATAIZE $.0
+                ADD $.^ AND $.0 TO #0
+                RETURN #0
+                ",
+            )
+            .unwrap(),
+            Atom::from_str(
+                // bool.if
+                "
+                DATAIZE $.^
+                SUB 0x01 FROM $.^ TO #0
+                JUMP yes IF #0 EQ
+                DATAIZE $.1
+                READ $.1 TO #0
+                RETURN #0
+                yes:
+                DATAIZE $.0
+                READ $.0 TO #0
+                RETURN #0
+                ",
+            )
+            .unwrap(),
+        ],
         ..Default::default()
     };
     let mut total = 0;
