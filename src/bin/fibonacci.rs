@@ -20,12 +20,12 @@
 
 extern crate phi_emu;
 
-use std::env;
 use phi_emu::directives::Directives;
 use phi_emu::emu::Emu;
 use phi_emu::obs::Obs;
 use phi_emu::path::Path;
 use phi_emu::ph;
+use std::env;
 use std::str::FromStr;
 
 pub fn main() {

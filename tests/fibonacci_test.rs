@@ -23,7 +23,8 @@ use assert_cmd::Command;
 #[test]
 fn calculates_fibo() {
     let mut cmd = Command::cargo_bin("fibonacci").unwrap();
-    cmd.arg("17").arg("5")
+    cmd.arg("17")
+        .arg("5")
         .assert()
         .success()
         .stdout("17-th Fibonacci number is 17\nTotal is 85\n");
