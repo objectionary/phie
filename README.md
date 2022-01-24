@@ -1,4 +1,4 @@
-[![make](https://github.com/yegor256/phi-emu/actions/workflows/make.yml/badge.svg)](https://github.com/yegor256/phi-emu/actions/workflows/make.yml)
+[![make](https://github.com/yegor256/phi-emu/actions/workflows/cargo.yml/badge.svg)](https://github.com/yegor256/phi-emu/actions/workflows/cargo.yml)
 
 It's a simple emulator of phiPU that can execute 
 [EO](https://www.eolang.org) programs. 

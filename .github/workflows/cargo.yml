@@ -1,4 +1,4 @@
-name: make
+name: cargo
 on:
   push:
   pull_request:
