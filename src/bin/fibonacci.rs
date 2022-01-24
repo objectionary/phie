@@ -20,6 +20,7 @@
 
 extern crate phi_emu;
 
+use std::env;
 use phi_emu::directives::Directives;
 use phi_emu::emu::Emu;
 use phi_emu::obs::Obs;
@@ -28,9 +29,12 @@ use phi_emu::ph;
 use std::str::FromStr;
 
 pub fn main() {
+    let args: Vec<String> = env::args().collect();
+    let input = args[1].parse().unwrap();
+    let cycles = args[2].parse().unwrap();
     let emu = Emu {
         obses: Vec::from([
-            Obs::Data(ph!("v3"), 0x11),                             // v0
+            Obs::Data(ph!("v3"), input),                            // v0
             Obs::Copy(ph!("v2"), vec![ph!("v0")]),                  // v1
             Obs::Abstract(ph!("v12"), vec![]),                      // v2
             Obs::Empty,                                             // v3
@@ -82,6 +86,12 @@ pub fn main() {
         ),
         ..Default::default()
     };
-    let fibo = emu.dataize(0);
-    print!("17th Fibonacci number is {}\n", fibo)
+    let mut total = 0;
+    let mut f = 0;
+    for _ in 0..cycles {
+        f = emu.dataize(0);
+        total += f;
+    }
+    println!("{}-th Fibonacci number is {}", input, f);
+    println!("Total is {}", total);
 }
