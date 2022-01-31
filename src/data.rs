@@ -18,9 +18,4 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-pub mod atoms;
-pub mod data;
-pub mod emu;
-pub mod objects;
-pub mod path;
-pub mod register;
+type Data = i64;

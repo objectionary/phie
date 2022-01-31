@@ -18,23 +18,48 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-use crate::path::Path;
+use crate::path::{Path, Item};
 use crate::Data;
+use std::collections::HashMap;
+use std::str::FromStr;
 
-#[derive(Clone)]
-pub enum Obs {
-    Empty,
+#[derive(Default, Clone)]
+pub struct Object {
+    pub data: Data,
+    pub atom: Atom,
+    pub phi: Option<usize>,
+    pub rho: Option<usize>,
+    pub kids: HashMap<Item, Path>
+}
 
-    // int(42)
-    Data(Path, Data), // sup + data
+impl Object {
+    pub fn empty() -> Obs {
+        Obs { ..Default::default() }
+    }
 
-    // 42.add 7
-    Atom(i16, Path, Vec<Path>), // atom + rho + args
+    pub fn push_atom(mut self, a: usize) -> Obs {
+        self.atom = Some(a);
+        self
+    }
 
-    // [a b] > foo
-    //   stdout "Hello" > @
-    Abstract(Path, Vec<Path>), // phi + args
+    pub fn push_data(mut self, d: Data) -> Obs {
+        self.data = Some(d);
+        self
+    }
 
-    // seq 42 7
-    Copy(Path, Vec<Path>), // sup + args
+    pub fn push(mut self, i: Item, p: Path) -> Obs {
+        self.kids.insert(i, p);
+        self
+    }
+}
+
+#[test]
+fn makes_simple_obs() {
+    let obs = Obs::empty()
+        .push_atom(1)
+        .push_data(44)
+        .push(Item::from_str("^").unwrap(), Path::from_str("v4").unwrap());
+    assert_eq!(obs.atom.unwrap(), 1);
+    assert_eq!(obs.data.unwrap(), 42);
+    assert_eq!(obs.kids.len(), 1)
 }

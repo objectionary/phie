@@ -19,11 +19,11 @@
 // SOFTWARE.
 
 use crate::path::Path;
-use crate::Data;
 use crate::register::Register;
+use crate::Data;
+use itertools::Itertools;
 use std::str::{self, FromStr};
 use strum_macros::EnumString;
-use itertools::Itertools;
 
 #[derive(Debug, Clone)]
 pub struct DirectiveError {
@@ -36,16 +36,18 @@ pub enum Condition {
     GTZ,
     GTEZ,
     LTEZ,
-    EQZ
+    EQZ,
 }
 
 #[derive(Clone)]
 pub enum Directive {
+    /// Anchor point for future JUMPs
     LABEL(String),
+
+    /// Dataize the OBS by this path
     DATAIZE(Path),
     RETURN(Register),
     JUMP(String, Register, Condition),
-    WRITE(Data, Register),
     LOAD(Path, Register),
     SAVE(Register, Path),
     SUB(Path, Path, Register),
@@ -72,24 +74,20 @@ impl str::FromStr for Directive {
                 Path::from_str(parts.get(1).unwrap()).unwrap(),
             )),
             "RETURN" => Ok(Directive::RETURN(
-                Register::from_str(parts.get(1).unwrap()).unwrap()
+                Register::from_str(parts.get(1).unwrap()).unwrap(),
             )),
             "JUMP" => Ok(Directive::JUMP(
                 String::from_str(parts.get(1).unwrap()).unwrap(),
                 Register::from_str(parts.get(3).unwrap()).unwrap(),
-                Condition::from_str(parts.get(4).unwrap()).unwrap()
-            )),
-            "WRITE" => Ok(Directive::WRITE(
-                parts.get(1).unwrap().parse::<i64>().unwrap(),
-                Register::from_str(parts.get(3).unwrap()).unwrap()
+                Condition::from_str(parts.get(4).unwrap()).unwrap(),
             )),
             "LOAD" => Ok(Directive::LOAD(
                 Path::from_str(parts.get(1).unwrap()).unwrap(),
-                Register::from_str(parts.get(3).unwrap()).unwrap()
+                Register::from_str(parts.get(3).unwrap()).unwrap(),
             )),
             "SAVE" => Ok(Directive::SAVE(
                 Register::from_str(parts.get(3).unwrap()).unwrap(),
-                Path::from_str(parts.get(1).unwrap()).unwrap()
+                Path::from_str(parts.get(1).unwrap()).unwrap(),
             )),
             "ADD" => Ok(Directive::ADD(
                 Path::from_str(parts.get(1).unwrap()).unwrap(),
@@ -132,7 +130,9 @@ impl Atom {
 
     /// Find the position of the provided label.
     pub fn label_position(&self, txt: &str) -> Option<(usize, &Directive)> {
-        self.dirs.iter().find_position(|d| matches!(d, Directive::LABEL(t) if t == txt))
+        self.dirs
+            .iter()
+            .find_position(|d| matches!(d, Directive::LABEL(t) if t == txt))
     }
 }
 
@@ -143,7 +143,7 @@ impl Condition {
             Condition::GTEZ => val >= 0,
             Condition::LTZ => val < 0,
             Condition::LTEZ => val <= 0,
-            Condition::EQZ => val == 0
+            Condition::EQZ => val == 0,
         }
     }
 }

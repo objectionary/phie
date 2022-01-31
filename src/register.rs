@@ -60,19 +60,23 @@ impl fmt::Display for Register {
     }
 }
 
-#[rstest(
-    txt,
-    case("#0"),
-    case("#9"),
-    case("#F"),
-    #[should_panic] case("#"),
-    #[should_panic] case("#15"),
-    #[should_panic] case("#f"),
-    #[should_panic] case("# 99"),
-    #[should_panic] case("bad syntax")
-)]
-fn parses_all_texts(txt: String) {
+#[rstest]
+#[case("#0")]
+#[case("#9")]
+#[case("#F")]
+#[case("#")]
+fn parses_all_texts(#[case] txt: String) {
     assert_eq!(Register::from_str(&txt).unwrap().to_string(), txt)
+}
+
+#[rstest]
+#[case("#15")]
+#[case("#f")]
+#[case("# 99")]
+#[case("bad syntax")]
+#[should_panic]
+fn fails_on_all_bad_texts(#[case] txt: String) {
+    Register::from_str(&txt).unwrap();
 }
 
 #[test]

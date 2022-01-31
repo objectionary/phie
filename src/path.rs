@@ -29,7 +29,7 @@ pub struct PathError {
     msg: String,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Item {
     Root,
     Rho,
@@ -55,6 +55,10 @@ macro_rules! ph {
 impl Path {
     pub fn item(&self, id: usize) -> Option<&Item> {
         self.items.get(id)
+    }
+
+    pub fn to_vec(&self) -> Vec<Item> {
+        self.items.to_vec()
     }
 }
 
@@ -158,8 +162,7 @@ impl fmt::Display for Path {
     }
 }
 
-#[rstest(
-    path,
+#[rstest]
     case("R"),
     case("&"),
     case("$"),
@@ -169,28 +172,27 @@ impl fmt::Display for Path {
     case("0"),
     case("22")
 )]
-fn parses_all_items(path: String) {
+fn parses_all_items(#[case] path: String) {
     assert_eq!(Item::from_str(&path).unwrap().to_string(), path)
 }
 
-#[rstest(
-    path,
-    case("v5.&.0.^.@.$.81"),
-    case("R.0.&.3.^"),
-    case("$.0"),
-    case("$.0")
-)]
-pub fn parses_and_prints(path: String) {
+#[rstest]
+#[case("v5.&.0.^.@.$.81")]
+#[case("R.0.&.3.^")]
+#[case("$.0")]
+#[case("$.0")]
+pub fn parses_and_prints(#[case] path: String) {
     assert_eq!(ph!(&path).to_string(), path)
 }
 
-#[rstest(path,
-  #[should_panic] case("v5.0.v3"),
-  #[should_panic] case("R.R"),
-  #[should_panic] case("5"),
-  #[should_panic] case("invalid syntax"),
-  #[should_panic] case("$  .  5"))]
-pub fn fails_on_incorrect_path(path: String) {
+#[rstest]
+#[case("v5.0.v3")]
+#[case("R.R")]
+#[case("5")]
+#[case("invalid syntax")]
+#[case("$  .  5")]
+#[should_panic]
+pub fn fails_on_incorrect_path(#[case] path: String) {
     ph!(&path);
 }
 
