@@ -21,7 +21,9 @@
 use crate::atom::Atom;
 use crate::data::Data;
 use crate::path::{Item, Path};
+use crate::ph;
 use std::collections::HashMap;
+use std::str::FromStr;
 
 pub struct Object {
     pub open: bool,
@@ -31,7 +33,7 @@ pub struct Object {
 }
 
 impl Object {
-    pub fn empty() -> Object {
+    pub fn abstrct() -> Object {
         Object {
             open: true,
             data: None,
@@ -41,16 +43,21 @@ impl Object {
     }
 
     pub fn dataic(d: Data) -> Object {
-        let mut obj = Object::empty();
-        obj.data = Some(d);
-        obj
+        Object {
+            open: true,
+            data: Some(d),
+            atom: None,
+            kids: HashMap::new(),
+        }
     }
 
     pub fn atomic(a: Atom) -> Object {
-        let mut obj = Object::empty();
-        obj.open = false;
-        obj.atom = Some(a);
-        obj
+        Object {
+            open: false,
+            data: None,
+            atom: Some(a),
+            kids: HashMap::new(),
+        }
     }
 
     /// This object is an empty one, with nothing inside.
@@ -70,7 +77,7 @@ impl Object {
     /// use eoc::path::Item;
     /// use eoc::object::Object;
     /// use eoc::ph;
-    /// let mut obj = Object::empty();
+    /// let mut obj = Object::abstrct();
     /// obj.push(Item::Phi, ph!("v13"));
     /// obj.push(Item::Attr(0), ph!("$.1"));
     /// ```
@@ -80,7 +87,8 @@ impl Object {
     }
 
     pub fn with(&self, i: Item, p: Path) -> Object {
-        let mut obj = Object::empty();
+        let mut obj = Object::abstrct();
+        obj.open = self.open;
         obj.atom = self.atom.clone();
         obj.data = self.data.clone();
         obj.kids.extend(self.kids.clone().into_iter());
@@ -91,8 +99,20 @@ impl Object {
 
 #[test]
 fn makes_simple_object() {
-    let mut obj = Object::empty();
+    let mut obj = Object::abstrct();
     obj.push(Item::Attr(1), "v4".parse().unwrap());
     obj.push(Item::Rho, "$.0.@".parse().unwrap());
     assert_eq!(obj.kids.len(), 2)
+}
+
+#[test]
+fn extends_by_making_new_object() {
+    let obj = Object::abstrct()
+        .with(Item::Attr(1), ph!("v14.^"))
+        .with(Item::Phi, ph!("v7.@"))
+        .with(Item::Rho, ph!("$.^.0.0.^.@"));
+    assert_eq!(obj.kids.len(), 3);
+    assert_eq!(obj.open, true);
+    assert!(obj.data.is_none());
+    assert!(obj.atom.is_none());
 }

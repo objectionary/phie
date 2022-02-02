@@ -38,7 +38,7 @@ impl Emu {
     /// additional OBSes.
     pub fn empty() -> Emu {
         Emu {
-            objects: arr![Object::empty(); 256],
+            objects: arr![Object::abstrct(); 256],
             boxes: arr![Dabox::empty(); 256],
             total_boxes: 0,
         }
@@ -141,7 +141,7 @@ pub fn dataize_simple_data() {
 pub fn with_simple_decorator() {
     let mut emu = Emu::empty();
     emu.put(0, Object::dataic(42));
-    let mut kid = Object::empty();
+    let mut kid = Object::abstrct();
     kid.push(Item::Phi, "v1".parse().unwrap());
     emu.put(1, kid);
     assert_eq!(42, emu.dataize(1));
@@ -150,9 +150,9 @@ pub fn with_simple_decorator() {
 #[test]
 pub fn finds_complex_path() {
     let mut emu = Emu::empty();
-    emu.put(1, Object::empty().with(Item::Phi, ph!("v2")));
-    emu.put(2, Object::empty().with(Item::Attr(3), ph!("v1")));
-    emu.put(3, Object::empty().with(Item::Attr(0), ph!("$.3.@")));
+    emu.put(1, Object::abstrct().with(Item::Phi, ph!("v2")));
+    emu.put(2, Object::abstrct().with(Item::Attr(3), ph!("v1")));
+    emu.put(3, Object::abstrct().with(Item::Attr(0), ph!("$.3.@")));
     let bx = emu.new(3, 2);
     assert_eq!(2, emu.find(bx, &ph!("v3.0")).unwrap());
 }
@@ -178,12 +178,12 @@ pub fn summarizes_two_numbers() {
     );
     emu.put(
         2,
-        Object::empty()
+        Object::abstrct()
             .with(Item::Phi, ph!("v1"))
             .with(Item::Attr(0), ph!("v0"))
             .with(Item::Attr(1), ph!("v0")),
     );
-    emu.put(3, Object::empty().with(Item::Phi, ph!("v2")));
+    emu.put(3, Object::abstrct().with(Item::Phi, ph!("v2")));
     let bx = emu.new(3, 3);
     assert_eq!(84, emu.dataize(bx));
 }

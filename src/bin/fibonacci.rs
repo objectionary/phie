@@ -36,11 +36,11 @@ pub fn main() {
     emu.put(0, Object::dataic(input));
     emu.put(
         1,
-        Object::empty()
+        Object::abstrct()
             .with(Item::Phi, ph!("v12"))
             .with(Item::Attr(0), ph!("v0")),
     );
-    emu.put(2, Object::empty().with(Item::Phi, ph!("v12")));
+    emu.put(2, Object::abstrct().with(Item::Phi, ph!("v12")));
     emu.put(4, Object::dataic(2));
     emu.put(
         5,
@@ -57,13 +57,13 @@ pub fn main() {
     );
     emu.put(
         8,
-        Object::empty()
+        Object::abstrct()
             .with(Item::Phi, ph!("v12"))
             .with(Item::Attr(0), ph!("v7")),
     );
     emu.put(
         9,
-        Object::empty()
+        Object::abstrct()
             .with(Item::Phi, ph!("v12"))
             .with(Item::Attr(0), ph!("v5")),
     );
