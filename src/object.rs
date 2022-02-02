@@ -24,6 +24,7 @@ use crate::path::{Item, Path};
 use std::collections::HashMap;
 
 pub struct Object {
+    pub open: bool,
     pub data: Option<Data>,
     pub atom: Option<Atom>,
     pub kids: HashMap<Item, Path>,
@@ -32,6 +33,7 @@ pub struct Object {
 impl Object {
     pub fn empty() -> Object {
         Object {
+            open: true,
             data: None,
             atom: None,
             kids: HashMap::new(),
@@ -46,6 +48,7 @@ impl Object {
 
     pub fn atomic(a: Atom) -> Object {
         let mut obj = Object::empty();
+        obj.open = false;
         obj.atom = Some(a);
         obj
     }

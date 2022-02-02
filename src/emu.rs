@@ -18,6 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+use crate::atom::*;
 use crate::dabox::Dabox;
 use crate::data::Data;
 use crate::object::Object;
@@ -75,10 +76,12 @@ impl Emu {
     pub fn dataize(&mut self, bx: usize) -> Data {
         let ob = self.boxes[bx].object;
         let obj = &self.objects[ob];
+        if obj.open {
+            (&mut self.boxes[bx]).xi = bx;
+        }
         let r = if obj.data.is_some() {
             obj.data.unwrap()
         } else if obj.kids.contains_key(&Item::Phi) {
-            (&mut self.boxes[bx]).xi = bx;
             self.calc(ob, Item::Phi, bx)
         } else if obj.atom.is_some() {
             obj.atom.unwrap()(self, ob, bx)
@@ -152,4 +155,35 @@ pub fn finds_complex_path() {
     emu.put(3, Object::empty().with(Item::Attr(0), ph!("$.3.@")));
     let bx = emu.new(3, 2);
     assert_eq!(2, emu.find(bx, &ph!("v3.0")).unwrap());
+}
+
+#[test]
+pub fn saves_ret_into_dabox() {
+    let mut emu = Emu::empty();
+    emu.put(0, Object::dataic(42));
+    let bx = emu.new(0, 0);
+    assert_eq!(42, emu.dataize(bx));
+    assert_eq!(42, emu.boxes[bx].ret);
+}
+
+#[test]
+pub fn summarizes_two_numbers() {
+    let mut emu = Emu::empty();
+    emu.put(0, Object::dataic(42));
+    emu.put(
+        1,
+        Object::atomic(int_add)
+            .with(Item::Rho, ph!("$.0"))
+            .with(Item::Attr(0), ph!("$.1")),
+    );
+    emu.put(
+        2,
+        Object::empty()
+            .with(Item::Phi, ph!("v1"))
+            .with(Item::Attr(0), ph!("v0"))
+            .with(Item::Attr(1), ph!("v0")),
+    );
+    emu.put(3, Object::empty().with(Item::Phi, ph!("v2")));
+    let bx = emu.new(3, 3);
+    assert_eq!(84, emu.dataize(bx));
 }
