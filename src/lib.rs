@@ -18,9 +18,10 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-pub mod atoms;
+pub mod atom;
+pub mod dabox;
 pub mod data;
 pub mod emu;
-pub mod objects;
+pub mod object;
 pub mod path;
-pub mod register;
+

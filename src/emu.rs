@@ -18,21 +18,17 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-use crate::atoms::Atom;
-use crate::atoms::Directive;
-use crate::objects::Obs;
+use std::collections::HashMap;
+use arr_macro::arr;
+use crate::object::Object;
 use crate::path::{Item, Path};
-use crate::ph;
-use crate::Data;
-use lazy_static::lazy_static;
-use std::str::FromStr;
+use crate::data::Data;
+use crate::dabox::Dabox;
 
-#[derive(Default, Clone)]
 pub struct Emu {
-    pub obses: Vec<Obs>,
-    pub registers: [i64; 16],
-    pub stack: Vec<usize>,
-    pub atoms: Vec<Atom>,
+    pub objects: [Object; 256],
+    pub boxes: [Dabox; 256],
+    pub total_boxes: usize
 }
 
 impl Emu {
@@ -40,145 +36,98 @@ impl Emu {
     /// additional OBSes.
     pub fn empty() -> Emu {
         Emu {
-            ..Default::default()
+            objects: arr![Object::empty(); 256],
+            boxes: arr![Dabox::empty(); 256],
+            total_boxes: 0
         }
     }
 
-    /// Add an additional OBS
-    pub fn push(&mut self, obs: Obs) -> &mut Emu {
-        self.obses.push(obs);
+    /// Add an additional object
+    pub fn put(&mut self, pos: usize, obj: Object) -> &mut Emu {
+        self.objects[pos] = obj;
         self
     }
 
-    /// Add an additional atom
-    pub fn push_atom(&mut self, atom: Atom) -> &mut Emu {
-        self.atoms.push(atom);
-        self
+    /// Calculate sub-object.
+    pub fn calc(&mut self, ob: usize, item: Item, bx: usize) -> Data {
+        let mut dabox = &self.boxes[bx];
+        let obj = &self.objects[ob];
+        let path = self.find(bx, obj.kids.get(&item).unwrap()).unwrap();
+        let sub = self.new(path, dabox.xi);
+        let data = self.dataize(sub);
+        self.delete(sub);
+        data
     }
 
-    /// Add an additional OBS to the stack.
-    pub fn push_stack(&mut self, id: usize) -> &mut Emu {
-        self.stack.push(id);
-        self
-    }
-
-    /// Perform "dataization" procedure on a single OBS and return
-    /// the data found there. The position of the OBS to be dataized
-    /// is taken from the stack.
-    pub fn dataize(&mut self) {
-        let pos = self.stack.last().unwrap();
-        let obs = &self.obses[pos];
-        if obs.atom.is_some() {
-            let data = self.exec(obs.atom.unwrap());
-            obs.ret = Some(data)
-        } else if obs.data.is_some() {
-            obs.ret = obs.data
-        } else if obs.kids.contains_key(&Item::Phi) {
-            let phi = self.find(obs.kids.get(&Item::Phi).unwrap()).unwrap();
-            std::mem::replace(&mut self.stack[pos], phi);
-            self.dataize()
+    /// Perform "dataization" procedure on a single box.
+    pub fn dataize(&mut self, bx: usize) -> Data {
+        let ob = self.boxes[bx].object;
+        let obj = &self.objects[ob];
+        let r = if obj.data.is_some() {
+            obj.data.unwrap()
+        } else if obj.kids.contains_key(&Item::Phi) {
+            (&mut self.boxes[bx]).xi = bx;
+            self.calc(ob, Item::Phi, bx)
+        } else if obj.atom.is_some() {
+            obj.atom.unwrap() (self, ob, bx)
         } else {
-            panic!("Can't dataize an empty OBS #{}", pos)
-        }
+            panic!("Can't dataize empty object #{}", bx)
+        };
+        (&mut self.boxes[bx]).ret = r;
+        r
     }
 
-    /// Execute a single atom by the `id` and return the data it
-    /// produces.
-    fn exec(&mut self, id: usize) -> Data {
-        let atom = &self.atoms[id];
-        let mut ip = 0;
-        loop {
-            let dir = atom.dir(ip).unwrap();
-            match dir {
-                Directive::LABEL(_) => {}
-                Directive::DATAIZE(path) => {
-                    let obs = self.find(path).unwrap();
-                    self.stack.push(obs);
-                    self.dataize();
-                    self.stack.pop()
-                }
-                Directive::RETURN(reg) => return self.registers[reg.num()],
-                Directive::JUMP(label, reg, cond) => {
-                    if cond.is_true(self.registers[reg.num()]) {
-                        ip = atom.label_position(label).unwrap().0;
-                    }
-                }
-                Directive::SUB(left, right, reg) => {
-                    self.registers[reg.num()] = self.obses[self.find(right).unwrap()].ret -
-                        self.obses[self.find(left).unwrap()].ret;
-                }
-                Directive::ADD(left, right, reg) => {
-                    self.registers[reg.num()] = self.obses[self.find(right).unwrap()].ret +
-                        self.obses[self.find(left).unwrap()].ret;
-                }
-                Directive::SAVE(reg, path) => {
-                    self.obses[self.find(left).unwrap()].ret
-                }
-                Directive::LOAD(path, reg) => panic!("LOAD not implemented yet"),
-            }
-        }
+    /// Make new dataization box and return its position ID.
+    pub fn new(&mut self, obj: usize, xi: usize) -> usize {
+        let dabox = Dabox::start(obj, xi);
+        let pos = self.total_boxes;
+        self.total_boxes += 1;
+        self.boxes[pos] = dabox;
+        pos
+    }
+
+    /// Delete dataization box.
+    pub fn delete(&mut self, bx: usize) {
+        self.boxes[bx] = Dabox::empty();
     }
 
     /// Suppose, the incoming path is `^.0.@.2`. We have to find the right
-    /// OBS in the catalog of them and return the position of the found one.
-    fn find(&self, path: &Path) -> Option<usize> {
+    /// object in the catalog of them and return the position of the found one.
+    pub fn find(&self, d: usize, path: &Path) -> Option<usize> {
+        let mut dabox = &self.boxes[d];
         let mut items = path.to_vec();
-        let item = items.remove(0);
-        let mut obs = self.obses.get(self.stack.last());
-        let next = match item {
-            Item::Xi => obs,
-            Item::Rho => obs.kids.get(Item::Rho),
-            _ => panic!("What?")
-        };
-        if items.is_empty() {
-            return next;
+        let mut ret = None;
+        let mut obj : &Object = &self.objects[0];
+        loop {
+            if items.is_empty() {
+                break ret;
+            }
+            let item = items.remove(0);
+            let next = match item {
+                Item::Root => 0,
+                Item::Xi => dabox.xi,
+                Item::Obj(i) => i,
+                _ => self.find(d, obj.kids.get(&item).unwrap()).unwrap()
+            };
+            obj = self.objects.get(next).unwrap();
+            ret = Some(next)
         }
-        return self.obs_by_path()
     }
-}
-
-#[test]
-#[should_panic]
-pub fn panics_on_empty_obs() {
-    let mut emu = Emu::empty();
-    emu.push(Obs::empty());
-    emu.push_stack(0);
-    emu.dataize();
 }
 
 #[test]
 pub fn dataize_simple_data() {
     let mut emu = Emu::empty();
-    emu.push(Obs::empty().push_data(42));
-    emu.push_stack(0);
-    assert_eq!(42, emu.dataize());
+    emu.put(0, Object::dataic(42));
+    assert_eq!(42, emu.dataize(0));
 }
 
 #[test]
 pub fn with_simple_decorator() {
     let mut emu = Emu::empty();
-    emu.push(Obs::empty().push_data(42))
-        .push(Obs::empty().push(Item::Phi, "v0".parse().unwrap()));
-    emu.push_stack(1);
-    assert_eq!(42, emu.dataize());
-}
-
-#[test]
-pub fn exec_simple_atom() {
-    let mut emu = Emu::empty();
-    emu.push(Obs::empty().push_data(42))
-        .push(Obs::empty().push_data(7))
-        .push(
-            Obs::empty()
-                .push_atom(0)
-                .push(Item::Rho, ph!("v0"))
-                .push(Item::Arg(0), ph!("v1")))
-        .push_atom(
-            "
-            ADD ^ AND $.1 TO #0
-            RETURN #0
-            ".parse().unwrap(),
-        );
-    emu.push_stack(2);
-    assert_eq!(0, emu.dataize());
+    emu.put(0, Object::dataic(42));
+    let mut kid = Object::empty();
+    kid.push(Item::Phi, "v1".parse().unwrap());
+    emu.put(1, kid);
+    assert_eq!(42, emu.dataize(1));
 }

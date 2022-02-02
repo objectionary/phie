@@ -18,34 +18,28 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-extern crate eoc;
+use crate::data::Data;
 
-use eoc::atom::{*};
-use eoc::emu::Emu;
-use eoc::object::Object;
-use eoc::path::{Item, Path};
-use eoc::ph;
-use std::env;
-use std::str::FromStr;
+pub struct Dabox {
+    pub object: usize,
+    pub xi: usize,
+    pub ret: Data,
+    pub kids: [usize; 4]
+}
 
-pub fn main() {
-    let args: Vec<String> = env::args().collect();
-    let input = args[1].parse().unwrap();
-    let cycles = args[2].parse().unwrap();
-    let mut emu = Emu::empty();
-    emu.put(0, Object::dataic(input));
-    emu.put(1, Object::empty().with(Item::Phi, ph!("v0")));
-    emu.put(2, Object::empty().with(Item::Phi, ph!("v12")));
-    emu.put(4, Object::dataic(2));
-    emu.put(5, Object::atomic(int_sub).with(Item::Rho, ph!("$.0")).with(Item::Arg(0), ph!("v4")));
-    let mut total = 0;
-    let mut f = 0;
-    for _ in 0..cycles {
-        let bx = emu.new(1, 1);
-        f = emu.dataize(bx);
-        emu.delete(bx);
-        total += f;
+impl Dabox {
+    pub fn empty() -> Dabox {
+        Dabox { object: 0, xi: 0, ret: 0, kids: [0; 4] }
     }
-    println!("{}-th Fibonacci number is {}", input, f);
-    println!("Total is {}", total);
+
+    pub fn start(object: usize, xi: usize) -> Dabox {
+        Dabox { object, xi, ret: 0, kids: [0; 4] }
+    }
+}
+
+#[test]
+fn makes_simple_dabox() {
+    let mut dabox = Dabox::start(0, 0);
+    dabox.ret = 42;
+    assert_eq!(dabox.ret, 42);
 }

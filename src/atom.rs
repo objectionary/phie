@@ -18,48 +18,28 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-use crate::path::{Path, Item};
-use crate::Data;
-use std::collections::HashMap;
-use std::str::FromStr;
+use crate::emu::Emu;
+use crate::path::Item;
+use crate::data::Data;
 
-#[derive(Default, Clone)]
-pub struct Object {
-    pub data: Data,
-    pub atom: Atom,
-    pub phi: Option<usize>,
-    pub rho: Option<usize>,
-    pub kids: HashMap<Item, Path>
+pub type Atom = fn(&mut Emu, usize, usize) -> Data;
+
+pub fn int_add(emu: &mut Emu, ob: usize, bx: usize) -> Data {
+    emu.calc(ob, Item::Rho, bx) + emu.calc(ob, Item::Arg(0), bx)
 }
 
-impl Object {
-    pub fn empty() -> Obs {
-        Obs { ..Default::default() }
-    }
-
-    pub fn push_atom(mut self, a: usize) -> Obs {
-        self.atom = Some(a);
-        self
-    }
-
-    pub fn push_data(mut self, d: Data) -> Obs {
-        self.data = Some(d);
-        self
-    }
-
-    pub fn push(mut self, i: Item, p: Path) -> Obs {
-        self.kids.insert(i, p);
-        self
-    }
+pub fn int_sub(emu: &mut Emu, ob: usize, bx: usize) -> Data {
+    emu.calc(ob, Item::Rho, bx) - emu.calc(ob, Item::Arg(0), bx)
 }
 
-#[test]
-fn makes_simple_obs() {
-    let obs = Obs::empty()
-        .push_atom(1)
-        .push_data(44)
-        .push(Item::from_str("^").unwrap(), Path::from_str("v4").unwrap());
-    assert_eq!(obs.atom.unwrap(), 1);
-    assert_eq!(obs.data.unwrap(), 42);
-    assert_eq!(obs.kids.len(), 1)
+pub fn int_less(emu: &mut Emu, ob: usize, bx: usize) -> Data {
+    (emu.calc(ob, Item::Rho, bx) < emu.calc(ob, Item::Arg(0), bx)) as Data
+}
+
+pub fn bool_if(emu: &mut Emu, ob: usize, bx: usize) -> Data {
+    if emu.calc(ob, Item::Rho, bx) == 1 {
+        emu.calc(ob, Item::Arg(0), bx)
+    } else {
+        emu.calc(ob, Item::Arg(1), bx)
+    }
 }

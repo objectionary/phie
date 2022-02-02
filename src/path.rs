@@ -37,7 +37,7 @@ pub enum Item {
     Xi,
     Sigma,
     Arg(i8),
-    Obs(usize),
+    Obj(usize),
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -73,7 +73,7 @@ impl str::FromStr for Item {
             return Ok(Item::Arg(s.parse::<i8>().unwrap()));
         }
         if RE_OBS.is_match(s) {
-            return Ok(Item::Obs(s[1..].parse::<usize>().unwrap()));
+            return Ok(Item::Obj(s[1..].parse::<usize>().unwrap()));
         }
         match s {
             "R" => Ok(Item::Root),
@@ -97,7 +97,7 @@ impl fmt::Display for Item {
             Item::Xi => "$".to_owned(),
             Item::Sigma => "&".to_owned(),
             Item::Arg(i) => format!("{}", i),
-            Item::Obs(i) => format!("v{}", i),
+            Item::Obj(i) => format!("v{}", i),
         };
         f.write_str(&*s)
     }
@@ -115,7 +115,7 @@ impl str::FromStr for Path {
         lazy_static! {
             static ref CHECKS: [Check; 3] = [
                 Check {
-                    check: |p: &Path| p.items[1..].iter().find(|i| matches!(i, Item::Obs(_))),
+                    check: |p: &Path| p.items[1..].iter().find(|i| matches!(i, Item::Obj(_))),
                     msg: "Obs can only stay at the first position"
                 },
                 Check {
@@ -163,15 +163,14 @@ impl fmt::Display for Path {
 }
 
 #[rstest]
-    case("R"),
-    case("&"),
-    case("$"),
-    case("^"),
-    case("@"),
-    case("v78"),
-    case("0"),
-    case("22")
-)]
+#[case("R")]
+#[case("&")]
+#[case("$")]
+#[case("^")]
+#[case("@")]
+#[case("v78")]
+#[case("0")]
+#[case("22")]
 fn parses_all_items(#[case] path: String) {
     assert_eq!(Item::from_str(&path).unwrap().to_string(), path)
 }
