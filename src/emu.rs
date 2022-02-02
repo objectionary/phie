@@ -18,17 +18,18 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-use std::collections::HashMap;
-use arr_macro::arr;
+use crate::dabox::Dabox;
+use crate::data::Data;
 use crate::object::Object;
 use crate::path::{Item, Path};
-use crate::data::Data;
-use crate::dabox::Dabox;
+use crate::ph;
+use arr_macro::arr;
+use std::str::FromStr;
 
 pub struct Emu {
     pub objects: [Object; 256],
     pub boxes: [Dabox; 256],
-    pub total_boxes: usize
+    pub total_boxes: usize,
 }
 
 impl Emu {
@@ -38,7 +39,7 @@ impl Emu {
         Emu {
             objects: arr![Object::empty(); 256],
             boxes: arr![Dabox::empty(); 256],
-            total_boxes: 0
+            total_boxes: 0,
         }
     }
 
@@ -48,12 +49,23 @@ impl Emu {
         self
     }
 
-    /// Calculate sub-object.
+    /// Calculate sub-object of the object `ob` found by the
+    /// path item `item`, using already created dataization box `bx`.
     pub fn calc(&mut self, ob: usize, item: Item, bx: usize) -> Data {
-        let mut dabox = &self.boxes[bx];
+        let dabox = &self.boxes[bx];
         let obj = &self.objects[ob];
-        let path = self.find(bx, obj.kids.get(&item).unwrap()).unwrap();
-        let sub = self.new(path, dabox.xi);
+        let path = match obj.kids.get(&item) {
+            Some(p) => p,
+            None => panic!("Can't find kid #{} in object #{}", item, ob),
+        };
+        let target = match self.find(bx, path) {
+            Some(t) => t,
+            None => panic!(
+                "Can't find '{}' from the object #{} (𝜉=#{})",
+                path, ob, dabox.xi
+            ),
+        };
+        let sub = self.new(target, dabox.xi);
         let data = self.dataize(sub);
         self.delete(sub);
         data
@@ -69,7 +81,7 @@ impl Emu {
             (&mut self.boxes[bx]).xi = bx;
             self.calc(ob, Item::Phi, bx)
         } else if obj.atom.is_some() {
-            obj.atom.unwrap() (self, ob, bx)
+            obj.atom.unwrap()(self, ob, bx)
         } else {
             panic!("Can't dataize empty object #{}", bx)
         };
@@ -93,11 +105,11 @@ impl Emu {
 
     /// Suppose, the incoming path is `^.0.@.2`. We have to find the right
     /// object in the catalog of them and return the position of the found one.
-    pub fn find(&self, d: usize, path: &Path) -> Option<usize> {
-        let mut dabox = &self.boxes[d];
+    pub fn find(&self, bx: usize, path: &Path) -> Option<usize> {
+        let dabox = &self.boxes[bx];
         let mut items = path.to_vec();
         let mut ret = None;
-        let mut obj : &Object = &self.objects[0];
+        let mut obj: &Object = &self.objects[0];
         loop {
             if items.is_empty() {
                 break ret;
@@ -107,9 +119,9 @@ impl Emu {
                 Item::Root => 0,
                 Item::Xi => dabox.xi,
                 Item::Obj(i) => i,
-                _ => self.find(d, obj.kids.get(&item).unwrap()).unwrap()
+                _ => self.find(bx, obj.kids.get(&item)?)?,
             };
-            obj = self.objects.get(next).unwrap();
+            obj = self.objects.get(next)?;
             ret = Some(next)
         }
     }
@@ -130,4 +142,14 @@ pub fn with_simple_decorator() {
     kid.push(Item::Phi, "v1".parse().unwrap());
     emu.put(1, kid);
     assert_eq!(42, emu.dataize(1));
+}
+
+#[test]
+pub fn finds_complex_path() {
+    let mut emu = Emu::empty();
+    emu.put(1, Object::empty().with(Item::Phi, ph!("v2")));
+    emu.put(2, Object::empty().with(Item::Attr(3), ph!("v1")));
+    emu.put(3, Object::empty().with(Item::Attr(0), ph!("$.3.@")));
+    let bx = emu.new(3, 2);
+    assert_eq!(2, emu.find(bx, &ph!("v3.0")).unwrap());
 }

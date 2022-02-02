@@ -18,28 +18,28 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+use crate::data::Data;
 use crate::emu::Emu;
 use crate::path::Item;
-use crate::data::Data;
 
 pub type Atom = fn(&mut Emu, usize, usize) -> Data;
 
 pub fn int_add(emu: &mut Emu, ob: usize, bx: usize) -> Data {
-    emu.calc(ob, Item::Rho, bx) + emu.calc(ob, Item::Arg(0), bx)
+    emu.calc(ob, Item::Rho, bx) + emu.calc(ob, Item::Attr(0), bx)
 }
 
 pub fn int_sub(emu: &mut Emu, ob: usize, bx: usize) -> Data {
-    emu.calc(ob, Item::Rho, bx) - emu.calc(ob, Item::Arg(0), bx)
+    emu.calc(ob, Item::Rho, bx) - emu.calc(ob, Item::Attr(0), bx)
 }
 
 pub fn int_less(emu: &mut Emu, ob: usize, bx: usize) -> Data {
-    (emu.calc(ob, Item::Rho, bx) < emu.calc(ob, Item::Arg(0), bx)) as Data
+    (emu.calc(ob, Item::Rho, bx) < emu.calc(ob, Item::Attr(0), bx)) as Data
 }
 
 pub fn bool_if(emu: &mut Emu, ob: usize, bx: usize) -> Data {
     if emu.calc(ob, Item::Rho, bx) == 1 {
-        emu.calc(ob, Item::Arg(0), bx)
+        emu.calc(ob, Item::Attr(0), bx)
     } else {
-        emu.calc(ob, Item::Arg(1), bx)
+        emu.calc(ob, Item::Attr(1), bx)
     }
 }

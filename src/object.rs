@@ -18,15 +18,15 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-use std::collections::HashMap;
-use crate::path::{Item, Path};
-use crate::data::Data;
 use crate::atom::Atom;
+use crate::data::Data;
+use crate::path::{Item, Path};
+use std::collections::HashMap;
 
 pub struct Object {
     pub data: Option<Data>,
     pub atom: Option<Atom>,
-    pub kids: HashMap<Item, Path>
+    pub kids: HashMap<Item, Path>,
 }
 
 impl Object {
@@ -34,7 +34,7 @@ impl Object {
         Object {
             data: None,
             atom: None,
-            kids: HashMap::new()
+            kids: HashMap::new(),
         }
     }
 
@@ -50,6 +50,27 @@ impl Object {
         obj
     }
 
+    /// This object is an empty one, with nothing inside.
+    pub fn is_empty(&self) -> bool {
+        self.atom.is_none() && self.data.is_none() && self.kids.is_empty()
+    }
+
+    /// Add a new attribute to it, by the path item:
+    ///
+    /// # Examples
+    ///
+    /// This is how you create a new empty object and then add two
+    /// attributes to it. One is `\rho`, while another one is the
+    /// first child.
+    ///
+    /// ```
+    /// use eoc::path::Item;
+    /// use eoc::object::Object;
+    /// use eoc::ph;
+    /// let mut obj = Object::empty();
+    /// obj.push(Item::Phi, ph!("v13"));
+    /// obj.push(Item::Attr(0), ph!("$.1"));
+    /// ```
     pub fn push(&mut self, i: Item, p: Path) -> &mut Object {
         self.kids.insert(i, p);
         self
@@ -68,7 +89,7 @@ impl Object {
 #[test]
 fn makes_simple_object() {
     let mut obj = Object::empty();
-    obj.push(Item::Arg(1), "v4".parse().unwrap());
+    obj.push(Item::Attr(1), "v4".parse().unwrap());
     obj.push(Item::Rho, "$.0.@".parse().unwrap());
     assert_eq!(obj.kids.len(), 2)
 }

@@ -20,7 +20,7 @@
 
 extern crate eoc;
 
-use eoc::atom::{*};
+use eoc::atom::*;
 use eoc::emu::Emu;
 use eoc::object::Object;
 use eoc::path::{Item, Path};
@@ -34,10 +34,58 @@ pub fn main() {
     let cycles = args[2].parse().unwrap();
     let mut emu = Emu::empty();
     emu.put(0, Object::dataic(input));
-    emu.put(1, Object::empty().with(Item::Phi, ph!("v0")));
+    emu.put(
+        1,
+        Object::empty()
+            .with(Item::Phi, ph!("v12"))
+            .with(Item::Attr(0), ph!("v0")),
+    );
     emu.put(2, Object::empty().with(Item::Phi, ph!("v12")));
     emu.put(4, Object::dataic(2));
-    emu.put(5, Object::atomic(int_sub).with(Item::Rho, ph!("$.0")).with(Item::Arg(0), ph!("v4")));
+    emu.put(
+        5,
+        Object::atomic(int_sub)
+            .with(Item::Rho, ph!("$.0"))
+            .with(Item::Attr(0), ph!("v4")),
+    );
+    emu.put(6, Object::dataic(1));
+    emu.put(
+        7,
+        Object::atomic(int_sub)
+            .with(Item::Rho, ph!("$.0"))
+            .with(Item::Attr(0), ph!("v6")),
+    );
+    emu.put(
+        8,
+        Object::empty()
+            .with(Item::Phi, ph!("v12"))
+            .with(Item::Attr(0), ph!("v7")),
+    );
+    emu.put(
+        9,
+        Object::empty()
+            .with(Item::Phi, ph!("v12"))
+            .with(Item::Attr(0), ph!("v5")),
+    );
+    emu.put(
+        10,
+        Object::atomic(int_add)
+            .with(Item::Rho, ph!("v8"))
+            .with(Item::Attr(0), ph!("v9")),
+    );
+    emu.put(
+        11,
+        Object::atomic(int_less)
+            .with(Item::Rho, ph!("$.0"))
+            .with(Item::Attr(0), ph!("v4")),
+    );
+    emu.put(
+        12,
+        Object::atomic(bool_if)
+            .with(Item::Rho, ph!("v11"))
+            .with(Item::Attr(0), ph!("v6"))
+            .with(Item::Attr(0), ph!("v10")),
+    );
     let mut total = 0;
     let mut f = 0;
     for _ in 0..cycles {

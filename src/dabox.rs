@@ -24,16 +24,26 @@ pub struct Dabox {
     pub object: usize,
     pub xi: usize,
     pub ret: Data,
-    pub kids: [usize; 4]
+    pub kids: [usize; 4],
 }
 
 impl Dabox {
     pub fn empty() -> Dabox {
-        Dabox { object: 0, xi: 0, ret: 0, kids: [0; 4] }
+        Dabox {
+            object: 0,
+            xi: 0,
+            ret: 0,
+            kids: [0; 4],
+        }
     }
 
     pub fn start(object: usize, xi: usize) -> Dabox {
-        Dabox { object, xi, ret: 0, kids: [0; 4] }
+        Dabox {
+            object,
+            xi,
+            ret: 0,
+            kids: [0; 4],
+        }
     }
 }
 

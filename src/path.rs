@@ -22,7 +22,7 @@ use lazy_static::lazy_static;
 use regex::Regex;
 use rstest::rstest;
 use std::fmt;
-use std::str::{self, FromStr};
+use std::str::FromStr;
 
 #[derive(Debug, Clone)]
 pub struct PathError {
@@ -36,7 +36,7 @@ pub enum Item {
     Phi,
     Xi,
     Sigma,
-    Arg(i8),
+    Attr(i8),
     Obj(usize),
 }
 
@@ -62,7 +62,7 @@ impl Path {
     }
 }
 
-impl str::FromStr for Item {
+impl FromStr for Item {
     type Err = PathError;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         lazy_static! {
@@ -70,7 +70,7 @@ impl str::FromStr for Item {
             static ref RE_OBS: Regex = Regex::new("^v\\d+$").unwrap();
         }
         if RE_ARG.is_match(s) {
-            return Ok(Item::Arg(s.parse::<i8>().unwrap()));
+            return Ok(Item::Attr(s.parse::<i8>().unwrap()));
         }
         if RE_OBS.is_match(s) {
             return Ok(Item::Obj(s[1..].parse::<usize>().unwrap()));
@@ -96,7 +96,7 @@ impl fmt::Display for Item {
             Item::Phi => "@".to_owned(),
             Item::Xi => "$".to_owned(),
             Item::Sigma => "&".to_owned(),
-            Item::Arg(i) => format!("{}", i),
+            Item::Attr(i) => format!("{}", i),
             Item::Obj(i) => format!("v{}", i),
         };
         f.write_str(&*s)
@@ -109,7 +109,7 @@ struct Check {
     msg: &'static str,
 }
 
-impl str::FromStr for Path {
+impl FromStr for Path {
     type Err = PathError;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         lazy_static! {
@@ -123,7 +123,7 @@ impl str::FromStr for Path {
                     msg: "Can only start a path"
                 },
                 Check {
-                    check: |p: &Path| p.items[0..1].iter().find(|i| matches!(i, Item::Arg(_))),
+                    check: |p: &Path| p.items[0..1].iter().find(|i| matches!(i, Item::Attr(_))),
                     msg: "Argument number can't start a path"
                 }
             ];
