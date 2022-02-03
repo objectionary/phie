@@ -25,7 +25,10 @@ use crate::object::Object;
 use crate::path::{Item, Path};
 use crate::ph;
 use arr_macro::arr;
+use simple_logger::SimpleLogger;
 use std::str::FromStr;
+use log::trace;
+use crate::path::Item::Phi;
 
 pub struct Emu {
     pub objects: [Object; 256],
@@ -35,10 +38,10 @@ pub struct Emu {
 
 impl Emu {
     /// Make an empty Emu, which you can later extend with
-    /// additional OBSes.
+    /// additional objects.
     pub fn empty() -> Emu {
         Emu {
-            objects: arr![Object::abstrct(); 256],
+            objects: arr![Object::open(); 256],
             boxes: arr![Dabox::empty(); 256],
             total_boxes: 0,
         }
@@ -50,23 +53,42 @@ impl Emu {
         self
     }
 
+    pub fn log(&self) {
+        for i in self.objects.iter().enumerate() {
+            let (ob, obj): (usize, &Object) = i;
+            if obj.is_empty() {
+                continue;
+            }
+            let bx = self.boxes.iter().position(|d| !d.is_empty() && d.object as usize == ob);
+            trace!(
+                "ν{} ⟦{}⟧{}",
+                ob, obj,
+                match bx {
+                    None => "".to_string(),
+                    Some(p) => format!(" ➞ #{} ({})", p, self.boxes[p]).to_string()
+                }
+            )
+        }
+    }
+
     /// Calculate sub-object of the object `ob` found by the
     /// path item `item`, using already created dataization box `bx`.
-    pub fn calc(&mut self, ob: usize, item: Item, bx: usize) -> Data {
-        let dabox = &self.boxes[bx];
+    pub fn calc(&mut self, bx: usize, item: Item) -> Data {
+        let dbox = &self.boxes[bx];
+        let ob = dbox.object as usize;
         let obj = &self.objects[ob];
         let path = match obj.kids.get(&item) {
             Some(p) => p,
-            None => panic!("Can't find kid #{} in object #{}", item, ob),
+            None => panic!("Can't find attribute #{} in ν{}", item, ob),
         };
         let target = match self.find(bx, path) {
             Some(t) => t,
             None => panic!(
-                "Can't find '{}' from the object #{} (𝜉=#{})",
-                path, ob, dabox.xi
+                "Can't find '{}': object=ν{}, box=#{}, 𝜉=#{}",
+                path, ob, bx, dbox.xi
             ),
         };
-        let sub = self.new(target, dabox.xi);
+        let sub = self.new(target, dbox.xi);
         let data = self.dataize(sub);
         self.delete(sub);
         data
@@ -74,17 +96,23 @@ impl Emu {
 
     /// Perform "dataization" procedure on a single box.
     pub fn dataize(&mut self, bx: usize) -> Data {
-        let ob = self.boxes[bx].object;
-        let obj = &self.objects[ob];
-        if obj.open {
-            (&mut self.boxes[bx]).xi = bx;
-        }
+        let dbox = &self.boxes[bx];
+        let obj = &self.objects[dbox.object as usize];
+        let xi = self.boxes[dbox.xi].object;
+        trace!("dataize(#{} -> o:{}, 𝜉:{})...", bx, dbox.object, xi);
+        self.log();
         let r = if obj.data.is_some() {
             obj.data.unwrap()
         } else if obj.kids.contains_key(&Item::Phi) {
-            self.calc(ob, Item::Phi, bx)
+            (&mut self.boxes[bx]).xi = bx;
+            self.calc(bx, Item::Phi)
+        } else if obj.parent.is_some() {
+            let bx = self.new(obj.parent.unwrap(), dbox.xi);
+            let ret = self.dataize(bx);
+            self.delete(bx);
+            ret
         } else if obj.atom.is_some() {
-            obj.atom.unwrap()(self, ob, bx)
+            obj.atom.unwrap()(self, bx)
         } else {
             panic!("Can't dataize empty object #{}", bx)
         };
@@ -93,8 +121,8 @@ impl Emu {
     }
 
     /// Make new dataization box and return its position ID.
-    pub fn new(&mut self, obj: usize, xi: usize) -> usize {
-        let dabox = Dabox::start(obj, xi);
+    pub fn new(&mut self, ob: usize, xi: usize) -> usize {
+        let dabox = Dabox::start(ob, xi);
         let pos = self.total_boxes;
         self.total_boxes += 1;
         self.boxes[pos] = dabox;
@@ -108,7 +136,7 @@ impl Emu {
 
     /// Suppose, the incoming path is `^.0.@.2`. We have to find the right
     /// object in the catalog of them and return the position of the found one.
-    pub fn find(&self, bx: usize, path: &Path) -> Option<usize> {
+    fn find(&self, bx: usize, path: &Path) -> Option<usize> {
         let dabox = &self.boxes[bx];
         let mut items = path.to_vec();
         let mut ret = None;
@@ -120,11 +148,17 @@ impl Emu {
             let item = items.remove(0);
             let next = match item {
                 Item::Root => 0,
-                Item::Xi => dabox.xi,
+                Item::Xi => {
+                    let dbox = &self.boxes[dabox.xi];
+                    if dbox.is_empty() {
+                        panic!("The 𝜉 of box #{} points to empty box #{}", bx, dabox.xi)
+                    }
+                    dbox.object as usize
+                },
                 Item::Obj(i) => i,
                 _ => self.find(bx, obj.kids.get(&item)?)?,
             };
-            obj = self.objects.get(next)?;
+            obj = &self.objects[next];
             ret = Some(next)
         }
     }
@@ -134,26 +168,27 @@ impl Emu {
 pub fn dataize_simple_data() {
     let mut emu = Emu::empty();
     emu.put(0, Object::dataic(42));
-    assert_eq!(42, emu.dataize(0));
+    let bx = emu.new(0, 0);
+    assert_eq!(42, emu.dataize(bx));
 }
 
 #[test]
 pub fn with_simple_decorator() {
     let mut emu = Emu::empty();
     emu.put(0, Object::dataic(42));
-    let mut kid = Object::abstrct();
-    kid.push(Item::Phi, "v1".parse().unwrap());
-    emu.put(1, kid);
-    assert_eq!(42, emu.dataize(1));
+    emu.put(1, Object::open().with(Item::Phi, ph!("v0")));
+    let bx = emu.new(1, 0);
+    assert_eq!(42, emu.dataize(bx));
 }
 
 #[test]
 pub fn finds_complex_path() {
     let mut emu = Emu::empty();
-    emu.put(1, Object::abstrct().with(Item::Phi, ph!("v2")));
-    emu.put(2, Object::abstrct().with(Item::Attr(3), ph!("v1")));
-    emu.put(3, Object::abstrct().with(Item::Attr(0), ph!("$.3.@")));
-    let bx = emu.new(3, 2);
+    emu.put(1, Object::open().with(Item::Phi, ph!("v2")));
+    emu.put(2, Object::open().with(Item::Attr(3), ph!("v1")));
+    emu.put(3, Object::open().with(Item::Attr(0), ph!("$.3.@")));
+    let bx1 = emu.new(2, 0);
+    let bx = emu.new(3, bx1);
     assert_eq!(2, emu.find(bx, &ph!("v3.0")).unwrap());
 }
 
@@ -178,12 +213,12 @@ pub fn summarizes_two_numbers() {
     );
     emu.put(
         2,
-        Object::abstrct()
+        Object::open()
             .with(Item::Phi, ph!("v1"))
             .with(Item::Attr(0), ph!("v0"))
             .with(Item::Attr(1), ph!("v0")),
     );
-    emu.put(3, Object::abstrct().with(Item::Phi, ph!("v2")));
+    emu.put(3, Object::open().with(Item::Phi, ph!("v2")));
     let bx = emu.new(3, 3);
     assert_eq!(84, emu.dataize(bx));
 }

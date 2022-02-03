@@ -19,9 +19,10 @@
 // SOFTWARE.
 
 use crate::data::Data;
+use std::fmt;
 
 pub struct Dabox {
-    pub object: usize,
+    pub object: isize,
     pub xi: usize,
     pub ret: Data,
     pub kids: [usize; 4],
@@ -30,20 +31,34 @@ pub struct Dabox {
 impl Dabox {
     pub fn empty() -> Dabox {
         Dabox {
-            object: 0,
+            object: -1,
             xi: 0,
             ret: 0,
             kids: [0; 4],
         }
     }
 
-    pub fn start(object: usize, xi: usize) -> Dabox {
+    pub fn start(ob: usize, xi: usize) -> Dabox {
         Dabox {
-            object,
+            object: ob as isize,
             xi,
             ret: 0,
             kids: [0; 4],
         }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.object < 0
+    }
+}
+
+impl fmt::Display for Dabox {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f, "ν{}, ξ:#{}, r:0x{:04X}, {}",
+            self.object, self.xi, self.ret,
+            self.kids.to_vec().iter().map(|k| k.to_string()).collect::<Vec<String>>().join(".")
+        )
     }
 }
 

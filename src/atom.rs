@@ -22,24 +22,24 @@ use crate::data::Data;
 use crate::emu::Emu;
 use crate::path::Item;
 
-pub type Atom = fn(&mut Emu, usize, usize) -> Data;
+pub type Atom = fn(&mut Emu, usize) -> Data;
 
-pub fn int_add(emu: &mut Emu, ob: usize, bx: usize) -> Data {
-    emu.calc(ob, Item::Rho, bx) + emu.calc(ob, Item::Attr(0), bx)
+pub fn int_add(emu: &mut Emu, bx: usize) -> Data {
+    emu.calc(bx, Item::Rho) + emu.calc(bx, Item::Attr(0))
 }
 
-pub fn int_sub(emu: &mut Emu, ob: usize, bx: usize) -> Data {
-    emu.calc(ob, Item::Rho, bx) - emu.calc(ob, Item::Attr(0), bx)
+pub fn int_sub(emu: &mut Emu, bx: usize) -> Data {
+    emu.calc(bx, Item::Rho) - emu.calc(bx, Item::Attr(0))
 }
 
-pub fn int_less(emu: &mut Emu, ob: usize, bx: usize) -> Data {
-    (emu.calc(ob, Item::Rho, bx) < emu.calc(ob, Item::Attr(0), bx)) as Data
+pub fn int_less(emu: &mut Emu, bx: usize) -> Data {
+    (emu.calc(bx, Item::Rho) < emu.calc(bx, Item::Attr(0))) as Data
 }
 
-pub fn bool_if(emu: &mut Emu, ob: usize, bx: usize) -> Data {
-    if emu.calc(ob, Item::Rho, bx) == 1 {
-        emu.calc(ob, Item::Attr(0), bx)
+pub fn bool_if(emu: &mut Emu, bx: usize) -> Data {
+    if emu.calc(bx, Item::Rho) == 1 {
+        emu.calc(bx, Item::Attr(0))
     } else {
-        emu.calc(ob, Item::Attr(1), bx)
+        emu.calc(bx, Item::Attr(1))
     }
 }

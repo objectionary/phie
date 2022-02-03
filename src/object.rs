@@ -24,18 +24,29 @@ use crate::path::{Item, Path};
 use crate::ph;
 use std::collections::HashMap;
 use std::str::FromStr;
+use std::fmt;
+use itertools::Itertools;
 
 pub struct Object {
-    pub open: bool,
+    pub parent: Option<usize>,
     pub data: Option<Data>,
     pub atom: Option<Atom>,
     pub kids: HashMap<Item, Path>,
 }
 
 impl Object {
-    pub fn abstrct() -> Object {
+    pub fn open() -> Object {
         Object {
-            open: true,
+            parent: None,
+            data: None,
+            atom: None,
+            kids: HashMap::new(),
+        }
+    }
+
+    pub fn copy(ob: usize) -> Object {
+        Object {
+            parent: Some(ob),
             data: None,
             atom: None,
             kids: HashMap::new(),
@@ -44,7 +55,7 @@ impl Object {
 
     pub fn dataic(d: Data) -> Object {
         Object {
-            open: true,
+            parent: None,
             data: Some(d),
             atom: None,
             kids: HashMap::new(),
@@ -53,7 +64,7 @@ impl Object {
 
     pub fn atomic(a: Atom) -> Object {
         Object {
-            open: false,
+            parent: None,
             data: None,
             atom: Some(a),
             kids: HashMap::new(),
@@ -77,7 +88,7 @@ impl Object {
     /// use eoc::path::Item;
     /// use eoc::object::Object;
     /// use eoc::ph;
-    /// let mut obj = Object::abstrct();
+    /// let mut obj = Object::open();
     /// obj.push(Item::Phi, ph!("v13"));
     /// obj.push(Item::Attr(0), ph!("$.1"));
     /// ```
@@ -87,8 +98,8 @@ impl Object {
     }
 
     pub fn with(&self, i: Item, p: Path) -> Object {
-        let mut obj = Object::abstrct();
-        obj.open = self.open;
+        let mut obj = Object::open();
+        obj.parent = self.parent.clone();
         obj.atom = self.atom.clone();
         obj.data = self.data.clone();
         obj.kids.extend(self.kids.clone().into_iter());
@@ -97,9 +108,36 @@ impl Object {
     }
 }
 
+impl fmt::Display for Object {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let mut parts = vec![];
+        if let Some(p) = self.parent {
+            parts.push(format!("ψ:ν{}", p));
+        }
+        if let Some(_) = self.atom {
+            parts.push("λ".to_string());
+        }
+        if let Some(p) = self.data {
+            parts.push(format!("Δ:{}", p));
+        }
+        for i in self.kids.iter() {
+            let (attr, path) = i;
+            parts.push(
+                match attr {
+                    Item::Rho => "ρ".to_string(),
+                    Item::Phi => "φ".to_string(),
+                    _ => format!("𝛼{}", attr)
+                } + &format!(":{}", path)
+            );
+        }
+        parts.sort();
+        write!(f, "{}", parts.iter().join(" "))
+    }
+}
+
 #[test]
 fn makes_simple_object() {
-    let mut obj = Object::abstrct();
+    let mut obj = Object::open();
     obj.push(Item::Attr(1), "v4".parse().unwrap());
     obj.push(Item::Rho, "$.0.@".parse().unwrap());
     assert_eq!(obj.kids.len(), 2)
@@ -107,12 +145,20 @@ fn makes_simple_object() {
 
 #[test]
 fn extends_by_making_new_object() {
-    let obj = Object::abstrct()
+    let obj = Object::open()
         .with(Item::Attr(1), ph!("v14.^"))
         .with(Item::Phi, ph!("v7.@"))
         .with(Item::Rho, ph!("$.^.0.0.^.@"));
     assert_eq!(obj.kids.len(), 3);
-    assert_eq!(obj.open, true);
     assert!(obj.data.is_none());
     assert!(obj.atom.is_none());
 }
+
+#[test]
+fn prints_simple_object() {
+    let mut obj = Object::open();
+    obj.push(Item::Attr(1), "v4".parse().unwrap());
+    obj.push(Item::Rho, "$.0.@".parse().unwrap());
+    assert_eq!("ρ:$.0.@ 𝛼1:v4", obj.to_string())
+}
+

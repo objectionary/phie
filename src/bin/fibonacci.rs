@@ -21,26 +21,24 @@
 extern crate eoc;
 
 use eoc::atom::*;
+use eoc::data::Data;
 use eoc::emu::Emu;
 use eoc::object::Object;
 use eoc::path::{Item, Path};
 use eoc::ph;
 use std::env;
 use std::str::FromStr;
+use simple_logger::SimpleLogger;
 
-pub fn main() {
-    let args: Vec<String> = env::args().collect();
-    let input = args[1].parse().unwrap();
-    let cycles = args[2].parse().unwrap();
+pub fn fibo(x: Data) -> Data {
     let mut emu = Emu::empty();
-    emu.put(0, Object::dataic(input));
+    emu.put(0, Object::dataic(x));
     emu.put(
         1,
-        Object::abstrct()
-            .with(Item::Phi, ph!("v12"))
+        Object::copy(2)
             .with(Item::Attr(0), ph!("v0")),
     );
-    emu.put(2, Object::abstrct().with(Item::Phi, ph!("v12")));
+    emu.put(2, Object::open().with(Item::Phi, ph!("v12")));
     emu.put(4, Object::dataic(2));
     emu.put(
         5,
@@ -57,14 +55,12 @@ pub fn main() {
     );
     emu.put(
         8,
-        Object::abstrct()
-            .with(Item::Phi, ph!("v12"))
+        Object::copy(2)
             .with(Item::Attr(0), ph!("v7")),
     );
     emu.put(
         9,
-        Object::abstrct()
-            .with(Item::Phi, ph!("v12"))
+        Object::copy(2)
             .with(Item::Attr(0), ph!("v5")),
     );
     emu.put(
@@ -84,16 +80,32 @@ pub fn main() {
         Object::atomic(bool_if)
             .with(Item::Rho, ph!("v11"))
             .with(Item::Attr(0), ph!("v6"))
-            .with(Item::Attr(0), ph!("v10")),
+            .with(Item::Attr(1), ph!("v10")),
     );
+    let bx = emu.new(1, 0);
+    emu.log();
+    let f = emu.dataize(bx);
+    emu.delete(bx);
+    f
+}
+
+pub fn main() {
+    let args: Vec<String> = env::args().collect();
+    let input = args[1].parse().unwrap();
+    let cycles = args[2].parse().unwrap();
     let mut total = 0;
     let mut f = 0;
     for _ in 0..cycles {
-        let bx = emu.new(1, 1);
-        f = emu.dataize(bx);
-        emu.delete(bx);
+        f = fibo(input);
         total += f;
     }
     println!("{}-th Fibonacci number is {}", input, f);
     println!("Total is {}", total);
 }
+
+#[test]
+fn calculates_fibonacci() {
+    SimpleLogger::new().init().unwrap();
+    assert_eq!(87, fibo(17))
+}
+
