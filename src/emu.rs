@@ -63,10 +63,11 @@ impl Emu {
             trace!(
                 "ν{} ⟦{}⟧{}",
                 ob, obj,
-                match bx {
-                    None => "".to_string(),
-                    Some(p) => format!(" ➞ #{} ({})", p, self.boxes[p]).to_string()
-                }
+                self.boxes.iter().enumerate()
+                    .filter(|(i, d)| !d.is_empty() && d.object as usize == ob)
+                    .map(|(i, d)| format!("\n\t➞ #{} ({})", i, d))
+                    .collect::<Vec<String>>()
+                    .join("")
             )
         }
     }
@@ -84,7 +85,7 @@ impl Emu {
         let target = match self.find(bx, path) {
             Some(t) => t,
             None => panic!(
-                "Can't find '{}': object=ν{}, box=#{}, 𝜉=#{}",
+                "Can't find '{}': ν{}, box=#{}, 𝜉=#{}",
                 path, ob, bx, dbox.xi
             ),
         };
@@ -96,27 +97,27 @@ impl Emu {
 
     /// Perform "dataization" procedure on a single box.
     pub fn dataize(&mut self, bx: usize) -> Data {
-        let dbox = &self.boxes[bx];
-        let obj = &self.objects[dbox.object as usize];
-        let xi = self.boxes[dbox.xi].object;
-        trace!("dataize(#{} -> o:{}, 𝜉:{})...", bx, dbox.object, xi);
+        let ob = self.boxes[bx].object as usize;
+        let obj = &self.objects[ob];
+        let xi = &self.boxes[self.boxes[bx].xi].object;
+        trace!("dataize(#{} -> ν{}, 𝜉:#{})...", bx, ob, xi);
         self.log();
         let r = if obj.data.is_some() {
             obj.data.unwrap()
         } else if obj.kids.contains_key(&Item::Phi) {
-            (&mut self.boxes[bx]).xi = bx;
             self.calc(bx, Item::Phi)
         } else if obj.parent.is_some() {
-            let bx = self.new(obj.parent.unwrap(), dbox.xi);
-            let ret = self.dataize(bx);
-            self.delete(bx);
+            let b = self.new(obj.parent.unwrap(), self.boxes[bx].xi);
+            (&mut self.boxes[bx]).put_xi(bx);
+            let ret = self.dataize(b);
+            self.delete(b);
             ret
         } else if obj.atom.is_some() {
             obj.atom.unwrap()(self, bx)
         } else {
             panic!("Can't dataize empty object #{}", bx)
         };
-        (&mut self.boxes[bx]).ret = r;
+        (&mut self.boxes[bx]).put_ret(r);
         r
     }
 
@@ -140,7 +141,7 @@ impl Emu {
         let dabox = &self.boxes[bx];
         let mut items = path.to_vec();
         let mut ret = None;
-        let mut obj: &Object = &self.objects[0];
+        let mut obj : &Object = &self.objects[0];
         loop {
             if items.is_empty() {
                 break ret;
@@ -156,6 +157,13 @@ impl Emu {
                     dbox.object as usize
                 },
                 Item::Obj(i) => i,
+                Item::Attr(_) => match obj.kids.get(&item) {
+                    None => match obj.parent {
+                        None => return None,
+                        Some(p) => self.find(bx, self.objects[p].kids.get(&item)?)?
+                    },
+                    Some(p) => self.find(bx, p)?
+                },
                 _ => self.find(bx, obj.kids.get(&item)?)?,
             };
             obj = &self.objects[next];
@@ -190,6 +198,16 @@ pub fn finds_complex_path() {
     let bx1 = emu.new(2, 0);
     let bx = emu.new(3, bx1);
     assert_eq!(2, emu.find(bx, &ph!("v3.0")).unwrap());
+}
+
+#[test]
+pub fn finds_through_copy() {
+    let mut emu = Emu::empty();
+    emu.put(0, Object::dataic(42));
+    emu.put(1, Object::open().with(Item::Attr(0), ph!("v0")));
+    emu.put(3, Object::copy(1));
+    let bx = emu.new(3, 0);
+    assert_eq!(0, emu.find(bx, &ph!("$.0")).unwrap());
 }
 
 #[test]

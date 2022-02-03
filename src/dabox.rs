@@ -50,6 +50,14 @@ impl Dabox {
     pub fn is_empty(&self) -> bool {
         self.object < 0
     }
+
+    pub fn put_xi(&mut self, xi: usize) {
+        self.xi = xi
+    }
+
+    pub fn put_ret(&mut self, ret: Data) {
+        self.ret = ret
+    }
 }
 
 impl fmt::Display for Dabox {
