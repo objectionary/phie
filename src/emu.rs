@@ -77,13 +77,14 @@ impl Emu {
     pub fn calc(&mut self, bx: usize, item: Item) -> Data {
         let dbox = &self.boxes[bx];
         let ob = dbox.object as usize;
-        let path = Path::from_item(item);
+        let path = Path::from_item(item.clone());
         let target = match self.find(bx, &path) {
             Ok(p) => p,
             Err(e) => panic!("Can't find '{}' in ν{}: {}", path, ob, e),
         };
         let sub = self.new(target, dbox.xi);
         let data = self.dataize(sub);
+        (&mut self.boxes[bx]).put_kid(item, data);
         self.delete(sub);
         data
     }
@@ -93,7 +94,7 @@ impl Emu {
         let ob = self.boxes[bx].object as usize;
         let obj = &self.objects[ob];
         let xi = &(self.boxes[self.boxes[bx].xi].object as usize);
-        if bx > 100 {
+        if bx > 30 {
             panic!("Too many!");
         }
         trace!("\n\ndataize(#{} -> ν{}, 𝜉:#{})...", bx, ob, xi);
@@ -236,10 +237,11 @@ pub fn finds_in_itself() {
 #[test]
 pub fn saves_ret_into_dabox() {
     let mut emu = Emu::empty();
-    emu.put(0, Object::dataic(42));
+    let d = 42;
+    emu.put(0, Object::dataic(d));
     let bx = emu.new(0, 0);
-    assert_eq!(42, emu.dataize(bx));
-    assert_eq!(42, emu.boxes[bx].ret);
+    assert_eq!(d, emu.dataize(bx));
+    assert!(emu.boxes[bx].to_string().contains(&String::from(format!("{:04X}", d))));
 }
 
 #[test]

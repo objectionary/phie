@@ -19,13 +19,15 @@
 // SOFTWARE.
 
 use crate::data::Data;
+use crate::path::Item;
+use std::collections::HashMap;
 use std::fmt;
 
 pub struct Dabox {
     pub object: isize,
     pub xi: usize,
-    pub ret: Data,
-    pub kids: [usize; 4],
+    ret: Data,
+    kids: HashMap<Item, Data>,
 }
 
 impl Dabox {
@@ -34,7 +36,7 @@ impl Dabox {
             object: -1,
             xi: 0,
             ret: 0,
-            kids: [0; 4],
+            kids: HashMap::new(),
         }
     }
 
@@ -43,7 +45,7 @@ impl Dabox {
             object: ob as isize,
             xi,
             ret: 0,
-            kids: [0; 4],
+            kids: HashMap::new(),
         }
     }
 
@@ -58,6 +60,10 @@ impl Dabox {
     pub fn put_ret(&mut self, ret: Data) {
         self.ret = ret
     }
+
+    pub fn put_kid(&mut self, item: Item, d: Data) {
+        self.kids.insert(item, d);
+    }
 }
 
 impl fmt::Display for Dabox {
@@ -65,8 +71,8 @@ impl fmt::Display for Dabox {
         write!(
             f, "ν{}, ξ:#{}, r:0x{:04X}, [{}]",
             self.object, self.xi, self.ret,
-            self.kids.to_vec().iter()
-                .map(|k| format!("0x{:04X}", k))
+            self.kids.iter()
+                .map(|(i, d)| format!("{}:0x{:04X}", i, d))
                 .collect::<Vec<String>>()
                 .join(", ")
         )
@@ -76,6 +82,14 @@ impl fmt::Display for Dabox {
 #[test]
 fn makes_simple_dabox() {
     let mut dabox = Dabox::start(0, 0);
-    dabox.ret = 42;
+    dabox.put_ret(42);
     assert_eq!(dabox.ret, 42);
+}
+
+#[test]
+fn prints_itself() {
+    let mut dabox = Dabox::start(0, 0);
+    dabox.put_ret(42);
+    dabox.put_kid(Item::Rho, 42);
+    assert_eq!("", dabox.to_string());
 }
