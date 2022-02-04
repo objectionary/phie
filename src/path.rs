@@ -53,12 +53,20 @@ macro_rules! ph {
 }
 
 impl Path {
+    pub fn from_vec(items : Vec<Item>) -> Path {
+        Path { items }
+    }
+
+    pub fn from_item(item : Item) -> Path {
+        Path::from_vec(vec![item])
+    }
+
     pub fn item(&self, id: usize) -> Option<&Item> {
         self.items.get(id)
     }
 
     pub fn to_vec(&self) -> Vec<Item> {
-        self.items.to_vec()
+        self.items.clone()
     }
 }
 

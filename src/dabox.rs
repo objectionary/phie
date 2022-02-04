@@ -63,9 +63,12 @@ impl Dabox {
 impl fmt::Display for Dabox {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
-            f, "ν{}, ξ:#{}, r:0x{:04X}, {}",
+            f, "ν{}, ξ:#{}, r:0x{:04X}, [{}]",
             self.object, self.xi, self.ret,
-            self.kids.to_vec().iter().map(|k| k.to_string()).collect::<Vec<String>>().join(".")
+            self.kids.to_vec().iter()
+                .map(|k| format!("0x{:04X}", k))
+                .collect::<Vec<String>>()
+                .join(", ")
         )
     }
 }

@@ -77,17 +77,10 @@ impl Emu {
     pub fn calc(&mut self, bx: usize, item: Item) -> Data {
         let dbox = &self.boxes[bx];
         let ob = dbox.object as usize;
-        let obj = &self.objects[ob];
-        let path = match obj.kids.get(&item) {
-            Some(p) => p,
-            None => panic!("Can't find attribute #{} in ν{}", item, ob),
-        };
-        let target = match self.find(bx, path) {
-            Some(t) => t,
-            None => panic!(
-                "Can't find '{}': ν{}, box=#{}, 𝜉=#{}",
-                path, ob, bx, dbox.xi
-            ),
+        let path = Path::from_item(item);
+        let target = match self.find(bx, &path) {
+            Ok(p) => p,
+            Err(e) => panic!("Can't find '{}' in ν{}: {}", path, ob, e),
         };
         let sub = self.new(target, dbox.xi);
         let data = self.dataize(sub);
@@ -99,13 +92,20 @@ impl Emu {
     pub fn dataize(&mut self, bx: usize) -> Data {
         let ob = self.boxes[bx].object as usize;
         let obj = &self.objects[ob];
-        let xi = &self.boxes[self.boxes[bx].xi].object;
-        trace!("dataize(#{} -> ν{}, 𝜉:#{})...", bx, ob, xi);
+        let xi = &(self.boxes[self.boxes[bx].xi].object as usize);
+        if bx > 100 {
+            panic!("Too many!");
+        }
+        trace!("\n\ndataize(#{} -> ν{}, 𝜉:#{})...", bx, ob, xi);
         self.log();
         let r = if obj.data.is_some() {
             obj.data.unwrap()
         } else if obj.kids.contains_key(&Item::Phi) {
-            self.calc(bx, Item::Phi)
+            let phi = self.find(bx, &Path::from_item(Item::Phi)).unwrap();
+            let sub = self.new(phi, self.boxes[bx].xi);
+            let ret = self.dataize(sub);
+            self.delete(sub);
+            ret
         } else if obj.parent.is_some() {
             let b = self.new(obj.parent.unwrap(), self.boxes[bx].xi);
             (&mut self.boxes[bx]).put_xi(bx);
@@ -137,11 +137,12 @@ impl Emu {
 
     /// Suppose, the incoming path is `^.0.@.2`. We have to find the right
     /// object in the catalog of them and return the position of the found one.
-    fn find(&self, bx: usize, path: &Path) -> Option<usize> {
+    fn find(&self, bx: usize, path: &Path) -> Result<usize, String> {
         let dabox = &self.boxes[bx];
         let mut items = path.to_vec();
-        let mut ret = None;
-        let mut obj : &Object = &self.objects[0];
+        let mut ret = Err("Nothing found".to_string());
+        let mut last = 0;
+        let mut obj : &Object = &self.objects[dabox.object as usize];
         loop {
             if items.is_empty() {
                 break ret;
@@ -159,15 +160,28 @@ impl Emu {
                 Item::Obj(i) => i,
                 Item::Attr(_) => match obj.kids.get(&item) {
                     None => match obj.parent {
-                        None => return None,
-                        Some(p) => self.find(bx, self.objects[p].kids.get(&item)?)?
+                        None => return Err(format!("Can't find '{}' in ν{} and there is no ψ", item, last)),
+                        Some(p) => self.find(
+                            bx,
+                            match self.objects[p].kids.get(&item) {
+                                Some(p) => p,
+                                None => return Err(format!("Can't get '{}' from ν{}, which is ψ of ν{}", item, p, last)),
+                            }
+                        )?
                     },
                     Some(p) => self.find(bx, p)?
                 },
-                _ => self.find(bx, obj.kids.get(&item)?)?,
+                _ => self.find(
+                    bx,
+                    match obj.kids.get(&item) {
+                        Some(p) => p,
+                        None => return Err(format!("Can't get '{}' from ν{}", item, last)),
+                    }
+                )?,
             };
             obj = &self.objects[next];
-            ret = Some(next)
+            last = next;
+            ret = Ok(next)
         }
     }
 }
@@ -208,6 +222,15 @@ pub fn finds_through_copy() {
     emu.put(3, Object::copy(1));
     let bx = emu.new(3, 0);
     assert_eq!(0, emu.find(bx, &ph!("$.0")).unwrap());
+}
+
+#[test]
+pub fn finds_in_itself() {
+    let mut emu = Emu::empty();
+    emu.put(0, Object::dataic(42));
+    emu.put(1, Object::open().with(Item::Phi, ph!("v0")));
+    let bx = emu.new(1, 0);
+    assert_eq!(0, emu.find(bx, &Path::from_item(Item::Phi)).unwrap());
 }
 
 #[test]

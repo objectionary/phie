@@ -118,7 +118,7 @@ impl fmt::Display for Object {
             parts.push("λ".to_string());
         }
         if let Some(p) = self.data {
-            parts.push(format!("Δ:{}", p));
+            parts.push(format!("Δ:0x{:04X}", p));
         }
         for i in self.kids.iter() {
             let (attr, path) = i;
