@@ -30,7 +30,7 @@ use std::env;
 use std::str::FromStr;
 use simple_logger::SimpleLogger;
 
-pub fn fibo(x: Data) -> Data {
+pub fn fibo(x: Data) -> Result<Data, String> {
     let mut emu = Emu::empty();
     emu.put(0, Object::dataic(x));
     emu.put(
@@ -84,9 +84,9 @@ pub fn fibo(x: Data) -> Data {
     );
     let bx = emu.new(1, 0);
     emu.log();
-    let f = emu.dataize(bx);
+    let f = emu.dataize(bx)?;
     emu.delete(bx);
-    f
+    Ok(f)
 }
 
 pub fn main() {
@@ -96,7 +96,7 @@ pub fn main() {
     let mut total = 0;
     let mut f = 0;
     for _ in 0..cycles {
-        f = fibo(input);
+        f = fibo(input).unwrap();
         total += f;
     }
     println!("{}-th Fibonacci number is {}", input, f);
@@ -106,6 +106,6 @@ pub fn main() {
 #[test]
 fn calculates_fibonacci() {
     SimpleLogger::new().init().unwrap();
-    assert_eq!(87, fibo(17))
+    assert_eq!(87, fibo(17).unwrap())
 }
 

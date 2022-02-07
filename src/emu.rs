@@ -19,9 +19,9 @@
 // SOFTWARE.
 
 use crate::atom::*;
-use crate::dabox::Dabox;
+use crate::dabox::{Bx, Dabox};
 use crate::data::Data;
-use crate::object::Object;
+use crate::object::{Ob, Object};
 use crate::path::{Item, Path};
 use crate::ph;
 use arr_macro::arr;
@@ -48,7 +48,7 @@ impl Emu {
     }
 
     /// Add an additional object
-    pub fn put(&mut self, pos: usize, obj: Object) -> &mut Emu {
+    pub fn put(&mut self, pos: Ob, obj: Object) -> &mut Emu {
         self.objects[pos] = obj;
         self
     }
@@ -59,12 +59,12 @@ impl Emu {
             if obj.is_empty() {
                 continue;
             }
-            let bx = self.boxes.iter().position(|d| !d.is_empty() && d.object as usize == ob);
+            let bx = self.boxes.iter().position(|d| !d.is_empty() && d.ob as usize == ob);
             trace!(
                 "ν{} ⟦{}⟧{}",
                 ob, obj,
                 self.boxes.iter().enumerate()
-                    .filter(|(i, d)| !d.is_empty() && d.object as usize == ob)
+                    .filter(|(_, d)| !d.is_empty() && d.ob as usize == ob)
                     .map(|(i, d)| format!("\n\t➞ #{} ({})", i, d))
                     .collect::<Vec<String>>()
                     .join("")
@@ -72,11 +72,11 @@ impl Emu {
         }
     }
 
-    /// Calculate sub-object of the object `ob` found by the
+    /// Calculate attribute of the object `ob` found by the
     /// path item `item`, using already created dataization box `bx`.
-    pub fn calc(&mut self, bx: usize, item: Item) -> Data {
+    pub fn dataize_attr(&mut self, bx: Bx, item: Item) -> Result<Data, String> {
         let dbox = &self.boxes[bx];
-        let ob = dbox.object as usize;
+        let ob = &dbox.ob;
         let path = Path::from_item(item.clone());
         let target = match self.find(bx, &path) {
             Ok(p) => p,
@@ -84,46 +84,37 @@ impl Emu {
         };
         let sub = self.new(target, dbox.xi);
         let data = self.dataize(sub);
-        (&mut self.boxes[bx]).put_kid(item, data);
+        (&mut self.boxes[bx]).put_kid(item, data.clone().unwrap());
         self.delete(sub);
         data
     }
 
     /// Perform "dataization" procedure on a single box.
-    pub fn dataize(&mut self, bx: usize) -> Data {
-        let ob = self.boxes[bx].object as usize;
-        let obj = &self.objects[ob];
-        let xi = &(self.boxes[self.boxes[bx].xi].object as usize);
-        if bx > 30 {
+    pub fn dataize(&mut self, bx: Bx) -> Result<Data, String> {
+        let dbox = self.dabox(bx);
+        let obj = self.object(dbox.ob);
+        if bx > 100 {
             panic!("Too many!");
         }
-        trace!("\n\ndataize(#{} -> ν{}, 𝜉:#{})...", bx, ob, xi);
+        trace!("\n\ndataize(#{} -> ν{})...", bx, dbox.ob);
         self.log();
-        let r = if obj.data.is_some() {
-            obj.data.unwrap()
-        } else if obj.kids.contains_key(&Item::Phi) {
-            let phi = self.find(bx, &Path::from_item(Item::Phi)).unwrap();
-            let sub = self.new(phi, self.boxes[bx].xi);
-            let ret = self.dataize(sub);
-            self.delete(sub);
-            ret
-        } else if obj.parent.is_some() {
-            let b = self.new(obj.parent.unwrap(), self.boxes[bx].xi);
-            (&mut self.boxes[bx]).put_xi(bx);
-            let ret = self.dataize(b);
-            self.delete(b);
-            ret
-        } else if obj.atom.is_some() {
-            obj.atom.unwrap()(self, bx)
+        let r = if let Some(delta) = obj.delta {
+            Ok(delta)
+        } else if obj.attrs.contains_key(&Item::Phi) {
+            self.dataize_attr(bx, Item::Phi)
+        } else if let Some(psi) = obj.psi {
+            self.dataize_attr(psi, Item::Phi)
+        } else if let Some(lambda) = obj.lambda {
+            Ok(lambda(self, bx))
         } else {
             panic!("Can't dataize empty object #{}", bx)
         };
-        (&mut self.boxes[bx]).put_ret(r);
+        (&mut self.boxes[bx]).put_ret(r.clone().unwrap());
         r
     }
 
     /// Make new dataization box and return its position ID.
-    pub fn new(&mut self, ob: usize, xi: usize) -> usize {
+    pub fn new(&mut self, ob: Ob, xi: Bx) -> usize {
         let dabox = Dabox::start(ob, xi);
         let pos = self.total_boxes;
         self.total_boxes += 1;
@@ -132,18 +123,18 @@ impl Emu {
     }
 
     /// Delete dataization box.
-    pub fn delete(&mut self, bx: usize) {
+    pub fn delete(&mut self, bx: Bx) {
         self.boxes[bx] = Dabox::empty();
     }
 
     /// Suppose, the incoming path is `^.0.@.2`. We have to find the right
     /// object in the catalog of them and return the position of the found one.
-    fn find(&self, bx: usize, path: &Path) -> Result<usize, String> {
-        let dabox = &self.boxes[bx];
+    fn find(&self, bx: Bx, path: &Path) -> Result<Bx, String> {
+        let dbox = self.dabox(bx);
         let mut items = path.to_vec();
         let mut ret = Err("Nothing found".to_string());
         let mut last = 0;
-        let mut obj : &Object = &self.objects[dabox.object as usize];
+        let mut obj: &Object = self.object(dbox.ob);
         loop {
             if items.is_empty() {
                 break ret;
@@ -151,20 +142,14 @@ impl Emu {
             let item = items.remove(0);
             let next = match item {
                 Item::Root => 0,
-                Item::Xi => {
-                    let dbox = &self.boxes[dabox.xi];
-                    if dbox.is_empty() {
-                        panic!("The 𝜉 of box #{} points to empty box #{}", bx, dabox.xi)
-                    }
-                    dbox.object as usize
-                },
+                Item::Xi => self.dabox(dbox.xi).ob,
                 Item::Obj(i) => i,
-                Item::Attr(_) => match obj.kids.get(&item) {
-                    None => match obj.parent {
+                Item::Attr(_) => match obj.attrs.get(&item) {
+                    None => match obj.psi {
                         None => return Err(format!("Can't find '{}' in ν{} and there is no ψ", item, last)),
                         Some(p) => self.find(
                             bx,
-                            match self.objects[p].kids.get(&item) {
+                            match self.object(p).attrs.get(&item) {
                                 Some(p) => p,
                                 None => return Err(format!("Can't get '{}' from ν{}, which is ψ of ν{}", item, p, last)),
                             }
@@ -174,16 +159,24 @@ impl Emu {
                 },
                 _ => self.find(
                     bx,
-                    match obj.kids.get(&item) {
+                    match obj.attrs.get(&item) {
                         Some(p) => p,
                         None => return Err(format!("Can't get '{}' from ν{}", item, last)),
                     }
                 )?,
             };
-            obj = &self.objects[next];
+            obj = self.object(next);
             last = next;
             ret = Ok(next)
         }
+    }
+
+    pub fn object(&self, ob: Ob) -> &Object {
+        &self.objects[ob]
+    }
+
+    pub fn dabox(&self, bx: Bx) -> &Dabox {
+        &self.boxes[bx]
     }
 }
 
@@ -192,7 +185,7 @@ pub fn dataize_simple_data() {
     let mut emu = Emu::empty();
     emu.put(0, Object::dataic(42));
     let bx = emu.new(0, 0);
-    assert_eq!(42, emu.dataize(bx));
+    assert_eq!(42, emu.dataize(bx).unwrap());
 }
 
 #[test]
@@ -201,7 +194,7 @@ pub fn with_simple_decorator() {
     emu.put(0, Object::dataic(42));
     emu.put(1, Object::open().with(Item::Phi, ph!("v0")));
     let bx = emu.new(1, 0);
-    assert_eq!(42, emu.dataize(bx));
+    assert_eq!(42, emu.dataize(bx).unwrap());
 }
 
 #[test]
@@ -240,7 +233,7 @@ pub fn saves_ret_into_dabox() {
     let d = 42;
     emu.put(0, Object::dataic(d));
     let bx = emu.new(0, 0);
-    assert_eq!(d, emu.dataize(bx));
+    assert_eq!(d, emu.dataize(bx).unwrap());
     assert!(emu.boxes[bx].to_string().contains(&String::from(format!("{:04X}", d))));
 }
 
@@ -263,5 +256,5 @@ pub fn summarizes_two_numbers() {
     );
     emu.put(3, Object::open().with(Item::Phi, ph!("v2")));
     let bx = emu.new(3, 3);
-    assert_eq!(84, emu.dataize(bx));
+    assert_eq!(84, emu.dataize(bx).unwrap());
 }

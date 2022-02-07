@@ -18,28 +18,26 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+use crate::dabox::Bx;
 use crate::data::Data;
 use crate::emu::Emu;
 use crate::path::Item;
 
-pub type Atom = fn(&mut Emu, usize) -> Data;
+pub type Atom = fn(&mut Emu, Bx) -> Data;
 
-pub fn int_add(emu: &mut Emu, bx: usize) -> Data {
-    emu.calc(bx, Item::Rho) + emu.calc(bx, Item::Attr(0))
+pub fn int_add(emu: &mut Emu, bx: Bx) -> Data {
+    emu.dataize_attr(bx, Item::Rho).unwrap() + emu.dataize_attr(bx, Item::Attr(0)).unwrap()
 }
 
-pub fn int_sub(emu: &mut Emu, bx: usize) -> Data {
-    emu.calc(bx, Item::Rho) - emu.calc(bx, Item::Attr(0))
+pub fn int_sub(emu: &mut Emu, bx: Bx) -> Data {
+    emu.dataize_attr(bx, Item::Rho).unwrap() - emu.dataize_attr(bx, Item::Attr(0)).unwrap()
 }
 
-pub fn int_less(emu: &mut Emu, bx: usize) -> Data {
-    (emu.calc(bx, Item::Rho) < emu.calc(bx, Item::Attr(0))) as Data
+pub fn int_less(emu: &mut Emu, bx: Bx) -> Data {
+    (emu.dataize_attr(bx, Item::Rho).unwrap() < emu.dataize_attr(bx, Item::Attr(0)).unwrap()) as Data
 }
 
-pub fn bool_if(emu: &mut Emu, bx: usize) -> Data {
-    if emu.calc(bx, Item::Rho) == 1 {
-        emu.calc(bx, Item::Attr(0))
-    } else {
-        emu.calc(bx, Item::Attr(1))
-    }
+pub fn bool_if(emu: &mut Emu, bx: Bx) -> Data {
+    let term = emu.dataize_attr(bx, Item::Rho).unwrap();
+    emu.dataize_attr(bx, Item::Attr(if term == 1 { 0 } else { 1 })).unwrap()
 }

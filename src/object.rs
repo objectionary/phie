@@ -27,53 +27,56 @@ use std::str::FromStr;
 use std::fmt;
 use itertools::Itertools;
 
+pub type Ob = usize;
+
 pub struct Object {
-    pub parent: Option<usize>,
-    pub data: Option<Data>,
-    pub atom: Option<Atom>,
-    pub kids: HashMap<Item, Path>,
+    pub psi: Option<usize>,
+    pub delta: Option<Data>,
+    pub lambda: Option<Atom>,
+    pub attrs: HashMap<Item, Path>,
 }
 
 impl Object {
     pub fn open() -> Object {
         Object {
-            parent: None,
-            data: None,
-            atom: None,
-            kids: HashMap::new(),
+            psi: None,
+            delta: None,
+            lambda: None,
+            attrs: HashMap::new(),
         }
     }
 
     pub fn copy(ob: usize) -> Object {
         Object {
-            parent: Some(ob),
-            data: None,
-            atom: None,
-            kids: HashMap::new(),
+            psi: Some(ob),
+            delta: None,
+            lambda: None,
+            attrs: HashMap::new(),
         }
     }
 
     pub fn dataic(d: Data) -> Object {
         Object {
-            parent: None,
-            data: Some(d),
-            atom: None,
-            kids: HashMap::new(),
+            psi: None,
+            delta: Some(d),
+            lambda: None,
+            attrs: HashMap::new(),
         }
     }
 
     pub fn atomic(a: Atom) -> Object {
         Object {
-            parent: None,
-            data: None,
-            atom: Some(a),
-            kids: HashMap::new(),
+            psi: None,
+            delta: None,
+            lambda: Some(a),
+            attrs: HashMap::new(),
         }
     }
 
     /// This object is an empty one, with nothing inside.
     pub fn is_empty(&self) -> bool {
-        self.atom.is_none() && self.data.is_none() && self.kids.is_empty()
+        self.psi.is_none() && self.lambda.is_none() &&
+            self.delta.is_none() && self.attrs.is_empty()
     }
 
     /// Add a new attribute to it, by the path item:
@@ -92,18 +95,29 @@ impl Object {
     /// obj.push(Item::Phi, ph!("v13"));
     /// obj.push(Item::Attr(0), ph!("$.1"));
     /// ```
+    ///
+    /// You can do the same, but with "fluent interface" of the `Object`.
+    ///
+    /// ```
+    /// use eoc::path::Item;
+    /// use eoc::object::Object;
+    /// use eoc::ph;
+    /// let obj = Object::open()
+    ///   .with(Item::Phi, ph!("v13"))
+    ///   .with(Item::Attr(0), ph!("$.1"));
+    /// ```
     pub fn push(&mut self, i: Item, p: Path) -> &mut Object {
-        self.kids.insert(i, p);
+        self.attrs.insert(i, p);
         self
     }
 
     pub fn with(&self, i: Item, p: Path) -> Object {
         let mut obj = Object::open();
-        obj.parent = self.parent.clone();
-        obj.atom = self.atom.clone();
-        obj.data = self.data.clone();
-        obj.kids.extend(self.kids.clone().into_iter());
-        obj.kids.insert(i, p);
+        obj.psi = self.psi.clone();
+        obj.lambda = self.lambda.clone();
+        obj.delta = self.delta.clone();
+        obj.attrs.extend(self.attrs.clone().into_iter());
+        obj.attrs.insert(i, p);
         obj
     }
 }
@@ -111,16 +125,16 @@ impl Object {
 impl fmt::Display for Object {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut parts = vec![];
-        if let Some(p) = self.parent {
+        if let Some(p) = self.psi {
             parts.push(format!("ψ:ν{}", p));
         }
-        if let Some(_) = self.atom {
+        if let Some(_) = self.lambda {
             parts.push("λ".to_string());
         }
-        if let Some(p) = self.data {
+        if let Some(p) = self.delta {
             parts.push(format!("Δ:0x{:04X}", p));
         }
-        for i in self.kids.iter() {
+        for i in self.attrs.iter() {
             let (attr, path) = i;
             parts.push(
                 match attr {
@@ -140,7 +154,7 @@ fn makes_simple_object() {
     let mut obj = Object::open();
     obj.push(Item::Attr(1), "v4".parse().unwrap());
     obj.push(Item::Rho, "$.0.@".parse().unwrap());
-    assert_eq!(obj.kids.len(), 2)
+    assert_eq!(obj.attrs.len(), 2)
 }
 
 #[test]
@@ -149,9 +163,9 @@ fn extends_by_making_new_object() {
         .with(Item::Attr(1), ph!("v14.^"))
         .with(Item::Phi, ph!("v7.@"))
         .with(Item::Rho, ph!("$.^.0.0.^.@"));
-    assert_eq!(obj.kids.len(), 3);
-    assert!(obj.data.is_none());
-    assert!(obj.atom.is_none());
+    assert_eq!(obj.attrs.len(), 3);
+    assert!(obj.delta.is_none());
+    assert!(obj.lambda.is_none());
 }
 
 #[test]

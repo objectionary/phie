@@ -20,45 +20,49 @@
 
 use crate::data::Data;
 use crate::path::Item;
+use crate::object::Ob;
 use std::collections::HashMap;
 use std::fmt;
+use itertools::Itertools;
+
+pub type Bx = usize;
 
 pub struct Dabox {
-    pub object: isize,
-    pub xi: usize,
-    ret: Data,
+    pub ob: Ob,
+    pub xi: Bx,
+    ret: Option<Data>,
     kids: HashMap<Item, Data>,
 }
 
 impl Dabox {
     pub fn empty() -> Dabox {
         Dabox {
-            object: -1,
+            ob: 0,
             xi: 0,
-            ret: 0,
+            ret: None,
             kids: HashMap::new(),
         }
     }
 
-    pub fn start(ob: usize, xi: usize) -> Dabox {
+    pub fn start(ob: Ob, xi: Bx) -> Dabox {
         Dabox {
-            object: ob as isize,
+            ob,
             xi,
-            ret: 0,
+            ret: None,
             kids: HashMap::new(),
         }
     }
 
     pub fn is_empty(&self) -> bool {
-        self.object < 0
+        self.ob <= 0
     }
 
-    pub fn put_xi(&mut self, xi: usize) {
+    pub fn put_xi(&mut self, xi: Bx) {
         self.xi = xi
     }
 
     pub fn put_ret(&mut self, ret: Data) {
-        self.ret = ret
+        self.ret = Some(ret)
     }
 
     pub fn put_kid(&mut self, item: Item, d: Data) {
@@ -69,10 +73,15 @@ impl Dabox {
 impl fmt::Display for Dabox {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
-            f, "ν{}, ξ:#{}, r:0x{:04X}, [{}]",
-            self.object, self.xi, self.ret,
+            f, "ν{}, ξ:#{}{}, [{}]",
+            self.ob, self.xi,
+            match self.ret {
+                None => "".to_string(),
+                Some(r) => format!(", r:0x{:04X}", r)
+            },
             self.kids.iter()
                 .map(|(i, d)| format!("{}:0x{:04X}", i, d))
+                .sorted()
                 .collect::<Vec<String>>()
                 .join(", ")
         )
@@ -83,13 +92,13 @@ impl fmt::Display for Dabox {
 fn makes_simple_dabox() {
     let mut dabox = Dabox::start(0, 0);
     dabox.put_ret(42);
-    assert_eq!(dabox.ret, 42);
+    assert_eq!(42, dabox.ret.unwrap());
 }
 
 #[test]
 fn prints_itself() {
-    let mut dabox = Dabox::start(0, 0);
+    let mut dabox = Dabox::start(5, 7);
     dabox.put_ret(42);
     dabox.put_kid(Item::Rho, 42);
-    assert_eq!("", dabox.to_string());
+    assert_eq!("ν5, ξ:#7, r:0x002A, [^:0x002A]", dabox.to_string());
 }
