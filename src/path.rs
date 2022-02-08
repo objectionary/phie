@@ -24,11 +24,6 @@ use rstest::rstest;
 use std::fmt;
 use std::str::FromStr;
 
-#[derive(Debug, Clone)]
-pub struct PathError {
-    msg: String,
-}
-
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Item {
     Root,
@@ -71,11 +66,11 @@ impl Path {
 }
 
 impl FromStr for Item {
-    type Err = PathError;
+    type Err = String;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         lazy_static! {
-            static ref RE_ARG: Regex = Regex::new("^\\d+$").unwrap();
-            static ref RE_OBS: Regex = Regex::new("^v\\d+$").unwrap();
+            static ref RE_ARG: Regex = Regex::new("^𝛼?\\d+$").unwrap();
+            static ref RE_OBS: Regex = Regex::new("^[v|ν]\\d+$").unwrap();
         }
         if RE_ARG.is_match(s) {
             return Ok(Item::Attr(s.parse::<i8>().unwrap()));
@@ -85,13 +80,16 @@ impl FromStr for Item {
         }
         match s {
             "R" => Ok(Item::Root),
+            "Φ" => Ok(Item::Root),
             "^" => Ok(Item::Rho),
+            "ρ" => Ok(Item::Rho),
             "$" => Ok(Item::Xi),
+            "ξ" => Ok(Item::Xi),
             "@" => Ok(Item::Phi),
+            "φ" => Ok(Item::Phi),
             "&" => Ok(Item::Sigma),
-            _ => Err(PathError {
-                msg: format!("Unknown item '{}'", s),
-            }),
+            "σ" => Ok(Item::Sigma),
+            _ => Err(format!("Unknown item '{}'", s)),
         }
     }
 }
@@ -99,13 +97,13 @@ impl FromStr for Item {
 impl fmt::Display for Item {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let s: String = match self {
-            Item::Root => "R".to_owned(),
-            Item::Rho => "^".to_owned(),
-            Item::Phi => "@".to_owned(),
-            Item::Xi => "$".to_owned(),
-            Item::Sigma => "&".to_owned(),
-            Item::Attr(i) => format!("{}", i),
-            Item::Obj(i) => format!("v{}", i),
+            Item::Root => "Φ".to_owned(),
+            Item::Rho => "ρ".to_owned(),
+            Item::Phi => "φ".to_owned(),
+            Item::Xi => "ξ".to_owned(),
+            Item::Sigma => "σ".to_owned(),
+            Item::Attr(i) => format!("𝛼{}", i),
+            Item::Obj(i) => format!("ν{}", i),
         };
         f.write_str(&*s)
     }
@@ -118,7 +116,7 @@ struct Check {
 }
 
 impl FromStr for Path {
-    type Err = PathError;
+    type Err = String;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         lazy_static! {
             static ref CHECKS: [Check; 3] = [
@@ -150,7 +148,7 @@ impl FromStr for Path {
                 ));
                 msg.push_str(check.msg);
                 msg.push_str(&format!("; in '{}'", s));
-                return Err(PathError { msg });
+                return Err(msg);
             }
         }
         Ok(p)
@@ -179,17 +177,14 @@ impl fmt::Display for Path {
 #[case("v78")]
 #[case("0")]
 #[case("22")]
-fn parses_all_items(#[case] path: String) {
-    assert_eq!(Item::from_str(&path).unwrap().to_string(), path)
-}
-
-#[rstest]
 #[case("v5.&.0.^.@.$.81")]
 #[case("R.0.&.3.^")]
 #[case("$.0")]
 #[case("$.0")]
 pub fn parses_and_prints(#[case] path: String) {
-    assert_eq!(ph!(&path).to_string(), path)
+    let p1 = Path::from_str(&path).unwrap();
+    let p2 = Path::from_str(&p1.to_string()).unwrap();
+    assert_eq!(p1, p2)
 }
 
 #[rstest]

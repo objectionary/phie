@@ -25,10 +25,8 @@ use crate::object::{Ob, Object};
 use crate::path::{Item, Path};
 use crate::ph;
 use arr_macro::arr;
-use simple_logger::SimpleLogger;
 use std::str::FromStr;
 use log::trace;
-use crate::path::Item::Phi;
 
 pub struct Emu {
     pub objects: [Object; 256],
@@ -59,7 +57,6 @@ impl Emu {
             if obj.is_empty() {
                 continue;
             }
-            let bx = self.boxes.iter().position(|d| !d.is_empty() && d.ob as usize == ob);
             trace!(
                 "ν{} ⟦{}⟧{}",
                 ob, obj,
@@ -75,7 +72,7 @@ impl Emu {
     /// Calculate attribute of the object `ob` found by the
     /// path item `item`, using already created dataization box `bx`.
     pub fn dataize_attr(&mut self, bx: Bx, item: Item) -> Result<Data, String> {
-        let dbox = &self.boxes[bx];
+        let dbox = self.dabox(bx);
         let ob = &dbox.ob;
         let path = Path::from_item(item.clone());
         let target = match self.find(bx, &path) {
@@ -237,6 +234,14 @@ pub fn saves_ret_into_dabox() {
     assert!(emu.boxes[bx].to_string().contains(&String::from(format!("{:04X}", d))));
 }
 
+// 42 > v0
+// [] > foo
+//   [] > @
+//     v0 > a0
+//     v0 > a1
+//     int_add > @
+//       $.a0
+//       $.a1
 #[test]
 pub fn summarizes_two_numbers() {
     let mut emu = Emu::empty();

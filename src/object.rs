@@ -126,13 +126,13 @@ impl fmt::Display for Object {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut parts = vec![];
         if let Some(p) = self.psi {
-            parts.push(format!("ψ:ν{}", p));
+            parts.push(format!("ψ↦ν{}", p));
         }
         if let Some(_) = self.lambda {
             parts.push("λ".to_string());
         }
         if let Some(p) = self.delta {
-            parts.push(format!("Δ:0x{:04X}", p));
+            parts.push(format!("Δ↦0x{:04X}", p));
         }
         for i in self.attrs.iter() {
             let (attr, path) = i;
@@ -140,8 +140,8 @@ impl fmt::Display for Object {
                 match attr {
                     Item::Rho => "ρ".to_string(),
                     Item::Phi => "φ".to_string(),
-                    _ => format!("𝛼{}", attr)
-                } + &format!(":{}", path)
+                    _ => attr.to_string()
+                } + &format!("↦{}", path)
             );
         }
         parts.sort();
