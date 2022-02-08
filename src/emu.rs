@@ -29,8 +29,8 @@ use std::str::FromStr;
 use log::trace;
 use itertools::Itertools;
 
-const ROOT_BX: Bx = 0;
-const ROOT_OB : Ob = 0;
+pub const ROOT_BX: Bx = 0;
+pub const ROOT_OB : Ob = 0;
 
 pub struct Emu {
     pub objects: [Object; 256],
@@ -182,16 +182,19 @@ impl Emu {
     }
 
     /// Make new dataization box and return its position ID.
-    fn new(&mut self, ob: Ob, xi: Bx) -> Bx {
+    pub fn new(&mut self, ob: Ob, xi: Bx) -> Bx {
         let dbox = Dabox::start(ob, xi);
         let pos = self.total_boxes;
+        if self.total_boxes > 30 {
+            panic!("Too many")
+        }
         self.total_boxes += 1;
         self.boxes[pos] = dbox;
         pos
     }
 
     /// Delete dataization box.
-    fn delete(&mut self, bx: Bx) {
+    pub fn delete(&mut self, bx: Bx) {
         self.boxes[bx] = Dabox::empty();
     }
 
