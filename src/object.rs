@@ -30,25 +30,14 @@ use itertools::Itertools;
 pub type Ob = usize;
 
 pub struct Object {
-    pub psi: Option<usize>,
     pub delta: Option<Data>,
     pub lambda: Option<Atom>,
-    pub attrs: HashMap<Item, Path>,
+    pub attrs: HashMap<Item, (Path, bool)>,
 }
 
 impl Object {
     pub fn open() -> Object {
         Object {
-            psi: None,
-            delta: None,
-            lambda: None,
-            attrs: HashMap::new(),
-        }
-    }
-
-    pub fn copy(ob: usize) -> Object {
-        Object {
-            psi: Some(ob),
             delta: None,
             lambda: None,
             attrs: HashMap::new(),
@@ -57,7 +46,6 @@ impl Object {
 
     pub fn dataic(d: Data) -> Object {
         Object {
-            psi: None,
             delta: Some(d),
             lambda: None,
             attrs: HashMap::new(),
@@ -66,7 +54,6 @@ impl Object {
 
     pub fn atomic(a: Atom) -> Object {
         Object {
-            psi: None,
             delta: None,
             lambda: Some(a),
             attrs: HashMap::new(),
@@ -75,8 +62,7 @@ impl Object {
 
     /// This object is an empty one, with nothing inside.
     pub fn is_empty(&self) -> bool {
-        self.psi.is_none() && self.lambda.is_none() &&
-            self.delta.is_none() && self.attrs.is_empty()
+        self.lambda.is_none() && self.delta.is_none() && self.attrs.is_empty()
     }
 
     /// Add a new attribute to it, by the path item:
@@ -92,10 +78,15 @@ impl Object {
     /// use eoc::object::Object;
     /// use eoc::ph;
     /// let mut obj = Object::open();
-    /// obj.push(Item::Phi, ph!("v13"));
-    /// obj.push(Item::Attr(0), ph!("$.1"));
+    /// obj.push(Item::Phi, ph!("v13"), false);
+    /// obj.push(Item::Attr(0), ph!("$.1"), false);
     /// ```
     ///
+    pub fn push(&mut self, i: Item, p: Path, psi: bool) -> &mut Object {
+        self.attrs.insert(i, (p, psi));
+        self
+    }
+
     /// You can do the same, but with "fluent interface" of the `Object`.
     ///
     /// ```
@@ -103,21 +94,15 @@ impl Object {
     /// use eoc::object::Object;
     /// use eoc::ph;
     /// let obj = Object::open()
-    ///   .with(Item::Phi, ph!("v13"))
-    ///   .with(Item::Attr(0), ph!("$.1"));
+    ///   .with(Item::Phi, ph!("v13"), false)
+    ///   .with(Item::Attr(0), ph!("$.1"), false);
     /// ```
-    pub fn push(&mut self, i: Item, p: Path) -> &mut Object {
-        self.attrs.insert(i, p);
-        self
-    }
-
-    pub fn with(&self, i: Item, p: Path) -> Object {
+    pub fn with(&self, i: Item, p: Path, psi: bool) -> Object {
         let mut obj = Object::open();
-        obj.psi = self.psi.clone();
         obj.lambda = self.lambda.clone();
         obj.delta = self.delta.clone();
         obj.attrs.extend(self.attrs.clone().into_iter());
-        obj.attrs.insert(i, p);
+        obj.attrs.insert(i, (p, psi));
         obj
     }
 }
@@ -125,9 +110,6 @@ impl Object {
 impl fmt::Display for Object {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut parts = vec![];
-        if let Some(p) = self.psi {
-            parts.push(format!("ψ↦ν{}", p));
-        }
         if let Some(_) = self.lambda {
             parts.push("λ".to_string());
         }
@@ -135,13 +117,15 @@ impl fmt::Display for Object {
             parts.push(format!("Δ↦0x{:04X}", p));
         }
         for i in self.attrs.iter() {
-            let (attr, path) = i;
+            let (attr, (path, psi)) = i;
             parts.push(
                 match attr {
                     Item::Rho => "ρ".to_string(),
                     Item::Phi => "φ".to_string(),
                     _ => attr.to_string()
-                } + &format!("↦{}", path)
+                }
+                    + &format!("↦{}", path)
+                    + &(if *psi { "(𝜓)".to_string() } else { "".to_string() })
             );
         }
         parts.sort();
@@ -152,17 +136,17 @@ impl fmt::Display for Object {
 #[test]
 fn makes_simple_object() {
     let mut obj = Object::open();
-    obj.push(Item::Attr(1), "v4".parse().unwrap());
-    obj.push(Item::Rho, "$.0.@".parse().unwrap());
+    obj.push(Item::Attr(1), "v4".parse().unwrap(), false);
+    obj.push(Item::Rho, "$.0.@".parse().unwrap(), false);
     assert_eq!(obj.attrs.len(), 2)
 }
 
 #[test]
 fn extends_by_making_new_object() {
     let obj = Object::open()
-        .with(Item::Attr(1), ph!("v14.^"))
-        .with(Item::Phi, ph!("v7.@"))
-        .with(Item::Rho, ph!("$.^.0.0.^.@"));
+        .with(Item::Attr(1), ph!("v14.^"), false)
+        .with(Item::Phi, ph!("v7.@"), false)
+        .with(Item::Rho, ph!("$.^.0.0.^.@"), false);
     assert_eq!(obj.attrs.len(), 3);
     assert!(obj.delta.is_none());
     assert!(obj.lambda.is_none());
@@ -171,8 +155,8 @@ fn extends_by_making_new_object() {
 #[test]
 fn prints_simple_object() {
     let mut obj = Object::open();
-    obj.push(Item::Attr(1), "v4".parse().unwrap());
-    obj.push(Item::Rho, "$.0.@".parse().unwrap());
+    obj.push(Item::Attr(1), "v4".parse().unwrap(), false);
+    obj.push(Item::Rho, "$.0.@".parse().unwrap(), false);
     assert_eq!("ρ:$.0.@ 𝛼1:v4", obj.to_string())
 }
 

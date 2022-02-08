@@ -25,19 +25,25 @@ use crate::path::Item;
 
 pub type Atom = fn(&mut Emu, Bx) -> Data;
 
+macro_rules! kid {
+    ($emu:expr, $bx:expr, $item:expr) => {
+        $emu.calc_attr($bx, $item).unwrap()
+    };
+}
+
 pub fn int_add(emu: &mut Emu, bx: Bx) -> Data {
-    emu.dataize_attr(bx, Item::Rho).unwrap() + emu.dataize_attr(bx, Item::Attr(0)).unwrap()
+    kid!(emu, bx, Item::Rho) + kid!(emu, bx, Item::Attr(0))
 }
 
 pub fn int_sub(emu: &mut Emu, bx: Bx) -> Data {
-    emu.dataize_attr(bx, Item::Rho).unwrap() - emu.dataize_attr(bx, Item::Attr(0)).unwrap()
+    kid!(emu, bx, Item::Rho) - kid!(emu, bx, Item::Attr(0))
 }
 
 pub fn int_less(emu: &mut Emu, bx: Bx) -> Data {
-    (emu.dataize_attr(bx, Item::Rho).unwrap() < emu.dataize_attr(bx, Item::Attr(0)).unwrap()) as Data
+    (kid!(emu, bx, Item::Rho) < kid!(emu, bx, Item::Attr(0))) as Data
 }
 
 pub fn bool_if(emu: &mut Emu, bx: Bx) -> Data {
-    let term = emu.dataize_attr(bx, Item::Rho).unwrap();
-    emu.dataize_attr(bx, Item::Attr(if term == 1 { 0 } else { 1 })).unwrap()
+    let term = kid!(emu, bx, Item::Rho);
+    kid!(emu, bx, Item::Attr(if term == 1 { 0 } else { 1 }))
 }

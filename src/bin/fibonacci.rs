@@ -28,6 +28,7 @@ use eoc::path::{Item, Path};
 use eoc::ph;
 use std::env;
 use std::str::FromStr;
+use simple_logger::SimpleLogger;
 
 pub fn fibo(x: Data) -> Result<Data, String> {
     let mut emu = Emu::empty();
@@ -104,6 +105,7 @@ pub fn main() {
 
 #[test]
 fn calculates_fibonacci() {
+    SimpleLogger::new().init().unwrap();
     assert_eq!(87, fibo(17).unwrap())
 }
 
