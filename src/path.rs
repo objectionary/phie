@@ -18,6 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+use crate::object::Ob;
 use lazy_static::lazy_static;
 use regex::Regex;
 use rstest::rstest;
@@ -32,7 +33,7 @@ pub enum Item {
     Xi,
     Sigma,
     Attr(i8),
-    Obj(usize),
+    Obj(Ob),
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -69,14 +70,14 @@ impl FromStr for Item {
     type Err = String;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         lazy_static! {
-            static ref RE_ARG: Regex = Regex::new("^𝛼?\\d+$").unwrap();
-            static ref RE_OBS: Regex = Regex::new("^[v|ν]\\d+$").unwrap();
+            static ref RE_ARG: Regex = Regex::new("^𝛼?(\\d+)$").unwrap();
+            static ref RE_OBS: Regex = Regex::new("^[v|ν](\\d+)$").unwrap();
         }
-        if RE_ARG.is_match(s) {
-            return Ok(Item::Attr(s.parse::<i8>().unwrap()));
+        if let Some(caps) = RE_ARG.captures(s) {
+            return Ok(Item::Attr(caps.get(1).unwrap().as_str().parse::<i8>().unwrap()));
         }
-        if RE_OBS.is_match(s) {
-            return Ok(Item::Obj(s[1..].parse::<usize>().unwrap()));
+        if let Some(caps) = RE_OBS.captures(s) {
+            return Ok(Item::Obj(caps.get(1).unwrap().as_str().parse::<usize>().unwrap()));
         }
         match s {
             "R" => Ok(Item::Root),
@@ -175,13 +176,19 @@ impl fmt::Display for Path {
 #[case("^")]
 #[case("@")]
 #[case("v78")]
-#[case("0")]
-#[case("22")]
 #[case("v5.&.0.^.@.$.81")]
 #[case("R.0.&.3.^")]
 #[case("$.0")]
 #[case("$.0")]
 pub fn parses_and_prints(#[case] path: String) {
+    let p1 = Path::from_str(&path).unwrap();
+    let p2 = Path::from_str(&p1.to_string()).unwrap();
+    assert_eq!(p1, p2)
+}
+
+#[test]
+pub fn parses_and_prints_one() {
+    let path = "v5.&.0.^.^.@.$.81";
     let p1 = Path::from_str(&path).unwrap();
     let p2 = Path::from_str(&p1.to_string()).unwrap();
     assert_eq!(p1, p2)

@@ -26,7 +26,7 @@ pub mod object;
 pub mod path;
 use simple_logger::SimpleLogger;
 
-#[test]
+#[cfg(test)]
 #[ctor::ctor]
 fn init() {
     SimpleLogger::new().init().unwrap();

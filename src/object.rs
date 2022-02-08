@@ -157,6 +157,6 @@ fn prints_simple_object() {
     let mut obj = Object::open();
     obj.push(Item::Attr(1), "v4".parse().unwrap(), false);
     obj.push(Item::Rho, "$.0.@".parse().unwrap(), false);
-    assert_eq!("ρ:$.0.@ 𝛼1:v4", obj.to_string())
+    assert_eq!("ρ↦ξ.𝛼0.φ 𝛼1↦ν4", obj.to_string())
 }
 

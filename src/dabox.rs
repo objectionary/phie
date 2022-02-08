@@ -100,5 +100,5 @@ fn prints_itself() {
     let mut dabox = Dabox::start(5, 7);
     dabox.put_ret(42);
     dabox.put_kid(Item::Rho, 42);
-    assert_eq!("ν5, ξ:#7, r:0x002A, [^:0x002A]", dabox.to_string());
+    assert_eq!("ν5, ξ:#7, r:0x002A, [ρ:0x002A]", dabox.to_string());
 }

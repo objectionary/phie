@@ -237,16 +237,16 @@ pub fn with_many_decorators() {
 
 // v1 -> [ @ -> v2 ]
 // v2 -> [ a3 -> v1 ]
-// v3 -> [ a0 -> $.a3.a0 ]
+// v3 -> [ a0 -> $.a3.@ ]
 #[test]
 pub fn finds_complex_path() {
     let mut emu = Emu::empty();
     emu.put(1, Object::open().with(Item::Phi, ph!("v2"), false));
     emu.put(2, Object::open().with(Item::Attr(3), ph!("v1"), false));
     emu.put(3, Object::open().with(Item::Attr(0), ph!("$.3.@"), false));
-    let bx1 = emu.new(2, ROOT_BX);
-    let bx = emu.new(3, bx1);
-    assert_eq!(1, emu.find(bx, &ph!("v3.0")).unwrap());
+    let bx2 = emu.new(2, ROOT_BX);
+    let bx3 = emu.new(3, bx2);
+    assert_eq!(2, emu.find(bx3, &ph!("v3.0")).unwrap());
 }
 
 // v1 -> [ D -> 42 ]
@@ -308,6 +308,11 @@ pub fn summarizes_two_numbers() {
     assert_eq!(84, emu.dataize(bx).unwrap());
 }
 
+// [x] > a
+//   $.x > @
+// a > foo
+//   a 42 > @
+//
 // v1 -> [ @ -> $.a0 ]
 // v2 -> [ D -> 42 ]
 // v3 -> [ @ -> v1(𝜓), a0 -> v2 ]
@@ -334,5 +339,47 @@ pub fn calls_itself_once() {
             .with(Item::Attr(0), ph!("v3"), false)
     );
     let bx = emu.new(3, ROOT_BX);
+    assert_eq!(42, emu.dataize(bx).unwrap());
+}
+
+// [x] > a
+//   $.x > @
+// [y] > b
+//   a > @
+//     $.y
+// b 42 > foo
+//
+// v1 -> [ @ -> $.a0 ]
+// v2 -> [ @ -> v3(𝜓) ]
+// v3 -> [ @ -> v1(𝜓), a0 -> $.a0 ]
+// v4 -> [ D -> 42 ]
+// v5 -> [ @ -> v2(𝜓), a0 -> v4 ]
+#[test]
+pub fn injects_xi_correctly() {
+    let mut emu = Emu::empty();
+    emu.put(
+        1,
+        Object::open()
+            .with(Item::Phi, ph!("$.0"), false)
+    );
+    emu.put(
+        2,
+        Object::open()
+            .with(Item::Phi, ph!("v3"), true)
+    );
+    emu.put(
+        3,
+        Object::open()
+            .with(Item::Phi, ph!("v1"), true)
+            .with(Item::Attr(0), ph!("$.0"), false)
+    );
+    emu.put(4, Object::dataic(42));
+    emu.put(
+        5,
+        Object::open()
+            .with(Item::Phi, ph!("v2"), true)
+            .with(Item::Attr(0), ph!("v4"), false)
+    );
+    let bx = emu.new(5, ROOT_BX);
     assert_eq!(42, emu.dataize(bx).unwrap());
 }
