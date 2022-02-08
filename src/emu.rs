@@ -307,3 +307,32 @@ pub fn summarizes_two_numbers() {
     let bx = emu.new(3, ROOT_BX);
     assert_eq!(84, emu.dataize(bx).unwrap());
 }
+
+// v1 -> [ @ -> $.a0 ]
+// v2 -> [ D -> 42 ]
+// v3 -> [ @ -> v1(𝜓), a0 -> v2 ]
+// v4 -> [ @ -> v1(𝜓), a0 -> v3 ]
+#[test]
+pub fn calls_itself_once() {
+    let mut emu = Emu::empty();
+    emu.put(
+        1,
+        Object::open()
+            .with(Item::Phi, ph!("$.0"), false)
+    );
+    emu.put(2, Object::dataic(42));
+    emu.put(
+        3,
+        Object::open()
+            .with(Item::Phi, ph!("v1"), true)
+            .with(Item::Attr(0), ph!("v2"), false)
+    );
+    emu.put(
+        4,
+        Object::open()
+            .with(Item::Phi, ph!("v1"), true)
+            .with(Item::Attr(0), ph!("v3"), false)
+    );
+    let bx = emu.new(3, ROOT_BX);
+    assert_eq!(42, emu.dataize(bx).unwrap());
+}
