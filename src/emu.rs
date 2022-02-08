@@ -89,7 +89,7 @@ impl Emu {
     pub fn calc_attr(&mut self, bx: Bx, attr: Item) -> Result<Data, String> {
         let dbox = self.dabox(bx);
         let ob = dbox.ob;
-        trace!("calc_attr(#{}, {}) -> ν{}...", bx, attr, ob);
+        trace!("calc_attr(#{}/ν{}, {})...", bx, ob, attr);
         let obj = self.object(ob);
         let target = match self.find(bx, &Path::from_item(attr.clone())) {
             Ok(p) => p,
@@ -110,7 +110,7 @@ impl Emu {
     pub fn dataize(&mut self, bx: Bx) -> Result<Data, String> {
         let dbox = self.dabox(bx);
         let ob = dbox.ob;
-        trace!("\n\ndataize(#{}) -> ν{}...", bx, ob);
+        trace!("\n\ndataize(#{}/ν{})...", bx, ob);
         self.log();
         let obj = self.object(ob);
         let ret = if let Some(delta) = obj.delta {
@@ -129,7 +129,7 @@ impl Emu {
     /// Suppose, the incoming path is `^.0.@.2`. We have to find the right
     /// object in the catalog of them and return the position of the found one.
     fn find(&self, bx: Bx, path: &Path) -> Result<Ob, String> {
-        let dbox = self.dabox(bx);
+        let mut dbox = self.dabox(bx);
         let mut items = path.to_vec();
         let mut ret = Err("Nothing found".to_string());
         let mut last = 0;
@@ -144,7 +144,8 @@ impl Emu {
             let next = match item {
                 Item::Root => ROOT_BX,
                 Item::Xi => {
-                    let ob = self.dabox(dbox.xi).ob;
+                    dbox = self.dabox(dbox.xi);
+                    let ob = dbox.ob;
                     log.push(format!("ξ=ν{}", ob));
                     ob
                 },
