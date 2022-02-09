@@ -109,6 +109,6 @@ pub fn main() {
 #[test]
 fn calculates_fibonacci() {
     SimpleLogger::new().init().unwrap();
-    assert_eq!(87, fibo(17).unwrap())
+    assert_eq!(87, fibo(3).unwrap())
 }
 

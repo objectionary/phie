@@ -156,7 +156,7 @@ impl Emu {
                         Some((p, _psi)) => {
                             items.insert(0, item);
                             items.splice(0..0, p.to_vec());
-                            log.push(format!("++{}", p));
+                            log.push(format!("+{}", p));
                             last
                         }
                     },
@@ -166,19 +166,20 @@ impl Emu {
                         last
                     }
                 },
-                _ => self.find(
-                    bx,
-                    match obj.attrs.get(&item) {
-                        Some((p, _psi)) => p,
-                        None => return Err(format!("Can't get '{}' from ν{}: {}", item, last, join!(log))),
+                _ => match obj.attrs.get(&item) {
+                    None => return Err(format!("Can't get '{}' from ν{}: {}", item, last, join!(log))),
+                    Some((p, _psi)) => {
+                        items.splice(0..0, p.to_vec());
+                        log.push(format!("+{}", p));
+                        last
                     }
-                )?,
+                },
             };
             obj = self.object(next);
             last = next;
             ret = Ok(next)
         };
-        trace!("find(#{}/ν{}, {}) -> ν{}\n\t{}", bx, dbox.ob, path, ret.clone().unwrap(), join!(log));
+        trace!("find(#{}/ν{}, {}) -> ν{}\n\t{}", bx, self.dabox(bx).ob, path, ret.clone().unwrap(), join!(log));
         ret
     }
 
@@ -195,8 +196,8 @@ impl Emu {
     }
 
     /// Delete dataization box.
-    pub fn delete(&mut self, bx: Bx) {
-        self.boxes[bx] = Dabox::empty();
+    pub fn delete(&mut self, _bx: Bx) {
+        // self.boxes[bx] = Dabox::empty();
     }
 
     fn object(&self, ob: Ob) -> &Object {
@@ -382,5 +383,41 @@ pub fn injects_xi_correctly() {
             .with(Item::Attr(0), ph!("v4"), false)
     );
     let bx = emu.new(5, ROOT_BX);
+    assert_eq!(42, emu.dataize(bx).unwrap());
+}
+
+// [a3] > v1
+//   $.a3 > @
+// [a1] > v2
+//   v1 > @
+//     $.a1
+// v2 42 > @
+//
+// v1 -> [ @ -> $.a3 ]
+// v2 -> [ @ -> v1(𝜓), a3 -> $.a1 ]
+// v3 -> [ @ -> v2(𝜓), a1 -> v4 ]
+// v4 -> [ D -> 42 ]
+#[test]
+pub fn reverse_to_abstract() {
+    let mut emu = Emu::empty();
+    emu.put(
+        1,
+        Object::open()
+            .with(Item::Phi, ph!("$.3"), false)
+    );
+    emu.put(
+        2,
+        Object::open()
+            .with(Item::Phi, ph!("v1"), true)
+            .with(Item::Attr(3), ph!("$.1"), false)
+    );
+    emu.put(
+        3,
+        Object::open()
+            .with(Item::Phi, ph!("v2"), true)
+            .with(Item::Attr(1), ph!("v4"), false)
+    );
+    emu.put(4, Object::dataic(42));
+    let bx = emu.new(3, ROOT_BX);
     assert_eq!(42, emu.dataize(bx).unwrap());
 }
