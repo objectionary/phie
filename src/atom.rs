@@ -18,7 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-use crate::dabox::Bx;
+use crate::dbox::Bx;
 use crate::data::Data;
 use crate::emu::Emu;
 use crate::path::Item;

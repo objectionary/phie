@@ -19,7 +19,7 @@
 // SOFTWARE.
 
 use regex::Regex;
-use crate::dabox::{Bx, Dabox};
+use crate::dbox::{Bx, Dbox};
 use crate::data::Data;
 use crate::object::{Ob, Object};
 use crate::path::{Item, Path};
@@ -34,7 +34,7 @@ pub const ROOT_OB : Ob = 0;
 
 pub struct Emu {
     pub objects: [Object; 256],
-    pub boxes: [Dabox; 256],
+    pub boxes: [Dbox; 256],
     pub total_boxes: usize,
 }
 
@@ -50,7 +50,7 @@ impl Emu {
     pub fn empty() -> Emu {
         let mut emu = Emu {
             objects: arr![Object::open(); 256],
-            boxes: arr![Dabox::empty(); 256],
+            boxes: arr![Dbox::empty(); 256],
             total_boxes: 0,
         };
         emu.put(ROOT_OB, Object::dataic(Data::MAX));
@@ -144,6 +144,9 @@ impl Emu {
             let next = match item {
                 Item::Root => ROOT_BX,
                 Item::Xi => {
+                    if dbox.xi == ROOT_BX {
+                        return Err(format!("The root doesn't have ξ: {}", join!(log)))
+                    }
                     dbox = self.dabox(dbox.xi);
                     let ob = dbox.ob;
                     log.push(format!("ξ=ν{}", ob));
@@ -185,7 +188,7 @@ impl Emu {
 
     /// Make new dataization box and return its position ID.
     pub fn new(&mut self, ob: Ob, xi: Bx) -> Bx {
-        let dbox = Dabox::start(ob, xi);
+        let dbox = Dbox::start(ob, xi);
         let pos = self.total_boxes;
         if self.total_boxes > 30 {
             panic!("Too many")
@@ -215,7 +218,7 @@ impl Emu {
         &self.objects[ob]
     }
 
-    fn dabox(&self, bx: Bx) -> &Dabox {
+    fn dabox(&self, bx: Bx) -> &Dbox {
         &self.boxes[bx]
     }
 }
@@ -307,20 +310,15 @@ pub fn summarizes_two_numbers() {
 //   $.x > @
 // a > foo
 //   a 42 > @
-//
-// v1 -> [ @ -> $.a0 ]
-// v2 -> [ D -> 42 ]
-// v3 -> [ @ -> v1(𝜓), a0 -> v2 ]
-// v4 -> [ @ -> v1(𝜓), a0 -> v3 ]
 #[test]
 pub fn calls_itself_once() {
     let mut emu = Emu::parse_phi("
         ν1 ↦ ⟦ φ ↦ ξ.𝛼0 ⟧
         ν2 ↦ ⟦ Δ ↦ 0x002A ⟧
         ν3 ↦ ⟦ φ ↦ ν1(𝜓), 𝛼0 ↦ ν2 ⟧
-        ν5 ↦ ⟦ φ ↦ ν1(𝜓), 𝛼0 ↦ ν3 ⟧
+        ν4 ↦ ⟦ φ ↦ ν1(𝜓), 𝛼0 ↦ ν3 ⟧
     ").unwrap();
-    let bx = emu.new(3, ROOT_BX);
+    let bx = emu.new(4, ROOT_BX);
     assert_eq!(42, emu.dataize(bx).unwrap());
 }
 
@@ -343,12 +341,12 @@ pub fn injects_xi_correctly() {
     assert_eq!(42, emu.dataize(bx).unwrap());
 }
 
-// [a3] > v1
+// [a3] > v1         v1
 //   $.a3 > @
-// [a1] > v2
-//   v1 > @
+// [a1] > v2         v2
+//   v1 > @          v3
 //     $.a1
-// v2 42 > @
+// v2 42 > @         v4
 #[test]
 pub fn reverse_to_abstract() {
     let mut emu = Emu::parse_phi("
@@ -358,6 +356,31 @@ pub fn reverse_to_abstract() {
         ν4 ↦ ⟦ Δ ↦ 0x002A ⟧
     ").unwrap();
     let bx = emu.new(3, ROOT_BX);
+    assert_eq!(42, emu.dataize(bx).unwrap());
+}
+
+// [x] > a          v1  $=v6
+//   b > @          v2  $=v6
+//     c            v3  $=v2 -> v6
+//       $.x
+// [x] > b          v4  $=v2
+//   x > @
+// [x] > c          v5
+//   x > @
+// a                v6  $=R
+//   42             v7
+#[test]
+pub fn passes_xi_through_two_layers() {
+    let mut emu = Emu::parse_phi("
+        ν1 ↦ ⟦ φ ↦ ν2 ⟧
+        ν2 ↦ ⟦ φ ↦ ν4(𝜓), 𝛼0 ↦ ν3 ⟧
+        ν3 ↦ ⟦ φ ↦ ν5(𝜓), 𝛼0 ↦ ξ.𝛼0 ⟧
+        ν4 ↦ ⟦ φ ↦ ξ.𝛼0 ⟧
+        ν5 ↦ ⟦ φ ↦ ξ.𝛼0 ⟧
+        ν6 ↦ ⟦ φ ↦ ν1(𝜓), 𝛼0 ↦ ν7 ⟧
+        ν7 ↦ ⟦ Δ ↦ 0x002A ⟧
+    ").unwrap();
+    let bx = emu.new(6, ROOT_BX);
     assert_eq!(42, emu.dataize(bx).unwrap());
 }
 
@@ -382,7 +405,7 @@ pub fn simple_recursion() {
         ν4 ↦ ⟦ Δ ↦ 0x0000 ⟧
         ν5 ↦ ⟦ Δ ↦ 0x002A ⟧
         ν6 ↦ ⟦ φ ↦ ν1(𝜓), 𝛼0 ↦ ν7 ⟧
-        ν7 ↦ ⟦ λ ↦ int.sub, ρ ↦ ξ.𝛼0, 𝛼0 ↦ ν8 ⟧
+        ν7 ↦ ⟦ λ ↦ int.sub, ρ ↦ ξ.ξ.𝛼0, 𝛼0 ↦ ν8 ⟧
         ν8 ↦ ⟦ Δ ↦ 0x0001 ⟧
         ν9 ↦ ⟦ φ ↦ ν1(𝜓), 𝛼0 ↦ ν10 ⟧
         ν10 ↦ ⟦ Δ ↦ 0x0007 ⟧

@@ -19,7 +19,7 @@
 // SOFTWARE.
 
 pub mod atom;
-pub mod dabox;
+pub mod dbox;
 pub mod data;
 pub mod emu;
 pub mod object;

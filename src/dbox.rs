@@ -27,16 +27,16 @@ use itertools::Itertools;
 
 pub type Bx = usize;
 
-pub struct Dabox {
+pub struct Dbox {
     pub ob: Ob,
     pub xi: Bx,
     ret: Option<Data>,
     kids: HashMap<Item, Data>,
 }
 
-impl Dabox {
-    pub fn empty() -> Dabox {
-        Dabox {
+impl Dbox {
+    pub fn empty() -> Dbox {
+        Dbox {
             ob: 0,
             xi: 0,
             ret: None,
@@ -44,8 +44,8 @@ impl Dabox {
         }
     }
 
-    pub fn start(ob: Ob, xi: Bx) -> Dabox {
-        Dabox {
+    pub fn start(ob: Ob, xi: Bx) -> Dbox {
+        Dbox {
             ob,
             xi,
             ret: None,
@@ -70,7 +70,7 @@ impl Dabox {
     }
 }
 
-impl fmt::Display for Dabox {
+impl fmt::Display for Dbox {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f, "ν{}, ξ:#{}{}, [{}]",
@@ -90,14 +90,14 @@ impl fmt::Display for Dabox {
 
 #[test]
 fn makes_simple_dabox() {
-    let mut dabox = Dabox::start(0, 0);
+    let mut dabox = Dbox::start(0, 0);
     dabox.put_ret(42);
     assert_eq!(42, dabox.ret.unwrap());
 }
 
 #[test]
 fn prints_itself() {
-    let mut dabox = Dabox::start(5, 7);
+    let mut dabox = Dbox::start(5, 7);
     dabox.put_ret(42);
     dabox.put_kid(Item::Rho, 42);
     assert_eq!("ν5, ξ:#7, r:0x002A, [ρ:0x002A]", dabox.to_string());

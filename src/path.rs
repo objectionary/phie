@@ -123,15 +123,15 @@ impl FromStr for Path {
             static ref CHECKS: [Check; 3] = [
                 Check {
                     check: |p: &Path| p.items[1..].iter().find(|i| matches!(i, Item::Obj(_))),
-                    msg: "Obs can only stay at the first position"
+                    msg: "ν can only stay at the first position"
                 },
                 Check {
                     check: |p: &Path| p.items[1..].iter().find(|i| matches!(i, Item::Root)),
-                    msg: "Can only start a path"
+                    msg: "Φ can only start a path"
                 },
                 Check {
                     check: |p: &Path| p.items[0..1].iter().find(|i| matches!(i, Item::Attr(_))),
-                    msg: "Argument number can't start a path"
+                    msg: "𝛼 can't start a path"
                 }
             ];
         }
