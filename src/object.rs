@@ -18,7 +18,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-use crate::atom::Atom;
+use regex::Regex;
+use crate::atom::*;
 use crate::data::Data;
 use crate::path::{Item, Path};
 use crate::ph;
@@ -129,7 +130,44 @@ impl fmt::Display for Object {
             );
         }
         parts.sort();
-        write!(f, "{}", parts.iter().join(" "))
+        write!(f, "⟦{}⟧", parts.iter().join(", "))
+    }
+}
+
+impl FromStr for Object {
+    type Err = String;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let re = Regex::new("⟦(.*)⟧").unwrap();
+        let mut obj = Object::open();
+        let caps = re.captures(s).unwrap();
+        for pair in caps.get(1).unwrap().as_str().trim().split(",").map(|t| t.trim()) {
+            let (i, p) = pair.split("↦").map(|t| t.trim()).collect_tuple().ok_or(format!("Can't split '{}' in two parts at '{}'", pair, s))?;
+            match i.chars().take(1).last().unwrap() {
+                'λ' => {
+                    obj = Object::atomic(
+                        match p {
+                            "int.sub" => int_sub,
+                            "int.add" => int_add,
+                            "bool.if" => bool_if,
+                            "int.less" => int_less,
+                            _ => panic!("Unknown lambda '{}'", p)
+                        }
+                    );
+                },
+                'Δ' => {
+                    let hex : String = p.chars().skip(2).collect();
+                    let data : Data = Data::from_str_radix(&hex, 16).expect(&format!("Can't parse hex '{}' in '{}'", hex, s));
+                    obj = Object::dataic(data);
+                },
+                _ => {
+                    let psi_suffix = "(𝜓)";
+                    let psi = p.ends_with(psi_suffix);
+                    let path = if psi { p.chars().take(p.len() - psi_suffix.len() - 1).collect() } else { p.to_string() };
+                    obj.push(Item::from_str(i).unwrap(), Path::from_str(&path).unwrap(), psi);
+                }
+            };
+        }
+        Ok(obj)
     }
 }
 
@@ -153,10 +191,13 @@ fn extends_by_making_new_object() {
 }
 
 #[test]
-fn prints_simple_object() {
+fn prints_and_parses_simple_object() {
     let mut obj = Object::open();
     obj.push(Item::Attr(1), "v4".parse().unwrap(), false);
     obj.push(Item::Rho, "$.0.@".parse().unwrap(), false);
-    assert_eq!("ρ↦ξ.𝛼0.φ 𝛼1↦ν4", obj.to_string())
+    let text = obj.to_string();
+    assert_eq!("⟦ρ↦ξ.𝛼0.φ, 𝛼1↦ν4⟧", text);
+    let obj2 = Object::from_str(&text).unwrap();
+    assert_eq!(obj2.to_string(), text);
 }
 

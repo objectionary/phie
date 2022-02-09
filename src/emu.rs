@@ -19,7 +19,6 @@
 // SOFTWARE.
 
 use regex::Regex;
-use crate::atom::*;
 use crate::dabox::{Bx, Dabox};
 use crate::data::Data;
 use crate::object::{Ob, Object};
@@ -54,7 +53,7 @@ impl Emu {
             boxes: arr![Dabox::empty(); 256],
             total_boxes: 0,
         };
-        emu.put(ROOT_OB, Object::dataic(0));
+        emu.put(ROOT_OB, Object::dataic(Data::MAX));
         let bx = emu.new(ROOT_BX, ROOT_BX);
         assert_eq!(ROOT_BX, bx);
         emu
@@ -74,7 +73,7 @@ impl Emu {
                 continue;
             }
             trace!(
-                "ν{} ⟦{}⟧{}",
+                "ν{} {}{}",
                 ob, obj,
                 self.boxes.iter().enumerate()
                     .filter(|(_, d)| !d.is_empty() && d.ob as usize == ob)
@@ -203,39 +202,11 @@ impl Emu {
 
     pub fn parse_phi(txt: &str) -> Result<Emu, String> {
         let mut emu = Emu::empty();
-        let re_line = Regex::new("ν(\\d+) ↦ ⟦(.*)⟧").unwrap();
+        let re_line = Regex::new("ν(\\d+) ↦ (⟦.*⟧)").unwrap();
         for line in txt.trim().split("\n").map(|t| t.trim()) {
             let caps = re_line.captures(line).unwrap();
             let v : Ob = caps.get(1).unwrap().as_str().parse().unwrap();
-            let mut obj = Object::open();
-            for pair in caps.get(2).unwrap().as_str().trim().split(",").map(|t| t.trim()) {
-                let (i, p) = pair.split("↦").map(|t| t.trim()).collect_tuple().ok_or(format!("Can't split '{}' in two parts at '{}'", pair, line))?;
-                match i.chars().take(1).last().unwrap() {
-                    'λ' => {
-                        obj = Object::atomic(
-                            match p {
-                                "int.sub" => int_sub,
-                                "int.add" => int_add,
-                                "bool.if" => bool_if,
-                                "int.less" => int_less,
-                                _ => panic!("Unknown lambda '{}'", p)
-                            }
-                        );
-                    },
-                    'Δ' => {
-                        let hex : String = p.chars().skip(2).collect();
-                        let data : Data = Data::from_str_radix(&hex, 16).expect(&format!("Can't parse hex '{}' in '{}'", hex, line));
-                        obj = Object::dataic(data);
-                    },
-                    _ => {
-                        let psi_suffix = "(𝜓)";
-                        let psi = p.ends_with(psi_suffix);
-                        let path = if psi { p.chars().take(p.len() - psi_suffix.len() - 1).collect() } else { p.to_string() };
-                        obj.push(Item::from_str(i).unwrap(), Path::from_str(&path).unwrap(), psi);
-                    }
-                };
-            }
-            emu.put(v, obj);
+            emu.put(v, Object::from_str(caps.get(2).unwrap().as_str()).unwrap());
         }
         Ok(emu)
     }
@@ -390,3 +361,32 @@ pub fn reverse_to_abstract() {
     assert_eq!(42, emu.dataize(bx).unwrap());
 }
 
+// [x] > foo        v1
+//   bool.if        v2
+//     int.less     v3
+//       $.x
+//       0          v4
+//     42           v5
+//     foo          v6
+//       int.sub    v7
+//         $.x
+//         1        v8
+// foo              v9
+//   7              v10
+#[test]
+pub fn simple_recursion() {
+    let mut emu = Emu::parse_phi("
+        ν1 ↦ ⟦ φ ↦ ν2 ⟧
+        ν2 ↦ ⟦ λ ↦ bool.if, ρ ↦ ν3, 𝛼0 ↦ ν5, 𝛼1 ↦ ν6 ⟧
+        ν3 ↦ ⟦ λ ↦ int.less, ρ ↦ ξ.𝛼0, 𝛼0 ↦ ν4 ⟧
+        ν4 ↦ ⟦ Δ ↦ 0x0000 ⟧
+        ν5 ↦ ⟦ Δ ↦ 0x002A ⟧
+        ν6 ↦ ⟦ φ ↦ ν1(𝜓), 𝛼0 ↦ ν7 ⟧
+        ν7 ↦ ⟦ λ ↦ int.sub, ρ ↦ ξ.𝛼0, 𝛼0 ↦ ν8 ⟧
+        ν8 ↦ ⟦ Δ ↦ 0x0001 ⟧
+        ν9 ↦ ⟦ φ ↦ ν1(𝜓), 𝛼0 ↦ ν10 ⟧
+        ν10 ↦ ⟦ Δ ↦ 0x0007 ⟧
+    ").unwrap();
+    let bx = emu.new(9, ROOT_BX);
+    assert_eq!(42, emu.dataize(bx).unwrap());
+}
