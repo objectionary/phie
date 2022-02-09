@@ -178,6 +178,7 @@ impl fmt::Display for Path {
 #[case("v78")]
 #[case("v5.&.0.^.@.$.81")]
 #[case("R.0.&.3.^")]
+#[case("Φ.𝛼0.σ.𝛼3.ρ")]
 #[case("$.0")]
 #[case("$.0")]
 pub fn parses_and_prints(#[case] path: String) {

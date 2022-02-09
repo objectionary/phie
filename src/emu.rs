@@ -18,6 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+use regex::Regex;
 use crate::atom::*;
 use crate::dabox::{Bx, Dabox};
 use crate::data::Data;
@@ -200,6 +201,45 @@ impl Emu {
         // self.boxes[bx] = Dabox::empty();
     }
 
+    pub fn parse_phi(txt: &str) -> Result<Emu, String> {
+        let mut emu = Emu::empty();
+        let re_line = Regex::new("ν(\\d+) ↦ ⟦(.*)⟧").unwrap();
+        for line in txt.trim().split("\n").map(|t| t.trim()) {
+            let caps = re_line.captures(line).unwrap();
+            let v : Ob = caps.get(1).unwrap().as_str().parse().unwrap();
+            let mut obj = Object::open();
+            for pair in caps.get(2).unwrap().as_str().trim().split(",").map(|t| t.trim()) {
+                let (i, p) = pair.split("↦").map(|t| t.trim()).collect_tuple().ok_or(format!("Can't split '{}' in two parts at '{}'", pair, line))?;
+                match i.chars().take(1).last().unwrap() {
+                    'λ' => {
+                        obj = Object::atomic(
+                            match p {
+                                "int.sub" => int_sub,
+                                "int.add" => int_add,
+                                "bool.if" => bool_if,
+                                "int.less" => int_less,
+                                _ => panic!("Unknown lambda '{}'", p)
+                            }
+                        );
+                    },
+                    'Δ' => {
+                        let hex : String = p.chars().skip(2).collect();
+                        let data : Data = Data::from_str_radix(&hex, 16).expect(&format!("Can't parse hex '{}' in '{}'", hex, line));
+                        obj = Object::dataic(data);
+                    },
+                    _ => {
+                        let psi_suffix = "(𝜓)";
+                        let psi = p.ends_with(psi_suffix);
+                        let path = if psi { p.chars().take(p.len() - psi_suffix.len() - 1).collect() } else { p.to_string() };
+                        obj.push(Item::from_str(i).unwrap(), Path::from_str(&path).unwrap(), psi);
+                    }
+                };
+            }
+            emu.put(v, obj);
+        }
+        Ok(emu)
+    }
+
     fn object(&self, ob: Ob) -> &Object {
         &self.objects[ob]
     }
@@ -237,29 +277,25 @@ pub fn with_many_decorators() {
     assert_eq!(42, emu.dataize(bx).unwrap());
 }
 
-// v1 -> [ @ -> v2 ]
-// v2 -> [ a3 -> v1 ]
-// v3 -> [ a0 -> $.a3.@ ]
 #[test]
 pub fn finds_complex_path() {
-    let mut emu = Emu::empty();
-    emu.put(1, Object::open().with(Item::Phi, ph!("v2"), false));
-    emu.put(2, Object::open().with(Item::Attr(3), ph!("v1"), false));
-    emu.put(3, Object::open().with(Item::Attr(0), ph!("$.3.@"), false));
+    let mut emu = Emu::parse_phi("
+        ν1 ↦ ⟦ φ ↦ ν2 ⟧
+        ν2 ↦ ⟦ 𝛼3 ↦ ν1 ⟧
+        ν3 ↦ ⟦ 𝛼0 ↦ ξ.𝛼3.φ ⟧
+    ").unwrap();
     let bx2 = emu.new(2, ROOT_BX);
     let bx3 = emu.new(3, bx2);
     assert_eq!(2, emu.find(bx3, &ph!("v3.0")).unwrap());
 }
 
-// v1 -> [ D -> 42 ]
-// v2 -> [ a0 -> v1 ]
-// v3 -> [ @ -> v2 ]
 #[test]
 pub fn finds_through_copy() {
-    let mut emu = Emu::empty();
-    emu.put(1, Object::dataic(42));
-    emu.put(2, Object::open().with(Item::Attr(0), ph!("v1"), false));
-    emu.put(3, Object::open().with(Item::Phi, ph!("v2"), true));
+    let mut emu = Emu::parse_phi("
+        ν1 ↦ ⟦ Δ ↦ 0x002A ⟧
+        ν2 ↦ ⟦ 𝛼0 ↦ ν1 ⟧
+        ν3 ↦ ⟦ φ ↦ ν2 ⟧
+    ").unwrap();
     let bx2 = emu.new(3, ROOT_BX);
     let bx3 = emu.new(3, bx2);
     assert_eq!(1, emu.find(bx3, &ph!("$.0")).unwrap());
@@ -284,28 +320,14 @@ pub fn saves_ret_into_dabox() {
     assert!(emu.boxes[bx].to_string().contains(&String::from(format!("{:04X}", d))));
 }
 
-// v1 -> [ D -> 42 ]
-// v2 -> [ λ -> int_add, ^ -> $.0, a0 -> $.a1 ]
-// v3 -> [ @ -> v2(𝜓), a0 -> v1, a1 -> v1 ]
-// v4 -> [ @ -> v3(𝜓) ]
 #[test]
 pub fn summarizes_two_numbers() {
-    let mut emu = Emu::empty();
-    emu.put(1, Object::dataic(42));
-    emu.put(
-        2,
-        Object::atomic(int_add)
-            .with(Item::Rho, ph!("$.0"), false)
-            .with(Item::Attr(0), ph!("$.1"), false),
-    );
-    emu.put(
-        3,
-        Object::open()
-            .with(Item::Phi, ph!("v2"), true)
-            .with(Item::Attr(0), ph!("v1"), false)
-            .with(Item::Attr(1), ph!("v1"), false),
-    );
-    emu.put(4, Object::open().with(Item::Phi, ph!("v3"), true));
+    let mut emu = Emu::parse_phi("
+        ν1 ↦ ⟦ Δ ↦ 0x002A ⟧
+        ν2 ↦ ⟦ λ ↦ int.add, ρ ↦ ξ.𝛼0, 𝛼0 ↦ ξ.𝛼1 ⟧
+        ν3 ↦ ⟦ φ ↦ ν2(𝜓), 𝛼0 ↦ ν1, 𝛼1 ↦ ν1 ⟧
+        ν5 ↦ ⟦ φ ↦ ν3(𝜓) ⟧
+    ").unwrap();
     let bx = emu.new(3, ROOT_BX);
     assert_eq!(84, emu.dataize(bx).unwrap());
 }
@@ -321,25 +343,12 @@ pub fn summarizes_two_numbers() {
 // v4 -> [ @ -> v1(𝜓), a0 -> v3 ]
 #[test]
 pub fn calls_itself_once() {
-    let mut emu = Emu::empty();
-    emu.put(
-        1,
-        Object::open()
-            .with(Item::Phi, ph!("$.0"), false)
-    );
-    emu.put(2, Object::dataic(42));
-    emu.put(
-        3,
-        Object::open()
-            .with(Item::Phi, ph!("v1"), true)
-            .with(Item::Attr(0), ph!("v2"), false)
-    );
-    emu.put(
-        4,
-        Object::open()
-            .with(Item::Phi, ph!("v1"), true)
-            .with(Item::Attr(0), ph!("v3"), false)
-    );
+    let mut emu = Emu::parse_phi("
+        ν1 ↦ ⟦ φ ↦ ξ.𝛼0 ⟧
+        ν2 ↦ ⟦ Δ ↦ 0x002A ⟧
+        ν3 ↦ ⟦ φ ↦ ν1(𝜓), 𝛼0 ↦ ν2 ⟧
+        ν5 ↦ ⟦ φ ↦ ν1(𝜓), 𝛼0 ↦ ν3 ⟧
+    ").unwrap();
     let bx = emu.new(3, ROOT_BX);
     assert_eq!(42, emu.dataize(bx).unwrap());
 }
@@ -350,38 +359,15 @@ pub fn calls_itself_once() {
 //   a > @
 //     $.y
 // b 42 > foo
-//
-// v1 -> [ @ -> $.a0 ]
-// v2 -> [ @ -> v3(𝜓) ]
-// v3 -> [ @ -> v1(𝜓), a0 -> $.a0 ]
-// v4 -> [ D -> 42 ]
-// v5 -> [ @ -> v2(𝜓), a0 -> v4 ]
 #[test]
 pub fn injects_xi_correctly() {
-    let mut emu = Emu::empty();
-    emu.put(
-        1,
-        Object::open()
-            .with(Item::Phi, ph!("$.0"), false)
-    );
-    emu.put(
-        2,
-        Object::open()
-            .with(Item::Phi, ph!("v3"), true)
-    );
-    emu.put(
-        3,
-        Object::open()
-            .with(Item::Phi, ph!("v1"), true)
-            .with(Item::Attr(0), ph!("$.0"), false)
-    );
-    emu.put(4, Object::dataic(42));
-    emu.put(
-        5,
-        Object::open()
-            .with(Item::Phi, ph!("v2"), true)
-            .with(Item::Attr(0), ph!("v4"), false)
-    );
+    let mut emu = Emu::parse_phi("
+        ν1 ↦ ⟦ φ ↦ ξ.𝛼0 ⟧
+        ν2 ↦ ⟦ φ ↦ ν3(𝜓) ⟧
+        ν3 ↦ ⟦ φ ↦ ν1(𝜓), 𝛼0 ↦ ξ.𝛼0 ⟧
+        ν4 ↦ ⟦ Δ ↦ 0x002A ⟧
+        ν5 ↦ ⟦ φ ↦ ν2(𝜓), 𝛼0 ↦ ν4 ⟧
+    ").unwrap();
     let bx = emu.new(5, ROOT_BX);
     assert_eq!(42, emu.dataize(bx).unwrap());
 }
@@ -392,32 +378,15 @@ pub fn injects_xi_correctly() {
 //   v1 > @
 //     $.a1
 // v2 42 > @
-//
-// v1 -> [ @ -> $.a3 ]
-// v2 -> [ @ -> v1(𝜓), a3 -> $.a1 ]
-// v3 -> [ @ -> v2(𝜓), a1 -> v4 ]
-// v4 -> [ D -> 42 ]
 #[test]
 pub fn reverse_to_abstract() {
-    let mut emu = Emu::empty();
-    emu.put(
-        1,
-        Object::open()
-            .with(Item::Phi, ph!("$.3"), false)
-    );
-    emu.put(
-        2,
-        Object::open()
-            .with(Item::Phi, ph!("v1"), true)
-            .with(Item::Attr(3), ph!("$.1"), false)
-    );
-    emu.put(
-        3,
-        Object::open()
-            .with(Item::Phi, ph!("v2"), true)
-            .with(Item::Attr(1), ph!("v4"), false)
-    );
-    emu.put(4, Object::dataic(42));
+    let mut emu = Emu::parse_phi("
+        ν1 ↦ ⟦ φ ↦ ξ.𝛼3 ⟧
+        ν2 ↦ ⟦ φ ↦ ν1(𝜓), 𝛼3 ↦ ξ.𝛼1 ⟧
+        ν3 ↦ ⟦ φ ↦ ν2(𝜓), 𝛼1 ↦ ν4 ⟧
+        ν4 ↦ ⟦ Δ ↦ 0x002A ⟧
+    ").unwrap();
     let bx = emu.new(3, ROOT_BX);
     assert_eq!(42, emu.dataize(bx).unwrap());
 }
+
