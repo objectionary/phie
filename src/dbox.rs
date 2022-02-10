@@ -30,6 +30,7 @@ pub type Bx = usize;
 pub struct Dbox {
     pub ob: Ob,
     pub xi: Bx,
+    pub psi: i8,
     ret: Option<Data>,
     kids: HashMap<Item, Data>,
 }
@@ -39,15 +40,17 @@ impl Dbox {
         Dbox {
             ob: 0,
             xi: 0,
+            psi: 0,
             ret: None,
             kids: HashMap::new(),
         }
     }
 
-    pub fn start(ob: Ob, xi: Bx) -> Dbox {
+    pub fn start(ob: Ob, xi: Bx, psi: i8) -> Dbox {
         Dbox {
             ob,
             xi,
+            psi,
             ret: None,
             kids: HashMap::new(),
         }
@@ -72,33 +75,36 @@ impl Dbox {
 
 impl fmt::Display for Dbox {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(
-            f, "ν{}, ξ:#{}{}, [{}]",
-            self.ob, self.xi,
-            match self.ret {
-                None => "".to_string(),
-                Some(r) => format!(", r:0x{:04X}", r)
-            },
+        let mut parts = vec![];
+        parts.push(format!("ν{}", self.ob));
+        parts.push(format!("ξ:#{}", self.xi));
+        if let Some(r) = self.ret {
+            parts.push(format!("r:0x{:04X}", r));
+        }
+        if self.psi > 0 {
+            parts.push(format!("𝜓{}", self.psi));
+        }
+        parts.extend(
             self.kids.iter()
                 .map(|(i, d)| format!("{}:0x{:04X}", i, d))
                 .sorted()
                 .collect::<Vec<String>>()
-                .join(", ")
-        )
+        );
+        write!(f, "[{}]", parts.iter().join(", "))
     }
 }
 
 #[test]
 fn makes_simple_dabox() {
-    let mut dabox = Dbox::start(0, 0);
+    let mut dabox = Dbox::start(0, 0, 0);
     dabox.put_ret(42);
     assert_eq!(42, dabox.ret.unwrap());
 }
 
 #[test]
 fn prints_itself() {
-    let mut dabox = Dbox::start(5, 7);
+    let mut dabox = Dbox::start(5, 7, 0);
     dabox.put_ret(42);
     dabox.put_kid(Item::Rho, 42);
-    assert_eq!("ν5, ξ:#7, r:0x002A, [ρ:0x002A]", dabox.to_string());
+    assert_eq!("[ν5, ξ:#7, r:0x002A, ρ:0x002A]", dabox.to_string());
 }

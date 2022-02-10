@@ -44,6 +44,15 @@ macro_rules! join {
     };
 }
 
+#[macro_export]
+macro_rules! assert_emu {
+    ($v:expr, $eq:expr, $txt:expr) => {
+        let mut emu = Emu::parse_phi($txt).unwrap();
+        let bx = emu.new($v, ROOT_BX, 0);
+        assert_eq!($eq, emu.dataize(bx).unwrap());
+    };
+}
+
 impl Emu {
     /// Make an empty Emu, which you can later extend with
     /// additional objects.
@@ -54,7 +63,7 @@ impl Emu {
             total_boxes: 0,
         };
         emu.put(ROOT_OB, Object::dataic(Data::MAX));
-        let bx = emu.new(ROOT_BX, ROOT_BX);
+        let bx = emu.new(ROOT_BX, ROOT_BX, 0);
         assert_eq!(ROOT_BX, bx);
         emu
     }
@@ -77,7 +86,7 @@ impl Emu {
                 ob, obj,
                 self.boxes.iter().enumerate()
                     .filter(|(_, d)| !d.is_empty() && d.ob as usize == ob)
-                    .map(|(i, d)| format!("\n\t➞ #{} ({})", i, d))
+                    .map(|(i, d)| format!("\n\t➞ #{} {}", i, d))
                     .collect::<Vec<String>>()
                     .join("")
             )
@@ -97,7 +106,13 @@ impl Emu {
         };
         let psi = obj.attrs.get(&attr).unwrap().1;
         let xi = dbox.xi.clone();
-        let sub = self.new(target, if psi { bx } else { xi });
+        let dpsi = dbox.psi + if psi { 1 } else { 0 };
+        let sub = self.new(
+            target,
+            bx,
+            // if psi { bx } else { xi },
+            dpsi - 1
+        );
         let ret = self.dataize(sub);
         (&mut self.boxes[bx]).put_kid(attr, ret.clone().unwrap());
         self.delete(sub);
@@ -150,6 +165,10 @@ impl Emu {
                     dbox = self.dabox(dbox.xi);
                     let ob = dbox.ob;
                     log.push(format!("ξ=ν{}", ob));
+                    for i in 0..dbox.psi {
+                        log.push(format!("i{}", i));
+                        items.insert(0, Item::Xi);
+                    }
                     ob
                 },
                 Item::Obj(i) => i,
@@ -182,17 +201,17 @@ impl Emu {
             last = next;
             ret = Ok(next)
         };
-        trace!("find(#{}/ν{}, {}) -> ν{}\n\t{}", bx, self.dabox(bx).ob, path, ret.clone().unwrap(), join!(log));
+        trace!("find(#{}/ν{}, {}) -> ν{} : {}", bx, self.dabox(bx).ob, path, ret.clone().unwrap(), join!(log));
         ret
     }
 
     /// Make new dataization box and return its position ID.
-    pub fn new(&mut self, ob: Ob, xi: Bx) -> Bx {
-        let dbox = Dbox::start(ob, xi);
+    pub fn new(&mut self, ob: Ob, xi: Bx, psi: i8) -> Bx {
+        let dbox = Dbox::start(ob, xi, psi);
         let pos = self.total_boxes;
-        if self.total_boxes > 30 {
-            panic!("Too many")
-        }
+        // if self.total_boxes > 30 {
+        //     panic!("Too many")
+        // }
         self.total_boxes += 1;
         self.boxes[pos] = dbox;
         pos
@@ -227,7 +246,7 @@ impl Emu {
 pub fn dataize_simple_data() {
     let mut emu = Emu::empty();
     emu.put(1, Object::dataic(42));
-    let bx = emu.new(1, ROOT_BX);
+    let bx = emu.new(1, ROOT_BX, 0);
     assert_eq!(42, emu.dataize(bx).unwrap());
 }
 
@@ -236,7 +255,7 @@ pub fn with_simple_decorator() {
     let mut emu = Emu::empty();
     emu.put(1, Object::dataic(42));
     emu.put(2, Object::open().with(Item::Phi, ph!("v1"), false));
-    let bx = emu.new(2, ROOT_BX);
+    let bx = emu.new(2, ROOT_BX, 0);
     assert_eq!(42, emu.dataize(bx).unwrap());
 }
 
@@ -247,7 +266,7 @@ pub fn with_many_decorators() {
     emu.put(2, Object::open().with(Item::Phi, ph!("v1"), false));
     emu.put(3, Object::open().with(Item::Phi, ph!("v2"), false));
     emu.put(4, Object::open().with(Item::Phi, ph!("v3"), false));
-    let bx = emu.new(4, ROOT_BX);
+    let bx = emu.new(4, ROOT_BX, 0);
     assert_eq!(42, emu.dataize(bx).unwrap());
 }
 
@@ -258,8 +277,8 @@ pub fn finds_complex_path() {
         ν2 ↦ ⟦ 𝛼3 ↦ ν1 ⟧
         ν3 ↦ ⟦ 𝛼0 ↦ ξ.𝛼3.φ ⟧
     ").unwrap();
-    let bx2 = emu.new(2, ROOT_BX);
-    let bx3 = emu.new(3, bx2);
+    let bx2 = emu.new(2, ROOT_BX, 0);
+    let bx3 = emu.new(3, bx2, 0);
     assert_eq!(2, emu.find(bx3, &ph!("v3.0")).unwrap());
 }
 
@@ -270,8 +289,8 @@ pub fn finds_through_copy() {
         ν2 ↦ ⟦ 𝛼0 ↦ ν1 ⟧
         ν3 ↦ ⟦ φ ↦ ν2 ⟧
     ").unwrap();
-    let bx2 = emu.new(3, ROOT_BX);
-    let bx3 = emu.new(3, bx2);
+    let bx2 = emu.new(3, ROOT_BX, 0);
+    let bx3 = emu.new(3, bx2, 0);
     assert_eq!(1, emu.find(bx3, &ph!("$.0")).unwrap());
 }
 
@@ -280,7 +299,7 @@ pub fn finds_in_itself() {
     let mut emu = Emu::empty();
     emu.put(1, Object::dataic(42));
     emu.put(2, Object::open().with(Item::Phi, ph!("v1"), false));
-    let bx = emu.new(2, ROOT_BX);
+    let bx = emu.new(2, ROOT_BX, 0);
     assert_eq!(1, emu.find(bx, &Path::from_item(Item::Phi)).unwrap());
 }
 
@@ -289,21 +308,25 @@ pub fn saves_ret_into_dabox() {
     let mut emu = Emu::empty();
     let d = 42;
     emu.put(1, Object::dataic(d));
-    let bx = emu.new(1, ROOT_BX);
+    let bx = emu.new(1, ROOT_BX, 0);
     assert_eq!(d, emu.dataize(bx).unwrap());
     assert!(emu.boxes[bx].to_string().contains(&String::from(format!("{:04X}", d))));
 }
 
+// []
+//   42 > x
+//   42 > y
+//   int.add > @
+//     $.x
+//     $.y
 #[test]
 pub fn summarizes_two_numbers() {
-    let mut emu = Emu::parse_phi("
+    assert_emu!(3, 84, "
         ν1 ↦ ⟦ Δ ↦ 0x002A ⟧
         ν2 ↦ ⟦ λ ↦ int.add, ρ ↦ ξ.𝛼0, 𝛼0 ↦ ξ.𝛼1 ⟧
         ν3 ↦ ⟦ φ ↦ ν2(𝜓), 𝛼0 ↦ ν1, 𝛼1 ↦ ν1 ⟧
         ν5 ↦ ⟦ φ ↦ ν3(𝜓) ⟧
-    ").unwrap();
-    let bx = emu.new(3, ROOT_BX);
-    assert_eq!(84, emu.dataize(bx).unwrap());
+    ");
 }
 
 // [x] > a
@@ -312,14 +335,12 @@ pub fn summarizes_two_numbers() {
 //   a 42 > @
 #[test]
 pub fn calls_itself_once() {
-    let mut emu = Emu::parse_phi("
+    assert_emu!(4, 42, "
         ν1 ↦ ⟦ φ ↦ ξ.𝛼0 ⟧
         ν2 ↦ ⟦ Δ ↦ 0x002A ⟧
         ν3 ↦ ⟦ φ ↦ ν1(𝜓), 𝛼0 ↦ ν2 ⟧
         ν4 ↦ ⟦ φ ↦ ν1(𝜓), 𝛼0 ↦ ν3 ⟧
-    ").unwrap();
-    let bx = emu.new(4, ROOT_BX);
-    assert_eq!(42, emu.dataize(bx).unwrap());
+    ");
 }
 
 // [x] > a
@@ -330,15 +351,13 @@ pub fn calls_itself_once() {
 // b 42 > foo
 #[test]
 pub fn injects_xi_correctly() {
-    let mut emu = Emu::parse_phi("
+    assert_emu!(5, 42, "
         ν1 ↦ ⟦ φ ↦ ξ.𝛼0 ⟧
         ν2 ↦ ⟦ φ ↦ ν3(𝜓) ⟧
         ν3 ↦ ⟦ φ ↦ ν1(𝜓), 𝛼0 ↦ ξ.𝛼0 ⟧
         ν4 ↦ ⟦ Δ ↦ 0x002A ⟧
         ν5 ↦ ⟦ φ ↦ ν2(𝜓), 𝛼0 ↦ ν4 ⟧
-    ").unwrap();
-    let bx = emu.new(5, ROOT_BX);
-    assert_eq!(42, emu.dataize(bx).unwrap());
+    ");
 }
 
 // [a3] > v1         v1
@@ -349,29 +368,27 @@ pub fn injects_xi_correctly() {
 // v2 42 > @         v4
 #[test]
 pub fn reverse_to_abstract() {
-    let mut emu = Emu::parse_phi("
+    assert_emu!(3, 42, "
         ν1 ↦ ⟦ φ ↦ ξ.𝛼3 ⟧
         ν2 ↦ ⟦ φ ↦ ν1(𝜓), 𝛼3 ↦ ξ.𝛼1 ⟧
         ν3 ↦ ⟦ φ ↦ ν2(𝜓), 𝛼1 ↦ ν4 ⟧
         ν4 ↦ ⟦ Δ ↦ 0x002A ⟧
-    ").unwrap();
-    let bx = emu.new(3, ROOT_BX);
-    assert_eq!(42, emu.dataize(bx).unwrap());
+    ");
 }
 
 // [x] > a          v1  $=v6
 //   b > @          v2  $=v6
-//     c            v3  $=v2 -> v6
+//     c            v3  $=v2   v3 -> v6
 //       $.x
 // [x] > b          v4  $=v2
 //   x > @
-// [x] > c          v5
+// [x] > c          v5  $=v3
 //   x > @
 // a                v6  $=R
 //   42             v7
 #[test]
 pub fn passes_xi_through_two_layers() {
-    let mut emu = Emu::parse_phi("
+    assert_emu!(6, 42, "
         ν1 ↦ ⟦ φ ↦ ν2 ⟧
         ν2 ↦ ⟦ φ ↦ ν4(𝜓), 𝛼0 ↦ ν3 ⟧
         ν3 ↦ ⟦ φ ↦ ν5(𝜓), 𝛼0 ↦ ξ.𝛼0 ⟧
@@ -379,9 +396,92 @@ pub fn passes_xi_through_two_layers() {
         ν5 ↦ ⟦ φ ↦ ξ.𝛼0 ⟧
         ν6 ↦ ⟦ φ ↦ ν1(𝜓), 𝛼0 ↦ ν7 ⟧
         ν7 ↦ ⟦ Δ ↦ 0x002A ⟧
-    ").unwrap();
-    let bx = emu.new(6, ROOT_BX);
-    assert_eq!(42, emu.dataize(bx).unwrap());
+    ");
+}
+
+// [x] > a          v1  $=v8
+//   b > @          v2  $=v8
+//     c            v3  $=v2
+//       d          v4  $=v3 -> v8
+//         $.x
+// [x] > b          v5  $=v2
+//   x > @
+// [x] > c          v6  $=v3
+//   x > @
+// [x] > d          v7  $=v4
+//   x > @
+// a                v8  $=R
+//   42             v9
+#[test]
+pub fn passes_xi_through_three_layers() {
+    assert_emu!(8, 42, "
+        ν1 ↦ ⟦ φ ↦ ν2 ⟧
+        ν2 ↦ ⟦ φ ↦ ν4(𝜓), 𝛼0 ↦ ν3 ⟧
+        ν3 ↦ ⟦ φ ↦ ν5(𝜓), 𝛼0 ↦ ν4 ⟧
+        ν4 ↦ ⟦ φ ↦ ν6(𝜓), 𝛼0 ↦ ξ.𝛼0 ⟧
+        ν5 ↦ ⟦ φ ↦ ξ.𝛼0 ⟧
+        ν6 ↦ ⟦ φ ↦ ξ.𝛼0 ⟧
+        ν7 ↦ ⟦ φ ↦ ξ.𝛼0 ⟧
+        ν8 ↦ ⟦ φ ↦ ν1(𝜓), 𝛼0 ↦ ν9 ⟧
+        ν9 ↦ ⟦ Δ ↦ 0x002A ⟧
+    ");
+}
+
+// [x] > a        v1
+//   b > @        v2
+//     c          v3
+//       $.x
+// [x] > b        v4
+//   c > @        v5
+//     $.x
+// [x] > c        v6
+//   x > @
+// a              v7
+//   42           v8
+#[test]
+pub fn simulation_of_recursion() {
+    assert_emu!(7, 42, "
+        ν1 ↦ ⟦ φ ↦ ν2 ⟧
+        ν2 ↦ ⟦ φ ↦ ν4(𝜓), 𝛼0 ↦ ν3 ⟧
+        ν3 ↦ ⟦ φ ↦ ν6(𝜓), 𝛼0 ↦ ξ.𝛼0 ⟧
+        ν4 ↦ ⟦ φ ↦ ν5 ⟧
+        ν5 ↦ ⟦ φ ↦ ν6(𝜓), 𝛼0 ↦ ξ.𝛼0 ⟧
+        ν6 ↦ ⟦ φ ↦ ξ.𝛼0 ⟧
+        ν7 ↦ ⟦ φ ↦ ν1(𝜓), 𝛼0 ↦ ν8 ⟧
+        ν8 ↦ ⟦ Δ ↦ 0x002A ⟧
+    ");
+}
+
+// [x] > a        v1
+//   b > @        v2
+//     f          v3
+//       $.x
+// [x] > b        v4
+//   c > @        v5
+//     f          v6
+//       $.x
+// [x] > c        v7
+//   f > @        v8
+//     $.x
+// [x] > f        v9
+//   x > @
+// a              v10
+//   42           v11
+#[test]
+pub fn deep_simulation_of_recursion() {
+    assert_emu!(10, 42, "
+        ν1 ↦ ⟦ φ ↦ ν2 ⟧
+        ν2 ↦ ⟦ φ ↦ ν4(𝜓), 𝛼0 ↦ ν3 ⟧
+        ν3 ↦ ⟦ φ ↦ ν9(𝜓), 𝛼0 ↦ ξ.𝛼0 ⟧
+        ν4 ↦ ⟦ φ ↦ ν5 ⟧
+        ν5 ↦ ⟦ φ ↦ ν7(𝜓), 𝛼0 ↦ ν6 ⟧
+        ν6 ↦ ⟦ φ ↦ ν9(𝜓), 𝛼0 ↦ ξ.𝛼0 ⟧
+        ν7 ↦ ⟦ φ ↦ ν8 ⟧
+        ν8 ↦ ⟦ φ ↦ ν9(𝜓), 𝛼0 ↦ ξ.𝛼0 ⟧
+        ν9 ↦ ⟦ φ ↦ ξ.𝛼0 ⟧
+        ν10 ↦ ⟦ φ ↦ ν1(𝜓), 𝛼0 ↦ ν11 ⟧
+        ν11 ↦ ⟦ Δ ↦ 0x002A ⟧
+    ");
 }
 
 // [x] > foo        v1
@@ -398,18 +498,16 @@ pub fn passes_xi_through_two_layers() {
 //   7              v10
 #[test]
 pub fn simple_recursion() {
-    let mut emu = Emu::parse_phi("
+    assert_emu!(9, 42, "
         ν1 ↦ ⟦ φ ↦ ν2 ⟧
         ν2 ↦ ⟦ λ ↦ bool.if, ρ ↦ ν3, 𝛼0 ↦ ν5, 𝛼1 ↦ ν6 ⟧
         ν3 ↦ ⟦ λ ↦ int.less, ρ ↦ ξ.𝛼0, 𝛼0 ↦ ν4 ⟧
         ν4 ↦ ⟦ Δ ↦ 0x0000 ⟧
         ν5 ↦ ⟦ Δ ↦ 0x002A ⟧
         ν6 ↦ ⟦ φ ↦ ν1(𝜓), 𝛼0 ↦ ν7 ⟧
-        ν7 ↦ ⟦ λ ↦ int.sub, ρ ↦ ξ.ξ.𝛼0, 𝛼0 ↦ ν8 ⟧
+        ν7 ↦ ⟦ λ ↦ int.sub, ρ ↦ ξ.𝛼0, 𝛼0 ↦ ν8 ⟧
         ν8 ↦ ⟦ Δ ↦ 0x0001 ⟧
         ν9 ↦ ⟦ φ ↦ ν1(𝜓), 𝛼0 ↦ ν10 ⟧
         ν10 ↦ ⟦ Δ ↦ 0x0007 ⟧
-    ").unwrap();
-    let bx = emu.new(9, ROOT_BX);
-    assert_eq!(42, emu.dataize(bx).unwrap());
+    ");
 }

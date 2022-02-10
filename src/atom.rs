@@ -20,8 +20,9 @@
 
 use crate::dbox::Bx;
 use crate::data::Data;
-use crate::emu::Emu;
+use crate::emu::{Emu, ROOT_BX};
 use crate::path::Item;
+use crate::assert_emu;
 
 pub type Atom = fn(&mut Emu, Bx) -> Data;
 
@@ -46,4 +47,57 @@ pub fn int_less(emu: &mut Emu, bx: Bx) -> Data {
 pub fn bool_if(emu: &mut Emu, bx: Bx) -> Data {
     let term = kid!(emu, bx, Item::Rho);
     kid!(emu, bx, Item::Attr(if term == 1 { 0 } else { 1 }))
+}
+
+#[test]
+pub fn bool_if_works() {
+    assert_emu!(2, 42, "
+        ν1 ↦ ⟦ Δ ↦ 0x0001 ⟧
+        ν2 ↦ ⟦ λ ↦ bool.if, ρ ↦ ν1, 𝛼0 ↦ ν3, 𝛼1 ↦ ν4 ⟧
+        ν3 ↦ ⟦ Δ ↦ 0x002A ⟧
+        ν4 ↦ ⟦ Δ ↦ 0x0000 ⟧
+    ");
+    assert_emu!(2, 42, "
+        ν1 ↦ ⟦ Δ ↦ 0x0000 ⟧
+        ν2 ↦ ⟦ λ ↦ bool.if, ρ ↦ ν1, 𝛼0 ↦ ν3, 𝛼1 ↦ ν4 ⟧
+        ν3 ↦ ⟦ Δ ↦ 0x0000 ⟧
+        ν4 ↦ ⟦ Δ ↦ 0x002A ⟧
+    ");
+}
+
+#[test]
+pub fn int_add_works() {
+    assert_emu!(2, 49, "
+        ν1 ↦ ⟦ Δ ↦ 0x0007 ⟧
+        ν2 ↦ ⟦ λ ↦ int.add, ρ ↦ ν1, 𝛼0 ↦ ν3 ⟧
+        ν3 ↦ ⟦ Δ ↦ 0x002A ⟧
+    ");
+}
+
+#[test]
+pub fn int_sub_works() {
+    assert_emu!(2, 40, "
+        ν1 ↦ ⟦ Δ ↦ 0x002A ⟧
+        ν2 ↦ ⟦ λ ↦ int.sub, ρ ↦ ν1, 𝛼0 ↦ ν3 ⟧
+        ν3 ↦ ⟦ Δ ↦ 0x0002 ⟧
+    ");
+}
+
+#[test]
+pub fn int_less_works() {
+    assert_emu!(2, 0, "
+        ν1 ↦ ⟦ Δ ↦ 0x002A ⟧
+        ν2 ↦ ⟦ λ ↦ int.less, ρ ↦ ν1, 𝛼0 ↦ ν3 ⟧
+        ν3 ↦ ⟦ Δ ↦ 0x0002 ⟧
+    ");
+    assert_emu!(2, 0, "
+        ν1 ↦ ⟦ Δ ↦ 0x002A ⟧
+        ν2 ↦ ⟦ λ ↦ int.less, ρ ↦ ν1, 𝛼0 ↦ ν3 ⟧
+        ν3 ↦ ⟦ Δ ↦ 0x002A ⟧
+    ");
+    assert_emu!(2, 1, "
+        ν1 ↦ ⟦ Δ ↦ 0x002A ⟧
+        ν2 ↦ ⟦ λ ↦ int.less, ρ ↦ ν1, 𝛼0 ↦ ν3 ⟧
+        ν3 ↦ ⟦ Δ ↦ 0x002B ⟧
+    ");
 }

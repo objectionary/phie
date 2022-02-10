@@ -85,7 +85,7 @@ pub fn fibo(x: Data) -> Result<Data, String> {
             .with(Item::Attr(0), ph!("v7"), false)
             .with(Item::Attr(1), ph!("v11"), false),
     );
-    let bx = emu.new(2, ROOT_BX);
+    let bx = emu.new(2, ROOT_BX, 0);
     emu.log();
     let f = emu.dataize(bx)?;
     emu.delete(bx);

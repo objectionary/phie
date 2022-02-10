@@ -71,26 +71,26 @@ impl FromStr for Item {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         lazy_static! {
             static ref RE_ARG: Regex = Regex::new("^𝛼?(\\d+)$").unwrap();
-            static ref RE_OBS: Regex = Regex::new("^[v|ν](\\d+)$").unwrap();
+            static ref RE_OBJ: Regex = Regex::new("^[v|ν](\\d+)$").unwrap();
         }
         if let Some(caps) = RE_ARG.captures(s) {
-            return Ok(Item::Attr(caps.get(1).unwrap().as_str().parse::<i8>().unwrap()));
-        }
-        if let Some(caps) = RE_OBS.captures(s) {
-            return Ok(Item::Obj(caps.get(1).unwrap().as_str().parse::<usize>().unwrap()));
-        }
-        match s {
-            "R" => Ok(Item::Root),
-            "Φ" => Ok(Item::Root),
-            "^" => Ok(Item::Rho),
-            "ρ" => Ok(Item::Rho),
-            "$" => Ok(Item::Xi),
-            "ξ" => Ok(Item::Xi),
-            "@" => Ok(Item::Phi),
-            "φ" => Ok(Item::Phi),
-            "&" => Ok(Item::Sigma),
-            "σ" => Ok(Item::Sigma),
-            _ => Err(format!("Unknown item '{}'", s)),
+            Ok(Item::Attr(caps.get(1).unwrap().as_str().parse::<i8>().unwrap()))
+        } else if let Some(caps) = RE_OBJ.captures(s) {
+            Ok(Item::Obj(caps.get(1).unwrap().as_str().parse::<usize>().unwrap()))
+        } else {
+            match s {
+                "R" => Ok(Item::Root),
+                "Φ" => Ok(Item::Root),
+                "^" => Ok(Item::Rho),
+                "ρ" => Ok(Item::Rho),
+                "$" => Ok(Item::Xi),
+                "ξ" => Ok(Item::Xi),
+                "@" => Ok(Item::Phi),
+                "φ" => Ok(Item::Phi),
+                "&" => Ok(Item::Sigma),
+                "σ" => Ok(Item::Sigma),
+                _ => Err(format!("Unknown item '{}'", s)),
+            }
         }
     }
 }
