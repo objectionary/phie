@@ -18,35 +18,29 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-use crate::dbox::Bx;
+use crate::basket::Bk;
 use crate::data::Data;
-use crate::emu::{Emu, ROOT_BX};
-use crate::path::Item;
+use crate::loc::Loc;
+use crate::emu::Emu;
 use crate::assert_emu;
 
-pub type Atom = fn(&mut Emu, Bx) -> Data;
+pub type Atom = fn(&mut Emu, Bk) -> Option<Data>;
 
-macro_rules! kid {
-    ($emu:expr, $bx:expr, $item:expr) => {
-        $emu.calc_attr($bx, $item).unwrap()
-    };
+pub fn int_add(emu: &mut Emu, bk: Bk) -> Option<Data> {
+    Some(emu.read(bk, Loc::Rho)? + emu.read(bk, Loc::Attr(0))?)
 }
 
-pub fn int_add(emu: &mut Emu, bx: Bx) -> Data {
-    kid!(emu, bx, Item::Rho) + kid!(emu, bx, Item::Attr(0))
+pub fn int_sub(emu: &mut Emu, bk: Bk) -> Option<Data> {
+    Some(emu.read(bk, Loc::Rho)? - emu.read(bk, Loc::Attr(0))?)
 }
 
-pub fn int_sub(emu: &mut Emu, bx: Bx) -> Data {
-    kid!(emu, bx, Item::Rho) - kid!(emu, bx, Item::Attr(0))
+pub fn int_less(emu: &mut Emu, bk: Bk) -> Option<Data> {
+    Some((emu.read(bk, Loc::Rho)? < emu.read(bk, Loc::Attr(0))?) as Data)
 }
 
-pub fn int_less(emu: &mut Emu, bx: Bx) -> Data {
-    (kid!(emu, bx, Item::Rho) < kid!(emu, bx, Item::Attr(0))) as Data
-}
-
-pub fn bool_if(emu: &mut Emu, bx: Bx) -> Data {
-    let term = kid!(emu, bx, Item::Rho);
-    kid!(emu, bx, Item::Attr(if term == 1 { 0 } else { 1 }))
+pub fn bool_if(emu: &mut Emu, bk: Bk) -> Option<Data> {
+    let term = emu.read(bk, Loc::Rho)?;
+    emu.read(bk, Loc::Attr(if term == 1 { 0 } else { 1 }))
 }
 
 #[test]

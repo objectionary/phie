@@ -21,7 +21,8 @@
 use regex::Regex;
 use crate::atom::*;
 use crate::data::Data;
-use crate::path::{Item, Path};
+use crate::path::Path;
+use crate::loc::Loc;
 use crate::ph;
 use std::collections::HashMap;
 use std::str::FromStr;
@@ -33,7 +34,7 @@ pub type Ob = usize;
 pub struct Object {
     pub delta: Option<Data>,
     pub lambda: Option<Atom>,
-    pub attrs: HashMap<Item, (Path, bool)>,
+    pub attrs: HashMap<Loc, (Path, bool)>,
 }
 
 impl Object {
@@ -79,12 +80,12 @@ impl Object {
     /// use eoc::object::Object;
     /// use eoc::ph;
     /// let mut obj = Object::open();
-    /// obj.push(Item::Phi, ph!("v13"), false);
-    /// obj.push(Item::Attr(0), ph!("$.1"), false);
+    /// obj.push(Loc::Phi, ph!("v13"), false);
+    /// obj.push(Loc::Attr(0), ph!("$.1"), false);
     /// ```
     ///
-    pub fn push(&mut self, i: Item, p: Path, psi: bool) -> &mut Object {
-        self.attrs.insert(i, (p, psi));
+    pub fn push(&mut self, loc: Loc, p: Path, psi: bool) -> &mut Object {
+        self.attrs.insert(loc, (p, psi));
         self
     }
 
@@ -95,15 +96,15 @@ impl Object {
     /// use eoc::object::Object;
     /// use eoc::ph;
     /// let obj = Object::open()
-    ///   .with(Item::Phi, ph!("v13"), false)
-    ///   .with(Item::Attr(0), ph!("$.1"), false);
+    ///   .with(Loc::Phi, ph!("v13"), false)
+    ///   .with(Loc::Attr(0), ph!("$.1"), false);
     /// ```
-    pub fn with(&self, i: Item, p: Path, psi: bool) -> Object {
+    pub fn with(&self, loc: Loc, p: Path, psi: bool) -> Object {
         let mut obj = Object::open();
         obj.lambda = self.lambda.clone();
         obj.delta = self.delta.clone();
         obj.attrs.extend(self.attrs.clone().into_iter());
-        obj.attrs.insert(i, (p, psi));
+        obj.attrs.insert(loc, (p, psi));
         obj
     }
 }
@@ -120,13 +121,7 @@ impl fmt::Display for Object {
         for i in self.attrs.iter() {
             let (attr, (path, psi)) = i;
             parts.push(
-                match attr {
-                    Item::Rho => "ρ".to_string(),
-                    Item::Phi => "φ".to_string(),
-                    _ => attr.to_string()
-                }
-                    + &format!("↦{}", path)
-                    + &(if *psi { "(𝜓)".to_string() } else { "".to_string() })
+                format!("{}↦{}", attr, path) + &(if *psi { "(𝜓)".to_string() } else { "".to_string() })
             );
         }
         parts.sort();
@@ -163,7 +158,7 @@ impl FromStr for Object {
                     let psi_suffix = "(𝜓)";
                     let psi = p.ends_with(psi_suffix);
                     let path = if psi { p.chars().take(p.len() - psi_suffix.len() - 1).collect() } else { p.to_string() };
-                    obj.push(Item::from_str(i).unwrap(), Path::from_str(&path).unwrap(), psi);
+                    obj.push(Loc::from_str(i).unwrap(), Path::from_str(&path).unwrap(), psi);
                 }
             };
         }
@@ -174,17 +169,17 @@ impl FromStr for Object {
 #[test]
 fn makes_simple_object() {
     let mut obj = Object::open();
-    obj.push(Item::Attr(1), "v4".parse().unwrap(), false);
-    obj.push(Item::Rho, "$.0.@".parse().unwrap(), false);
+    obj.push(Loc::Attr(1), "v4".parse().unwrap(), false);
+    obj.push(Loc::Rho, "$.0.@".parse().unwrap(), false);
     assert_eq!(obj.attrs.len(), 2)
 }
 
 #[test]
 fn extends_by_making_new_object() {
     let obj = Object::open()
-        .with(Item::Attr(1), ph!("v14.^"), false)
-        .with(Item::Phi, ph!("v7.@"), false)
-        .with(Item::Rho, ph!("$.^.0.0.^.@"), false);
+        .with(Loc::Attr(1), ph!("v14.^"), false)
+        .with(Loc::Phi, ph!("v7.@"), false)
+        .with(Loc::Rho, ph!("$.^.0.0.^.@"), false);
     assert_eq!(obj.attrs.len(), 3);
     assert!(obj.delta.is_none());
     assert!(obj.lambda.is_none());
@@ -193,8 +188,8 @@ fn extends_by_making_new_object() {
 #[test]
 fn prints_and_parses_simple_object() {
     let mut obj = Object::open();
-    obj.push(Item::Attr(1), "v4".parse().unwrap(), false);
-    obj.push(Item::Rho, "$.0.@".parse().unwrap(), false);
+    obj.push(Loc::Attr(1), "v4".parse().unwrap(), false);
+    obj.push(Loc::Rho, "$.0.@".parse().unwrap(), false);
     let text = obj.to_string();
     assert_eq!("⟦ρ↦ξ.𝛼0.φ, 𝛼1↦ν4⟧", text);
     let obj2 = Object::from_str(&text).unwrap();

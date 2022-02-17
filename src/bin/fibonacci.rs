@@ -22,7 +22,7 @@ extern crate eoc;
 
 use eoc::atom::*;
 use eoc::data::Data;
-use eoc::emu::{Emu, ROOT_BX};
+use eoc::emu::{Emu, ROOT_BK};
 use eoc::object::Object;
 use eoc::path::{Item, Path};
 use eoc::ph;
@@ -36,56 +36,56 @@ pub fn fibo(x: Data) -> Result<Data, String> {
     emu.put(
         2,
         Object::open()
-            .with(Item::Phi, ph!("v3"), true)
-            .with(Item::Attr(0), ph!("v1"), false),
+            .with(Loc::Phi, ph!("v3"), true)
+            .with(Loc::Attr(0), ph!("v1"), false),
     );
-    emu.put(3, Object::open().with(Item::Phi, ph!("v13"), false));
+    emu.put(3, Object::open().with(Loc::Phi, ph!("v13"), false));
     emu.put(5, Object::dataic(2));
     emu.put(
         6,
         Object::atomic(int_sub)
-            .with(Item::Rho, ph!("$.0"), false)
-            .with(Item::Attr(0), ph!("v5"), false),
+            .with(Loc::Rho, ph!("$.0"), false)
+            .with(Loc::Attr(0), ph!("v5"), false),
     );
     emu.put(7, Object::dataic(1));
     emu.put(
         8,
         Object::atomic(int_sub)
-            .with(Item::Rho, ph!("$.0"), false)
-            .with(Item::Attr(0), ph!("v7"), false),
+            .with(Loc::Rho, ph!("$.0"), false)
+            .with(Loc::Attr(0), ph!("v7"), false),
     );
     emu.put(
         9,
         Object::open()
-            .with(Item::Phi, ph!("v3"), true)
-            .with(Item::Attr(0), ph!("v8"), false),
+            .with(Loc::Phi, ph!("v3"), true)
+            .with(Loc::Attr(0), ph!("v8"), false),
     );
     emu.put(
         10,
         Object::open()
-            .with(Item::Phi, ph!("v3"), true)
-            .with(Item::Attr(0), ph!("v6"), false),
+            .with(Loc::Phi, ph!("v3"), true)
+            .with(Loc::Attr(0), ph!("v6"), false),
     );
     emu.put(
         11,
         Object::atomic(int_add)
-            .with(Item::Rho, ph!("v9"), false)
-            .with(Item::Attr(0), ph!("v10"), false),
+            .with(Loc::Rho, ph!("v9"), false)
+            .with(Loc::Attr(0), ph!("v10"), false),
     );
     emu.put(
         12,
         Object::atomic(int_less)
-            .with(Item::Rho, ph!("$.0"), false)
-            .with(Item::Attr(0), ph!("v5"), false),
+            .with(Loc::Rho, ph!("$.0"), false)
+            .with(Loc::Attr(0), ph!("v5"), false),
     );
     emu.put(
         13,
         Object::atomic(bool_if)
-            .with(Item::Rho, ph!("v12"), false)
-            .with(Item::Attr(0), ph!("v7"), false)
-            .with(Item::Attr(1), ph!("v11"), false),
+            .with(Loc::Rho, ph!("v12"), false)
+            .with(Loc::Attr(0), ph!("v7"), false)
+            .with(Loc::Attr(1), ph!("v11"), false),
     );
-    let bx = emu.new(2, ROOT_BX, 0);
+    let bx = emu.new(2, ROOT_BK, 0);
     emu.log();
     let f = emu.dataize(bx)?;
     emu.delete(bx);

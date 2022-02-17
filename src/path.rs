@@ -18,27 +18,15 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-use crate::object::Ob;
-use lazy_static::lazy_static;
-use regex::Regex;
+use crate::loc::Loc;
 use rstest::rstest;
 use std::fmt;
 use std::str::FromStr;
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum Item {
-    Root,
-    Rho,
-    Phi,
-    Xi,
-    Sigma,
-    Attr(i8),
-    Obj(Ob),
-}
+use lazy_static::lazy_static;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Path {
-    items: Vec<Item>,
+    locs: Vec<Loc>,
 }
 
 #[macro_export]
@@ -49,68 +37,24 @@ macro_rules! ph {
 }
 
 impl Path {
-    pub fn from_vec(items : Vec<Item>) -> Path {
-        Path { items }
+    pub fn from_vec(locs : Vec<Loc>) -> Path {
+        Path { locs }
     }
 
-    pub fn from_item(item : Item) -> Path {
-        Path::from_vec(vec![item])
+    pub fn from_loc(loc : Loc) -> Path {
+        Path::from_vec(vec![loc])
     }
 
-    pub fn item(&self, id: usize) -> Option<&Item> {
-        self.items.get(id)
+    pub fn loc(&self, id: usize) -> Option<&Loc> {
+        self.locs.get(id)
     }
 
-    pub fn to_vec(&self) -> Vec<Item> {
-        self.items.clone()
-    }
-}
-
-impl FromStr for Item {
-    type Err = String;
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        lazy_static! {
-            static ref RE_ARG: Regex = Regex::new("^𝛼?(\\d+)$").unwrap();
-            static ref RE_OBJ: Regex = Regex::new("^[v|ν](\\d+)$").unwrap();
-        }
-        if let Some(caps) = RE_ARG.captures(s) {
-            Ok(Item::Attr(caps.get(1).unwrap().as_str().parse::<i8>().unwrap()))
-        } else if let Some(caps) = RE_OBJ.captures(s) {
-            Ok(Item::Obj(caps.get(1).unwrap().as_str().parse::<usize>().unwrap()))
-        } else {
-            match s {
-                "R" => Ok(Item::Root),
-                "Φ" => Ok(Item::Root),
-                "^" => Ok(Item::Rho),
-                "ρ" => Ok(Item::Rho),
-                "$" => Ok(Item::Xi),
-                "ξ" => Ok(Item::Xi),
-                "@" => Ok(Item::Phi),
-                "φ" => Ok(Item::Phi),
-                "&" => Ok(Item::Sigma),
-                "σ" => Ok(Item::Sigma),
-                _ => Err(format!("Unknown item '{}'", s)),
-            }
-        }
+    pub fn to_vec(&self) -> Vec<Loc> {
+        self.locs.clone()
     }
 }
 
-impl fmt::Display for Item {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let s: String = match self {
-            Item::Root => "Φ".to_owned(),
-            Item::Rho => "ρ".to_owned(),
-            Item::Phi => "φ".to_owned(),
-            Item::Xi => "ξ".to_owned(),
-            Item::Sigma => "σ".to_owned(),
-            Item::Attr(i) => format!("𝛼{}", i),
-            Item::Obj(i) => format!("ν{}", i),
-        };
-        f.write_str(&*s)
-    }
-}
-
-type CheckFn = fn(&Path) -> Option<&Item>;
+type CheckFn = fn(&Path) -> Option<&Loc>;
 struct Check {
     check: CheckFn,
     msg: &'static str,
@@ -122,30 +66,30 @@ impl FromStr for Path {
         lazy_static! {
             static ref CHECKS: [Check; 3] = [
                 Check {
-                    check: |p: &Path| p.items[1..].iter().find(|i| matches!(i, Item::Obj(_))),
+                    check: |p: &Path| p.locs[1..].iter().find(|i| matches!(i, Loc::Obj(_))),
                     msg: "ν can only stay at the first position"
                 },
                 Check {
-                    check: |p: &Path| p.items[1..].iter().find(|i| matches!(i, Item::Root)),
+                    check: |p: &Path| p.locs[1..].iter().find(|i| matches!(i, Loc::Root)),
                     msg: "Φ can only start a path"
                 },
                 Check {
-                    check: |p: &Path| p.items[0..1].iter().find(|i| matches!(i, Item::Attr(_))),
+                    check: |p: &Path| p.locs[0..1].iter().find(|i| matches!(i, Loc::Attr(_))),
                     msg: "𝛼 can't start a path"
                 }
             ];
         }
         let p = Path {
-            items: s.split('.').map(|i| Item::from_str(i).unwrap()).collect(),
+            locs: s.split('.').map(|i| Loc::from_str(i).unwrap()).collect(),
         };
         for (pos, check) in CHECKS.iter().enumerate() {
-            let item = (check.check)(&p);
-            if item.is_some() {
+            let loc = (check.check)(&p);
+            if loc.is_some() {
                 let mut msg: String = String::new();
                 msg.push_str(&format!(
-                    "The {}th item '{}' is wrong; ",
+                    "The {}th loc '{}' is wrong; ",
                     pos,
-                    item.unwrap()
+                    loc.unwrap()
                 ));
                 msg.push_str(check.msg);
                 msg.push_str(&format!("; in '{}'", s));
@@ -160,7 +104,7 @@ impl fmt::Display for Path {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.write_str(
             &self
-                .items
+                .locs
                 .iter()
                 .map(|i| i.to_string())
                 .collect::<Vec<String>>()
@@ -207,7 +151,7 @@ pub fn fails_on_incorrect_path(#[case] path: String) {
 }
 
 #[rstest]
-#[case("$.0", 0, Item::Xi)]
-pub fn fetches_item_from_path(#[case] path: String, #[case] idx: usize, #[case] expected: Item) {
-    assert_eq!(*ph!(&path).item(idx).unwrap(), expected);
+#[case("$.0", 0, Loc::Xi)]
+pub fn fetches_loc_from_path(#[case] path: String, #[case] idx: usize, #[case] expected: Loc) {
+    assert_eq!(*ph!(&path).loc(idx).unwrap(), expected);
 }

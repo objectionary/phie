@@ -19,74 +19,69 @@
 // SOFTWARE.
 
 use crate::data::Data;
-use crate::path::Item;
+use crate::loc::Loc;
 use crate::object::Ob;
 use std::collections::HashMap;
 use std::fmt;
 use itertools::Itertools;
 
-pub type Bx = usize;
+pub type Bk = isize;
 
-pub struct Dbox {
-    pub ob: Ob,
-    pub xi: Bx,
-    pub psi: i8,
-    ret: Option<Data>,
-    kids: HashMap<Item, Data>,
+pub enum Kid {
+    Start,
+    Requested,
+    Waiting(Bk, Loc),
+    Dataized(Data)
 }
 
-impl Dbox {
-    pub fn empty() -> Dbox {
-        Dbox {
+pub struct Basket {
+    pub ob: Ob,
+    pub psi: Bk,
+    pub kids: HashMap<Loc, Kid>,
+}
+
+impl Basket {
+    pub fn empty() -> Basket {
+        Basket {
             ob: 0,
-            xi: 0,
-            psi: 0,
-            ret: None,
+            psi: -1,
             kids: HashMap::new(),
         }
     }
 
-    pub fn start(ob: Ob, xi: Bx, psi: i8) -> Dbox {
-        Dbox {
+    pub fn start(ob: Ob, psi: Bk) -> Basket {
+        Basket {
             ob,
-            xi,
             psi,
-            ret: None,
             kids: HashMap::new(),
         }
     }
 
     pub fn is_empty(&self) -> bool {
-        self.ob <= 0
+        self.psi < 0
     }
 
-    pub fn put_xi(&mut self, xi: Bx) {
-        self.xi = xi
+    pub fn request(&mut self, loc: Loc) {
+        self.kids.insert(loc, Kid::Requested);
     }
 
-    pub fn put_ret(&mut self, ret: Data) {
-        self.ret = Some(ret)
+    pub fn wait(&mut self, loc: Loc, bk: Bk, attr: Loc) {
+        self.kids.insert(loc, Kid::Waiting(bk, attr));
     }
 
-    pub fn put_kid(&mut self, item: Item, d: Data) {
-        self.kids.insert(item, d);
+    pub fn dataize(&mut self, loc: Loc, d: Data) {
+        self.kids.insert(loc, Kid::Dataized(d));
     }
 }
 
-impl fmt::Display for Dbox {
+impl fmt::Display for Basket {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut parts = vec![];
         parts.push(format!("ν{}", self.ob));
-        parts.push(format!("ξ:#{}", self.xi));
-        if let Some(r) = self.ret {
-            parts.push(format!("r:0x{:04X}", r));
-        }
-        if self.psi > 0 {
-            parts.push(format!("𝜓{}", self.psi));
-        }
+        parts.push(format!("𝜓:β{}", self.psi));
         parts.extend(
             self.kids.iter()
-                .map(|(i, d)| format!("{}:0x{:04X}", i, d))
+                .map(|(i, d)| format!("{}{}", i, d))
                 .sorted()
                 .collect::<Vec<String>>()
         );
@@ -94,17 +89,33 @@ impl fmt::Display for Dbox {
     }
 }
 
+impl fmt::Display for Kid {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f, "{}",
+            match self {
+                Kid::Start => "→?".to_string(),
+                Kid::Requested => "→!".to_string(),
+                Kid::Waiting(bk, loc) => format!("⇉β{}.{}", bk, loc),
+                Kid::Dataized(d) => format!("⇶0x{:04X}", d),
+            }
+        )
+    }
+}
+
 #[test]
-fn makes_simple_dabox() {
-    let mut dabox = Dbox::start(0, 0, 0);
-    dabox.put_ret(42);
-    assert_eq!(42, dabox.ret.unwrap());
+fn makes_simple_basket() {
+    let mut basket = Basket::start(0, 0);
+    basket.dataize(Loc::Delta, 42);
+    if let Kid::Dataized(d) = basket.kids.get(&Loc::Delta).unwrap() {
+        assert_eq!(42, *d);
+    }
 }
 
 #[test]
 fn prints_itself() {
-    let mut dabox = Dbox::start(5, 7, 0);
-    dabox.put_ret(42);
-    dabox.put_kid(Item::Rho, 42);
-    assert_eq!("[ν5, ξ:#7, r:0x002A, ρ:0x002A]", dabox.to_string());
+    let mut basket = Basket::start(5, 7);
+    basket.dataize(Loc::Delta, 42);
+    basket.wait(Loc::Rho, 42, Loc::Attr(1));
+    assert_eq!("[ν5, 𝜓:β7, Δ⇶0x002A, ρ⇉β42.𝛼1]", basket.to_string());
 }

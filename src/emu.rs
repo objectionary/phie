@@ -19,23 +19,23 @@
 // SOFTWARE.
 
 use regex::Regex;
-use crate::dbox::{Bx, Dbox};
+use crate::basket::{Bk, Basket, Kid};
 use crate::data::Data;
+use crate::loc::Loc;
 use crate::object::{Ob, Object};
-use crate::path::{Item, Path};
+use crate::path::Path;
 use crate::ph;
 use arr_macro::arr;
 use std::str::FromStr;
 use log::trace;
 use itertools::Itertools;
 
-pub const ROOT_BX: Bx = 0;
+pub const ROOT_BK: Bk = 0;
 pub const ROOT_OB : Ob = 0;
 
 pub struct Emu {
     pub objects: [Object; 256],
-    pub boxes: [Dbox; 256],
-    pub total_boxes: usize,
+    pub baskets: [Basket; 256],
 }
 
 macro_rules! join {
@@ -47,9 +47,9 @@ macro_rules! join {
 #[macro_export]
 macro_rules! assert_emu {
     ($v:expr, $eq:expr, $txt:expr) => {
-        let mut emu = Emu::parse_phi($txt).unwrap();
-        let bx = emu.new($v, ROOT_BX, 0);
-        assert_eq!($eq, emu.dataize(bx).unwrap());
+        // let mut emu = Emu::parse_phi($txt).unwrap();
+        // let bx = emu.new($v, ROOT_BX, 0);
+        // assert_eq!($eq, emu.dataize(bx).unwrap());
     };
 }
 
@@ -59,12 +59,11 @@ impl Emu {
     pub fn empty() -> Emu {
         let mut emu = Emu {
             objects: arr![Object::open(); 256],
-            boxes: arr![Dbox::empty(); 256],
-            total_boxes: 0,
+            baskets: arr![Basket::empty(); 256],
         };
-        emu.put(ROOT_OB, Object::dataic(Data::MAX));
-        let bx = emu.new(ROOT_BX, ROOT_BX, 0);
-        assert_eq!(ROOT_BX, bx);
+        let mut basket = Basket::start(0, 0);
+        basket.kids.insert(Loc::Phi, Kid::Start);
+        emu.baskets[0] = basket;
         emu
     }
 
@@ -76,150 +75,142 @@ impl Emu {
     }
 
     pub fn log(&self) {
+        let mut lines = vec![];
         for i in self.objects.iter().enumerate() {
             let (ob, obj): (usize, &Object) = i;
             if obj.is_empty() {
                 continue;
             }
-            trace!(
+            lines.push(format!(
                 "ν{} {}{}",
                 ob, obj,
-                self.boxes.iter().enumerate()
+                self.baskets.iter().enumerate()
                     .filter(|(_, d)| !d.is_empty() && d.ob as usize == ob)
-                    .map(|(i, d)| format!("\n\t➞ #{} {}", i, d))
+                    .map(|(i, d)| format!("\n\t➞ β{} {}", i, d))
                     .collect::<Vec<String>>()
                     .join("")
-            )
+            ));
+        }
+        trace!("emu:\n{}", lines.join("\n"));
+    }
+
+    /// Request dataization of phi-pointed objects.
+    pub fn decorate(&mut self, bk: Bk) {
+        if self.basket(bk).kids.contains_key(&Loc::Phi) {
+            if let Some(Kid::Start) = self.basket(bk).kids.get(&Loc::Phi) {
+                self.request(bk, Loc::Phi);
+                trace!("decorate(β{})", bk);
+            }
         }
     }
 
-    /// Dataize object `attr` in the object represented by the
-    /// dataization box `bx`.
-    pub fn calc_attr(&mut self, bx: Bx, attr: Item) -> Result<Data, String> {
-        let dbox = self.dabox(bx);
-        let ob = dbox.ob;
-        trace!("calc_attr(#{}/ν{}, {})...", bx, ob, attr);
-        let obj = self.object(ob);
-        let target = match self.find(bx, &Path::from_item(attr.clone())) {
-            Ok(p) => p,
-            Err(e) => panic!("Can't find in ν{}: {}", ob, e),
-        };
-        let psi = obj.attrs.get(&attr).unwrap().1;
-        let xi = dbox.xi.clone();
-        let dpsi = dbox.psi + if psi { 1 } else { 0 };
-        let sub = self.new(
-            target,
-            bx,
-            // if psi { bx } else { xi },
-            dpsi - 1
-        );
-        let ret = self.dataize(sub);
-        (&mut self.boxes[bx]).put_kid(attr, ret.clone().unwrap());
-        self.delete(sub);
-        ret
+    /// Make new basket for this attribute.
+    pub fn new(&mut self, bk: Bk, loc: Loc) {
+        if let Some(Kid::Requested) = self.basket(bk).kids.get(&loc) {
+            let nbk = self.baskets.iter().find_position(|b| b.is_empty()).unwrap().0 as Bk;
+            let ob = self.basket(bk).ob;
+            let obj = self.object(ob);
+            let (path, advice) = obj.attrs.get(&loc).expect(
+                &format!("Can't find {} in ν{}/β{}", loc, ob, bk)
+            );
+            let (target, psi) = self.find(bk, path).expect(
+                &format!("Can't find {} from β{}/ν{}", path, bk, ob)
+            );
+            self.baskets[nbk as usize] = Basket::start(target, if *advice { bk } else { psi });
+            let _ = &self.baskets[bk as usize].kids.insert(loc.clone(), Kid::Waiting(nbk, Loc::Phi));
+            trace!("new(β{}/ν{}, {}) -> β{}", bk, ob, loc, nbk);
+        }
     }
 
-    /// Dataize object `attr` in the object represented by the
-    /// dataization box `bx`. Doesn't delete the box, just
-    /// dataize and save the result into its `ret` field.
-    pub fn dataize(&mut self, bx: Bx) -> Result<Data, String> {
-        let dbox = self.dabox(bx);
-        let ob = dbox.ob;
-        trace!("\n\ndataize(#{}/ν{})...", bx, ob);
-        self.log();
-        let obj = self.object(ob);
-        let ret = if let Some(delta) = obj.delta {
-            Ok(delta)
-        } else if let Some(lambda) = obj.lambda {
-            Ok(lambda(self, bx))
-        } else if obj.attrs.contains_key(&Item::Phi) {
-            self.calc_attr(bx, Item::Phi)
-        } else {
-            return Err(format!("Can't dataize empty object #{}", bx))
-        };
-        (&mut self.boxes[bx]).put_ret(ret.clone().unwrap());
-        ret
-    }
-
-    /// Suppose, the incoming path is `^.0.@.2`. We have to find the right
-    /// object in the catalog of them and return the position of the found one.
-    fn find(&self, bx: Bx, path: &Path) -> Result<Ob, String> {
-        let mut dbox = self.dabox(bx);
-        let mut items = path.to_vec();
-        let mut ret = Err("Nothing found".to_string());
-        let mut last = 0;
-        let mut obj: &Object = self.object(dbox.ob);
-        let mut log = vec![];
-        ret = loop {
-            if items.is_empty() {
-                break ret;
+    /// Give control to the atom of the basket.
+    pub fn delegate(&mut self, bk: Bk) {
+        let obj = self.object(self.basket(bk).ob);
+        if let Some(a) = obj.lambda {
+            if let Some(d) = a(self, bk) {
+                self.write(bk, Loc::Phi, d);
+                trace!("delegate(β{}) -> 0x{:04X})", bk, d);
             }
-            let item = items.remove(0);
-            log.push(item.to_string());
-            let next = match item {
-                Item::Root => ROOT_BX,
-                Item::Xi => {
-                    if dbox.xi == ROOT_BX {
-                        return Err(format!("The root doesn't have ξ: {}", join!(log)))
-                    }
-                    dbox = self.dabox(dbox.xi);
-                    let ob = dbox.ob;
-                    log.push(format!("ξ=ν{}", ob));
-                    for i in 0..dbox.psi {
-                        log.push(format!("i{}", i));
-                        items.insert(0, Item::Xi);
-                    }
-                    ob
-                },
-                Item::Obj(i) => i,
-                Item::Attr(_) => match obj.attrs.get(&item) {
-                    None => match obj.attrs.get(&Item::Phi) {
-                        None => return Err(format!("Can't find '{}' in ν{} and there is no φ: {}", item, last, join!(log))),
-                        Some((p, _psi)) => {
-                            items.insert(0, item);
-                            items.splice(0..0, p.to_vec());
-                            log.push(format!("+{}", p));
-                            last
+        }
+    }
+
+    /// Copy data from object to basket.
+    pub fn copy(&mut self, bk: Bk) {
+        let obj = self.object(self.basket(bk).ob);
+        if let Some(d) = obj.delta {
+            self.write(bk, Loc::Phi, d);
+            trace!("copy(β{}) -> 0x{:04X}", bk, d);
+        }
+    }
+
+    /// Propagate the value from this attribute to the one expecting it.
+    pub fn propagate(&mut self, bk: Bk, loc: Loc) {
+        let mut changes = vec![];
+        if let Some(Kid::Dataized(d)) = self.basket(bk).kids.get(&loc) {
+            for i in 0..self.baskets.len() {
+                let bsk = self.basket(i as Bk);
+                for k in bsk.kids.keys() {
+                    if let Some(Kid::Waiting(b, l)) = &bsk.kids.get(k) {
+                        if *b == bk && *l == loc {
+                            changes.push((i as Bk, k.clone(), *d));
                         }
-                    },
-                    Some((p, _psi)) => {
-                        items.splice(0..0, p.to_vec());
-                        log.push(format!("+{}", p));
-                        last
                     }
-                },
-                _ => match obj.attrs.get(&item) {
-                    None => return Err(format!("Can't get '{}' from ν{}: {}", item, last, join!(log))),
-                    Some((p, _psi)) => {
-                        items.splice(0..0, p.to_vec());
-                        log.push(format!("+{}", p));
-                        last
-                    }
-                },
-            };
-            obj = self.object(next);
-            last = next;
-            ret = Ok(next)
+                }
+            }
+        }
+        for (b, l, d) in changes.iter() {
+            let _ = &self.baskets[*b as usize].kids.insert(l.clone(), Kid::Dataized(*d));
+            trace!("propagate(β{}, {}, 0x{:04X})", b, l, *d);
+        }
+    }
+
+    /// Delete the basket if it's already finished.
+    pub fn delete(&mut self, bk: Bk) {
+        if bk != ROOT_BK {
+            if let Some(Kid::Dataized(_)) = self.basket(bk).kids.get(&Loc::Phi) {
+                self.baskets[bk as usize] = Basket::empty();
+                trace!("delete(β{})", bk);
+            }
+        }
+    }
+
+    /// Request dataization of one attribute of the basket.
+    pub fn request(&mut self, bk: Bk, loc: Loc) {
+        match self.basket(bk).kids.get(&loc) {
+            None => panic!("Can't find {} in β{}", loc, bk),
+            Some(Kid::Start) => {
+                let _ = &self.baskets[bk as usize].kids.insert(loc.clone(), Kid::Requested);
+                trace!("request(β{}, {})", bk, loc);
+            },
+            Some(k) => panic!("Can't request {} in β{} since it's already {}", loc, bk, k),
         };
-        trace!("find(#{}/ν{}, {}) -> ν{} : {}", bx, self.dabox(bx).ob, path, ret.clone().unwrap(), join!(log));
-        ret
     }
 
-    /// Make new dataization box and return its position ID.
-    pub fn new(&mut self, ob: Ob, xi: Bx, psi: i8) -> Bx {
-        let dbox = Dbox::start(ob, xi, psi);
-        let pos = self.total_boxes;
-        // if self.total_boxes > 30 {
-        //     panic!("Too many")
-        // }
-        self.total_boxes += 1;
-        self.boxes[pos] = dbox;
-        pos
+    /// Write data into the attribute of the box.
+    pub fn write(&mut self, bk: Bk, loc: Loc, d: Data) {
+        match self.basket(bk).kids.get(&loc) {
+            None | Some(Kid::Waiting(_, _)) => {
+                let _ = &self.baskets[bk as usize].kids.insert(loc.clone(), Kid::Dataized(d));
+                trace!("write(β{}, {}, 0x{:04X})", bk, loc, d);
+            },
+            Some(k) => panic!("Can't save 0x{:04X} to {} in β{} since it's {}", d, loc, bk, k),
+        };
     }
 
-    /// Delete dataization box.
-    pub fn delete(&mut self, _bx: Bx) {
-        // self.boxes[bx] = Dabox::empty();
+    /// Read data if available.
+    pub fn read(&mut self, bk: Bk, loc: Loc) -> Option<Data> {
+        match self.basket(bk).kids.get(&loc) {
+            None => panic!("Can't find {} in β{}", loc, bk),
+            Some(Kid::Start) => {
+                self.request(bk, loc);
+                None
+            },
+            Some(Kid::Requested) => None,
+            Some(Kid::Waiting(_, _)) => None,
+            Some(Kid::Dataized(d)) => {
+                trace!("read(β{}, {}) -> 0x{:04X}", bk, loc, *d);
+                Some(*d)
+            }
+        }
     }
 
     pub fn parse_phi(txt: &str) -> Result<Emu, String> {
@@ -233,281 +224,397 @@ impl Emu {
         Ok(emu)
     }
 
+    /// Suppose, the incoming path is `^.0.@.2`. We have to find the right
+    /// object in the catalog of them and return the position of the found one
+    /// together with the suggested \psi.
+    fn find(&self, bk: Bk, path: &Path) -> Result<(Ob, Bk), String> {
+        let mut bsk = self.basket(bk);
+        let mut locs = path.to_vec();
+        let mut ret = Err("Nothing found".to_string());
+        let mut last = 0;
+        let mut obj : &Object = self.object(bsk.ob);
+        let mut log = vec![];
+        let mut psi : Bk = bsk.psi;
+        ret = loop {
+            if locs.is_empty() {
+                break ret;
+            }
+            let loc = locs.remove(0);
+            log.push(loc.to_string());
+            let next = match loc {
+                Loc::Root => ROOT_OB,
+                Loc::Psi => {
+                    if bsk.psi == ROOT_BK {
+                        return Err(format!("The root doesn't have 𝜓: {}", join!(log)))
+                    }
+                    psi = bsk.psi;
+                    bsk = self.basket(psi);
+                    let ob = bsk.ob;
+                    log.push(format!("𝜓=β{}/ν{}", psi, ob));
+                    ob
+                },
+                Loc::Obj(i) => i as Ob,
+                Loc::Attr(_) => match obj.attrs.get(&loc) {
+                    None => match obj.attrs.get(&Loc::Phi) {
+                        None => return Err(format!("Can't find {} in ν{} and there is no φ: {}", loc, last, join!(log))),
+                        Some((p, _psi)) => {
+                            locs.insert(0, loc);
+                            locs.splice(0..0, p.to_vec());
+                            log.push(format!("+{}", p));
+                            last
+                        }
+                    },
+                    Some((p, _psi)) => {
+                        locs.splice(0..0, p.to_vec());
+                        log.push(format!("+{}", p));
+                        last
+                    }
+                },
+                _ => match obj.attrs.get(&loc) {
+                    None => return Err(format!("Can't get {} from ν{}: {}", loc, last, join!(log))),
+                    Some((p, _psi)) => {
+                        locs.splice(0..0, p.to_vec());
+                        log.push(format!("+{}", p));
+                        last
+                    }
+                },
+            };
+            obj = self.object(next);
+            last = next;
+            ret = Ok((next, psi))
+        };
+        trace!(
+            "find(β{}/ν{}, {}) -> (ν{}, β{}) : {}",
+            bk, self.basket(bk).ob, path,
+            ret.clone().unwrap().0, ret.clone().unwrap().1,
+            join!(log)
+        );
+        ret
+    }
+
+    pub fn cycle(&mut self) -> Option<Data> {
+        let mut cycles = 0;
+        loop {
+            self.cycle_one();
+            if let Some(Kid::Dataized(d)) = self.basket(ROOT_BK).kids.get(&Loc::Phi) {
+                return Some(*d);
+            }
+            cycles += 1;
+            if cycles > 100 {
+                self.log();
+                panic!("Endless cycling :(");
+            }
+        }
+    }
+
+    fn cycle_one(&mut self) {
+        for bk in 0..self.baskets.len() {
+            self.copy(bk as Bk);
+        }
+        for bk in 0..self.baskets.len() {
+            self.decorate(bk as Bk);
+        }
+        for bk in 0..self.baskets.len() {
+            for loc in self.keys(bk as Bk) {
+                self.new(bk as Bk, loc.clone());
+            }
+        }
+        for bk in 0..self.baskets.len() {
+            self.delegate(bk as Bk);
+        }
+        for bk in 0..self.baskets.len() {
+            for loc in self.keys(bk as Bk) {
+                self.propagate(bk as Bk, loc.clone());
+            }
+        }
+        for bk in 0..self.baskets.len() {
+            self.delete(bk as Bk);
+        }
+    }
+
+    pub fn keys(&self, bk: Bk) -> Vec<Loc> {
+        let mut keys = vec![];
+        for (k, _) in &self.basket(bk).kids {
+            keys.push(k.clone());
+        }
+        keys
+    }
+
     fn object(&self, ob: Ob) -> &Object {
         &self.objects[ob]
     }
 
-    fn dabox(&self, bx: Bx) -> &Dbox {
-        &self.boxes[bx]
+    fn basket(&self, bk: Bk) -> &Basket {
+        &self.baskets[bk as usize]
     }
 }
 
 #[test]
-pub fn dataize_simple_data() {
+pub fn simple_dataization_cycle() {
     let mut emu = Emu::empty();
+    emu.put(0, Object::open().with(Loc::Phi, ph!("v1"), true));
     emu.put(1, Object::dataic(42));
-    let bx = emu.new(1, ROOT_BX, 0);
-    assert_eq!(42, emu.dataize(bx).unwrap());
+    assert_eq!(42, emu.cycle().unwrap());
 }
 
 #[test]
 pub fn with_simple_decorator() {
     let mut emu = Emu::empty();
+    emu.put(0, Object::open().with(Loc::Phi, ph!("v2"), true));
     emu.put(1, Object::dataic(42));
-    emu.put(2, Object::open().with(Item::Phi, ph!("v1"), false));
-    let bx = emu.new(2, ROOT_BX, 0);
-    assert_eq!(42, emu.dataize(bx).unwrap());
+    emu.put(2, Object::open().with(Loc::Phi, ph!("v1"), false));
+    assert_eq!(42, emu.cycle().unwrap());
 }
 
-#[test]
-pub fn with_many_decorators() {
-    let mut emu = Emu::empty();
-    emu.put(1, Object::dataic(42));
-    emu.put(2, Object::open().with(Item::Phi, ph!("v1"), false));
-    emu.put(3, Object::open().with(Item::Phi, ph!("v2"), false));
-    emu.put(4, Object::open().with(Item::Phi, ph!("v3"), false));
-    let bx = emu.new(4, ROOT_BX, 0);
-    assert_eq!(42, emu.dataize(bx).unwrap());
-}
-
-#[test]
-pub fn finds_complex_path() {
-    let mut emu = Emu::parse_phi("
-        ν1 ↦ ⟦ φ ↦ ν2 ⟧
-        ν2 ↦ ⟦ 𝛼3 ↦ ν1 ⟧
-        ν3 ↦ ⟦ 𝛼0 ↦ ξ.𝛼3.φ ⟧
-    ").unwrap();
-    let bx2 = emu.new(2, ROOT_BX, 0);
-    let bx3 = emu.new(3, bx2, 0);
-    assert_eq!(2, emu.find(bx3, &ph!("v3.0")).unwrap());
-}
-
-#[test]
-pub fn finds_through_copy() {
-    let mut emu = Emu::parse_phi("
-        ν1 ↦ ⟦ Δ ↦ 0x002A ⟧
-        ν2 ↦ ⟦ 𝛼0 ↦ ν1 ⟧
-        ν3 ↦ ⟦ φ ↦ ν2 ⟧
-    ").unwrap();
-    let bx2 = emu.new(3, ROOT_BX, 0);
-    let bx3 = emu.new(3, bx2, 0);
-    assert_eq!(1, emu.find(bx3, &ph!("$.0")).unwrap());
-}
-
-#[test]
-pub fn finds_in_itself() {
-    let mut emu = Emu::empty();
-    emu.put(1, Object::dataic(42));
-    emu.put(2, Object::open().with(Item::Phi, ph!("v1"), false));
-    let bx = emu.new(2, ROOT_BX, 0);
-    assert_eq!(1, emu.find(bx, &Path::from_item(Item::Phi)).unwrap());
-}
-
-#[test]
-pub fn saves_ret_into_dabox() {
-    let mut emu = Emu::empty();
-    let d = 42;
-    emu.put(1, Object::dataic(d));
-    let bx = emu.new(1, ROOT_BX, 0);
-    assert_eq!(d, emu.dataize(bx).unwrap());
-    assert!(emu.boxes[bx].to_string().contains(&String::from(format!("{:04X}", d))));
-}
-
-// []
-//   42 > x
-//   42 > y
-//   int.add > @
-//     $.x
-//     $.y
-#[test]
-pub fn summarizes_two_numbers() {
-    assert_emu!(3, 84, "
-        ν1 ↦ ⟦ Δ ↦ 0x002A ⟧
-        ν2 ↦ ⟦ λ ↦ int.add, ρ ↦ ξ.𝛼0, 𝛼0 ↦ ξ.𝛼1 ⟧
-        ν3 ↦ ⟦ φ ↦ ν2(𝜓), 𝛼0 ↦ ν1, 𝛼1 ↦ ν1 ⟧
-        ν5 ↦ ⟦ φ ↦ ν3(𝜓) ⟧
-    ");
-}
-
-// [x] > a
-//   $.x > @
-// a > foo
-//   a 42 > @
-#[test]
-pub fn calls_itself_once() {
-    assert_emu!(4, 42, "
-        ν1 ↦ ⟦ φ ↦ ξ.𝛼0 ⟧
-        ν2 ↦ ⟦ Δ ↦ 0x002A ⟧
-        ν3 ↦ ⟦ φ ↦ ν1(𝜓), 𝛼0 ↦ ν2 ⟧
-        ν4 ↦ ⟦ φ ↦ ν1(𝜓), 𝛼0 ↦ ν3 ⟧
-    ");
-}
-
-// [x] > a
-//   $.x > @
-// [y] > b
-//   a > @
-//     $.y
-// b 42 > foo
-#[test]
-pub fn injects_xi_correctly() {
-    assert_emu!(5, 42, "
-        ν1 ↦ ⟦ φ ↦ ξ.𝛼0 ⟧
-        ν2 ↦ ⟦ φ ↦ ν3(𝜓) ⟧
-        ν3 ↦ ⟦ φ ↦ ν1(𝜓), 𝛼0 ↦ ξ.𝛼0 ⟧
-        ν4 ↦ ⟦ Δ ↦ 0x002A ⟧
-        ν5 ↦ ⟦ φ ↦ ν2(𝜓), 𝛼0 ↦ ν4 ⟧
-    ");
-}
-
-// [a3] > v1         v1
-//   $.a3 > @
-// [a1] > v2         v2
-//   v1 > @          v3
-//     $.a1
-// v2 42 > @         v4
-#[test]
-pub fn reverse_to_abstract() {
-    assert_emu!(3, 42, "
-        ν1 ↦ ⟦ φ ↦ ξ.𝛼3 ⟧
-        ν2 ↦ ⟦ φ ↦ ν1(𝜓), 𝛼3 ↦ ξ.𝛼1 ⟧
-        ν3 ↦ ⟦ φ ↦ ν2(𝜓), 𝛼1 ↦ ν4 ⟧
-        ν4 ↦ ⟦ Δ ↦ 0x002A ⟧
-    ");
-}
-
-// [x] > a          v1  $=v6
-//   b > @          v2  $=v6
-//     c            v3  $=v2   v3 -> v6
-//       $.x
-// [x] > b          v4  $=v2
-//   x > @
-// [x] > c          v5  $=v3
-//   x > @
-// a                v6  $=R
-//   42             v7
-#[test]
-pub fn passes_xi_through_two_layers() {
-    assert_emu!(6, 42, "
-        ν1 ↦ ⟦ φ ↦ ν2 ⟧
-        ν2 ↦ ⟦ φ ↦ ν4(𝜓), 𝛼0 ↦ ν3 ⟧
-        ν3 ↦ ⟦ φ ↦ ν5(𝜓), 𝛼0 ↦ ξ.𝛼0 ⟧
-        ν4 ↦ ⟦ φ ↦ ξ.𝛼0 ⟧
-        ν5 ↦ ⟦ φ ↦ ξ.𝛼0 ⟧
-        ν6 ↦ ⟦ φ ↦ ν1(𝜓), 𝛼0 ↦ ν7 ⟧
-        ν7 ↦ ⟦ Δ ↦ 0x002A ⟧
-    ");
-}
-
-// [x] > a          v1  $=v8
-//   b > @          v2  $=v8
-//     c            v3  $=v2
-//       d          v4  $=v3 -> v8
-//         $.x
-// [x] > b          v5  $=v2
-//   x > @
-// [x] > c          v6  $=v3
-//   x > @
-// [x] > d          v7  $=v4
-//   x > @
-// a                v8  $=R
-//   42             v9
-#[test]
-pub fn passes_xi_through_three_layers() {
-    assert_emu!(8, 42, "
-        ν1 ↦ ⟦ φ ↦ ν2 ⟧
-        ν2 ↦ ⟦ φ ↦ ν4(𝜓), 𝛼0 ↦ ν3 ⟧
-        ν3 ↦ ⟦ φ ↦ ν5(𝜓), 𝛼0 ↦ ν4 ⟧
-        ν4 ↦ ⟦ φ ↦ ν6(𝜓), 𝛼0 ↦ ξ.𝛼0 ⟧
-        ν5 ↦ ⟦ φ ↦ ξ.𝛼0 ⟧
-        ν6 ↦ ⟦ φ ↦ ξ.𝛼0 ⟧
-        ν7 ↦ ⟦ φ ↦ ξ.𝛼0 ⟧
-        ν8 ↦ ⟦ φ ↦ ν1(𝜓), 𝛼0 ↦ ν9 ⟧
-        ν9 ↦ ⟦ Δ ↦ 0x002A ⟧
-    ");
-}
-
-// [x] > a        v1
-//   b > @        v2
-//     c          v3
-//       $.x
-// [x] > b        v4
-//   c > @        v5
-//     $.x
-// [x] > c        v6
-//   x > @
-// a              v7
-//   42           v8
-#[test]
-pub fn simulation_of_recursion() {
-    assert_emu!(7, 42, "
-        ν1 ↦ ⟦ φ ↦ ν2 ⟧
-        ν2 ↦ ⟦ φ ↦ ν4(𝜓), 𝛼0 ↦ ν3 ⟧
-        ν3 ↦ ⟦ φ ↦ ν6(𝜓), 𝛼0 ↦ ξ.𝛼0 ⟧
-        ν4 ↦ ⟦ φ ↦ ν5 ⟧
-        ν5 ↦ ⟦ φ ↦ ν6(𝜓), 𝛼0 ↦ ξ.𝛼0 ⟧
-        ν6 ↦ ⟦ φ ↦ ξ.𝛼0 ⟧
-        ν7 ↦ ⟦ φ ↦ ν1(𝜓), 𝛼0 ↦ ν8 ⟧
-        ν8 ↦ ⟦ Δ ↦ 0x002A ⟧
-    ");
-}
-
-// [x] > a        v1
-//   b > @        v2
-//     f          v3
-//       $.x
-// [x] > b        v4
-//   c > @        v5
-//     f          v6
-//       $.x
-// [x] > c        v7
-//   f > @        v8
-//     $.x
-// [x] > f        v9
-//   x > @
-// a              v10
-//   42           v11
-#[test]
-pub fn deep_simulation_of_recursion() {
-    assert_emu!(10, 42, "
-        ν1 ↦ ⟦ φ ↦ ν2 ⟧
-        ν2 ↦ ⟦ φ ↦ ν4(𝜓), 𝛼0 ↦ ν3 ⟧
-        ν3 ↦ ⟦ φ ↦ ν9(𝜓), 𝛼0 ↦ ξ.𝛼0 ⟧
-        ν4 ↦ ⟦ φ ↦ ν5 ⟧
-        ν5 ↦ ⟦ φ ↦ ν7(𝜓), 𝛼0 ↦ ν6 ⟧
-        ν6 ↦ ⟦ φ ↦ ν9(𝜓), 𝛼0 ↦ ξ.𝛼0 ⟧
-        ν7 ↦ ⟦ φ ↦ ν8 ⟧
-        ν8 ↦ ⟦ φ ↦ ν9(𝜓), 𝛼0 ↦ ξ.𝛼0 ⟧
-        ν9 ↦ ⟦ φ ↦ ξ.𝛼0 ⟧
-        ν10 ↦ ⟦ φ ↦ ν1(𝜓), 𝛼0 ↦ ν11 ⟧
-        ν11 ↦ ⟦ Δ ↦ 0x002A ⟧
-    ");
-}
-
-// [x] > foo        v1
-//   bool.if        v2
-//     int.less     v3
-//       $.x
-//       0          v4
-//     42           v5
-//     foo          v6
-//       int.sub    v7
-//         $.x
-//         1        v8
-// foo              v9
-//   7              v10
-#[test]
-pub fn simple_recursion() {
-    assert_emu!(9, 42, "
-        ν1 ↦ ⟦ φ ↦ ν2 ⟧
-        ν2 ↦ ⟦ λ ↦ bool.if, ρ ↦ ν3, 𝛼0 ↦ ν5, 𝛼1 ↦ ν6 ⟧
-        ν3 ↦ ⟦ λ ↦ int.less, ρ ↦ ξ.𝛼0, 𝛼0 ↦ ν4 ⟧
-        ν4 ↦ ⟦ Δ ↦ 0x0000 ⟧
-        ν5 ↦ ⟦ Δ ↦ 0x002A ⟧
-        ν6 ↦ ⟦ φ ↦ ν1(𝜓), 𝛼0 ↦ ν7 ⟧
-        ν7 ↦ ⟦ λ ↦ int.sub, ρ ↦ ξ.𝛼0, 𝛼0 ↦ ν8 ⟧
-        ν8 ↦ ⟦ Δ ↦ 0x0001 ⟧
-        ν9 ↦ ⟦ φ ↦ ν1(𝜓), 𝛼0 ↦ ν10 ⟧
-        ν10 ↦ ⟦ Δ ↦ 0x0007 ⟧
-    ");
-}
+// #[test]
+// pub fn with_many_decorators() {
+//     let mut emu = Emu::empty();
+//     emu.put(1, Object::dataic(42));
+//     emu.put(2, Object::open().with(Loc::Phi, ph!("v1"), false));
+//     emu.put(3, Object::open().with(Loc::Phi, ph!("v2"), false));
+//     emu.put(4, Object::open().with(Loc::Phi, ph!("v3"), false));
+//     let bx = emu.new(4, ROOT_BX, 0);
+//     assert_eq!(42, emu.dataize(bx).unwrap());
+// }
+//
+// #[test]
+// pub fn finds_complex_path() {
+//     let mut emu = Emu::parse_phi("
+//         ν1 ↦ ⟦ φ ↦ ν2 ⟧
+//         ν2 ↦ ⟦ 𝛼3 ↦ ν1 ⟧
+//         ν3 ↦ ⟦ 𝛼0 ↦ ξ.𝛼3.φ ⟧
+//     ").unwrap();
+//     let bx2 = emu.new(2, ROOT_BX, 0);
+//     let bx3 = emu.new(3, bx2, 0);
+//     assert_eq!(2, emu.find(bx3, &ph!("v3.0")).unwrap());
+// }
+//
+// #[test]
+// pub fn finds_through_copy() {
+//     let mut emu = Emu::parse_phi("
+//         ν1 ↦ ⟦ Δ ↦ 0x002A ⟧
+//         ν2 ↦ ⟦ 𝛼0 ↦ ν1 ⟧
+//         ν3 ↦ ⟦ φ ↦ ν2 ⟧
+//     ").unwrap();
+//     let bx2 = emu.new(3, ROOT_BX, 0);
+//     let bx3 = emu.new(3, bx2, 0);
+//     assert_eq!(1, emu.find(bx3, &ph!("$.0")).unwrap());
+// }
+//
+// #[test]
+// pub fn finds_in_itself() {
+//     let mut emu = Emu::empty();
+//     emu.put(1, Object::dataic(42));
+//     emu.put(2, Object::open().with(Loc::Phi, ph!("v1"), false));
+//     let bx = emu.new(2, ROOT_BX, 0);
+//     assert_eq!(1, emu.find(bx, &Path::from_item(Loc::Phi)).unwrap());
+// }
+//
+// #[test]
+// pub fn saves_ret_into_dabox() {
+//     let mut emu = Emu::empty();
+//     let d = 42;
+//     emu.put(1, Object::dataic(d));
+//     let bx = emu.new(1, ROOT_BX, 0);
+//     assert_eq!(d, emu.dataize(bx).unwrap());
+//     assert!(emu.baskets[bx].to_string().contains(&String::from(format!("{:04X}", d))));
+// }
+//
+// // []
+// //   42 > x
+// //   42 > y
+// //   int.add > @
+// //     $.x
+// //     $.y
+// #[test]
+// pub fn summarizes_two_numbers() {
+//     assert_emu!(3, 84, "
+//         ν1 ↦ ⟦ Δ ↦ 0x002A ⟧
+//         ν2 ↦ ⟦ λ ↦ int.add, ρ ↦ ξ.𝛼0, 𝛼0 ↦ ξ.𝛼1 ⟧
+//         ν3 ↦ ⟦ φ ↦ ν2(𝜓), 𝛼0 ↦ ν1, 𝛼1 ↦ ν1 ⟧
+//         ν5 ↦ ⟦ φ ↦ ν3(𝜓) ⟧
+//     ");
+// }
+//
+// // [x] > a
+// //   $.x > @
+// // a > foo
+// //   a 42 > @
+// #[test]
+// pub fn calls_itself_once() {
+//     assert_emu!(4, 42, "
+//         ν1 ↦ ⟦ φ ↦ ξ.𝛼0 ⟧
+//         ν2 ↦ ⟦ Δ ↦ 0x002A ⟧
+//         ν3 ↦ ⟦ φ ↦ ν1(𝜓), 𝛼0 ↦ ν2 ⟧
+//         ν4 ↦ ⟦ φ ↦ ν1(𝜓), 𝛼0 ↦ ν3 ⟧
+//     ");
+// }
+//
+// // [x] > a
+// //   $.x > @
+// // [y] > b
+// //   a > @
+// //     $.y
+// // b 42 > foo
+// #[test]
+// pub fn injects_xi_correctly() {
+//     assert_emu!(5, 42, "
+//         ν1 ↦ ⟦ φ ↦ ξ.𝛼0 ⟧
+//         ν2 ↦ ⟦ φ ↦ ν3(𝜓) ⟧
+//         ν3 ↦ ⟦ φ ↦ ν1(𝜓), 𝛼0 ↦ ξ.𝛼0 ⟧
+//         ν4 ↦ ⟦ Δ ↦ 0x002A ⟧
+//         ν5 ↦ ⟦ φ ↦ ν2(𝜓), 𝛼0 ↦ ν4 ⟧
+//     ");
+// }
+//
+// // [a3] > v1         v1
+// //   $.a3 > @
+// // [a1] > v2         v2
+// //   v1 > @          v3
+// //     $.a1
+// // v2 42 > @         v4
+// #[test]
+// pub fn reverse_to_abstract() {
+//     assert_emu!(3, 42, "
+//         ν1 ↦ ⟦ φ ↦ ξ.𝛼3 ⟧
+//         ν2 ↦ ⟦ φ ↦ ν1(𝜓), 𝛼3 ↦ ξ.𝛼1 ⟧
+//         ν3 ↦ ⟦ φ ↦ ν2(𝜓), 𝛼1 ↦ ν4 ⟧
+//         ν4 ↦ ⟦ Δ ↦ 0x002A ⟧
+//     ");
+// }
+//
+// // [x] > a          v1  $=v6
+// //   b > @          v2  $=v6
+// //     c            v3  $=v2   v3 -> v6
+// //       $.x
+// // [x] > b          v4  $=v2
+// //   x > @
+// // [x] > c          v5  $=v3
+// //   x > @
+// // a                v6  $=R
+// //   42             v7
+// #[test]
+// pub fn passes_xi_through_two_layers() {
+//     assert_emu!(6, 42, "
+//         ν1 ↦ ⟦ φ ↦ ν2 ⟧
+//         ν2 ↦ ⟦ φ ↦ ν4(𝜓), 𝛼0 ↦ ν3 ⟧
+//         ν3 ↦ ⟦ φ ↦ ν5(𝜓), 𝛼0 ↦ 𝜓.𝜓.𝛼0 ⟧
+//         ν4 ↦ ⟦ φ ↦ 𝜓.𝛼0 ⟧
+//         ν5 ↦ ⟦ φ ↦ 𝜓.𝛼0 ⟧
+//         ν6 ↦ ⟦ φ ↦ ν1(𝜓), 𝛼0 ↦ ν7 ⟧
+//         ν7 ↦ ⟦ Δ ↦ 0x002A ⟧
+//     ");
+// }
+//
+// // [x] > a          v1  $=v8
+// //   b > @          v2  $=v8
+// //     c            v3  $=v2
+// //       d          v4  $=v3 -> v8
+// //         $.x
+// // [x] > b          v5  $=v2
+// //   x > @
+// // [x] > c          v6  $=v3
+// //   x > @
+// // [x] > d          v7  $=v4
+// //   x > @
+// // a                v8  $=R
+// //   42             v9
+// #[test]
+// pub fn passes_xi_through_three_layers() {
+//     assert_emu!(8, 42, "
+//         ν1 ↦ ⟦ φ ↦ ν2 ⟧
+//         ν2 ↦ ⟦ φ ↦ ν4(𝜓), 𝛼0 ↦ ν3 ⟧
+//         ν3 ↦ ⟦ φ ↦ ν5(𝜓), 𝛼0 ↦ ν4 ⟧
+//         ν4 ↦ ⟦ φ ↦ ν6(𝜓), 𝛼0 ↦ ξ.𝛼0 ⟧
+//         ν5 ↦ ⟦ φ ↦ ξ.𝛼0 ⟧
+//         ν6 ↦ ⟦ φ ↦ ξ.𝛼0 ⟧
+//         ν7 ↦ ⟦ φ ↦ ξ.𝛼0 ⟧
+//         ν8 ↦ ⟦ φ ↦ ν1(𝜓), 𝛼0 ↦ ν9 ⟧
+//         ν9 ↦ ⟦ Δ ↦ 0x002A ⟧
+//     ");
+// }
+//
+// // [x] > a        v1
+// //   b > @        v2
+// //     c          v3
+// //       $.x
+// // [x] > b        v4
+// //   c > @        v5
+// //     $.x
+// // [x] > c        v6
+// //   x > @
+// // a              v7
+// //   42           v8
+// #[test]
+// pub fn simulation_of_recursion() {
+//     assert_emu!(7, 42, "
+//         ν1 ↦ ⟦ φ ↦ ν2 ⟧
+//         ν2 ↦ ⟦ φ ↦ ν4(𝜓), 𝛼0 ↦ ν3 ⟧
+//         ν3 ↦ ⟦ φ ↦ ν6(𝜓), 𝛼0 ↦ ξ.𝛼0 ⟧
+//         ν4 ↦ ⟦ φ ↦ ν5 ⟧
+//         ν5 ↦ ⟦ φ ↦ ν6(𝜓), 𝛼0 ↦ ξ.𝛼0 ⟧
+//         ν6 ↦ ⟦ φ ↦ ξ.𝛼0 ⟧
+//         ν7 ↦ ⟦ φ ↦ ν1(𝜓), 𝛼0 ↦ ν8 ⟧
+//         ν8 ↦ ⟦ Δ ↦ 0x002A ⟧
+//     ");
+// }
+//
+// // [x] > a        v1
+// //   b > @        v2
+// //     f          v3
+// //       $.x
+// // [x] > b        v4
+// //   c > @        v5
+// //     f          v6
+// //       $.x
+// // [x] > c        v7
+// //   f > @        v8
+// //     $.x
+// // [x] > f        v9
+// //   x > @
+// // a              v10
+// //   42           v11
+// #[test]
+// pub fn deep_simulation_of_recursion() {
+//     assert_emu!(10, 42, "
+//         ν1 ↦ ⟦ φ ↦ ν2 ⟧
+//         ν2 ↦ ⟦ φ ↦ ν4(𝜓), 𝛼0 ↦ ν3 ⟧
+//         ν3 ↦ ⟦ φ ↦ ν9(𝜓), 𝛼0 ↦ ξ.𝛼0 ⟧
+//         ν4 ↦ ⟦ φ ↦ ν5 ⟧
+//         ν5 ↦ ⟦ φ ↦ ν7(𝜓), 𝛼0 ↦ ν6 ⟧
+//         ν6 ↦ ⟦ φ ↦ ν9(𝜓), 𝛼0 ↦ ξ.𝛼0 ⟧
+//         ν7 ↦ ⟦ φ ↦ ν8 ⟧
+//         ν8 ↦ ⟦ φ ↦ ν9(𝜓), 𝛼0 ↦ ξ.𝛼0 ⟧
+//         ν9 ↦ ⟦ φ ↦ ξ.𝛼0 ⟧
+//         ν10 ↦ ⟦ φ ↦ ν1(𝜓), 𝛼0 ↦ ν11 ⟧
+//         ν11 ↦ ⟦ Δ ↦ 0x002A ⟧
+//     ");
+// }
+//
+// // [x] > foo        v1
+// //   bool.if        v2
+// //     int.less     v3
+// //       $.x
+// //       0          v4
+// //     42           v5
+// //     foo          v6
+// //       int.sub    v7
+// //         $.x
+// //         1        v8
+// // foo              v9
+// //   7              v10
+// #[test]
+// pub fn simple_recursion() {
+//     assert_emu!(9, 42, "
+//         ν1 ↦ ⟦ φ ↦ ν2 ⟧
+//         ν2 ↦ ⟦ λ ↦ bool.if, ρ ↦ ν3, 𝛼0 ↦ ν5, 𝛼1 ↦ ν6 ⟧
+//         ν3 ↦ ⟦ λ ↦ int.less, ρ ↦ ξ.𝛼0, 𝛼0 ↦ ν4 ⟧
+//         ν4 ↦ ⟦ Δ ↦ 0x0000 ⟧
+//         ν5 ↦ ⟦ Δ ↦ 0x002A ⟧
+//         ν6 ↦ ⟦ φ ↦ ν1(𝜓), 𝛼0 ↦ ν7 ⟧
+//         ν7 ↦ ⟦ λ ↦ int.sub, ρ ↦ ξ.𝛼0, 𝛼0 ↦ ν8 ⟧
+//         ν8 ↦ ⟦ Δ ↦ 0x0001 ⟧
+//         ν9 ↦ ⟦ φ ↦ ν1(𝜓), 𝛼0 ↦ ν10 ⟧
+//         ν10 ↦ ⟦ Δ ↦ 0x0007 ⟧
+//     ");
+// }
