@@ -21,9 +21,9 @@
 use crate::data::Data;
 use crate::loc::Loc;
 use crate::object::Ob;
+use itertools::Itertools;
 use std::collections::HashMap;
 use std::fmt;
-use itertools::Itertools;
 
 pub type Bk = isize;
 
@@ -32,7 +32,7 @@ pub enum Kid {
     Requested,
     Waiting(Bk, Loc),
     Dataized(Data),
-    Propagated
+    Propagated,
 }
 
 pub struct Basket {
@@ -81,10 +81,11 @@ impl fmt::Display for Basket {
         parts.push(format!("ν{}", self.ob));
         parts.push(format!("𝜓:β{}", self.psi));
         parts.extend(
-            self.kids.iter()
+            self.kids
+                .iter()
                 .map(|(i, d)| format!("{}{}", i, d))
                 .sorted()
-                .collect::<Vec<String>>()
+                .collect::<Vec<String>>(),
         );
         write!(f, "[{}]", parts.iter().join(", "))
     }
@@ -93,7 +94,8 @@ impl fmt::Display for Basket {
 impl fmt::Display for Kid {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
-            f, "{}",
+            f,
+            "{}",
             match self {
                 Kid::Start => "→?".to_string(),
                 Kid::Requested => "→!".to_string(),

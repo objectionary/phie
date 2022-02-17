@@ -18,11 +18,11 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+use crate::assert_emu;
 use crate::basket::Bk;
 use crate::data::Data;
-use crate::loc::Loc;
 use crate::emu::Emu;
-use crate::assert_emu;
+use crate::loc::Loc;
 
 pub type Atom = fn(&mut Emu, Bk) -> Option<Data>;
 
@@ -45,60 +45,81 @@ pub fn bool_if(emu: &mut Emu, bk: Bk) -> Option<Data> {
 
 #[test]
 pub fn bool_if_works() {
-    assert_emu!(42, "
+    assert_emu!(
+        42,
+        "
         ν0 ↦ ⟦ φ ↦ ν2 ⟧
         ν1 ↦ ⟦ Δ ↦ 0x0001 ⟧
         ν2 ↦ ⟦ λ ↦ bool.if, ρ ↦ ν1, 𝛼0 ↦ ν3, 𝛼1 ↦ ν4 ⟧
         ν3 ↦ ⟦ Δ ↦ 0x002A ⟧
         ν4 ↦ ⟦ Δ ↦ 0x0000 ⟧
-    ");
-    assert_emu!(42, "
+    "
+    );
+    assert_emu!(
+        42,
+        "
         ν0 ↦ ⟦ φ ↦ ν2 ⟧
         ν1 ↦ ⟦ Δ ↦ 0x0000 ⟧
         ν2 ↦ ⟦ λ ↦ bool.if, ρ ↦ ν1, 𝛼0 ↦ ν3, 𝛼1 ↦ ν4 ⟧
         ν3 ↦ ⟦ Δ ↦ 0x0000 ⟧
         ν4 ↦ ⟦ Δ ↦ 0x002A ⟧
-    ");
+    "
+    );
 }
 
 #[test]
 pub fn int_add_works() {
-    assert_emu!(49, "
+    assert_emu!(
+        49,
+        "
         ν0 ↦ ⟦ φ ↦ ν2 ⟧
         ν1 ↦ ⟦ Δ ↦ 0x0007 ⟧
         ν2 ↦ ⟦ λ ↦ int.add, ρ ↦ ν1, 𝛼0 ↦ ν3 ⟧
         ν3 ↦ ⟦ Δ ↦ 0x002A ⟧
-    ");
+    "
+    );
 }
 
 #[test]
 pub fn int_sub_works() {
-    assert_emu!(40, "
+    assert_emu!(
+        40,
+        "
         ν0 ↦ ⟦ φ ↦ ν2 ⟧
         ν1 ↦ ⟦ Δ ↦ 0x002A ⟧
         ν2 ↦ ⟦ λ ↦ int.sub, ρ ↦ ν1, 𝛼0 ↦ ν3 ⟧
         ν3 ↦ ⟦ Δ ↦ 0x0002 ⟧
-    ");
+    "
+    );
 }
 
 #[test]
 pub fn int_less_works() {
-    assert_emu!(0, "
+    assert_emu!(
+        0,
+        "
         ν0 ↦ ⟦ φ ↦ ν2 ⟧
         ν1 ↦ ⟦ Δ ↦ 0x002A ⟧
         ν2 ↦ ⟦ λ ↦ int.less, ρ ↦ ν1, 𝛼0 ↦ ν3 ⟧
         ν3 ↦ ⟦ Δ ↦ 0x0002 ⟧
-    ");
-    assert_emu!(0, "
+    "
+    );
+    assert_emu!(
+        0,
+        "
         ν0 ↦ ⟦ φ ↦ ν2 ⟧
         ν1 ↦ ⟦ Δ ↦ 0x002A ⟧
         ν2 ↦ ⟦ λ ↦ int.less, ρ ↦ ν1, 𝛼0 ↦ ν3 ⟧
         ν3 ↦ ⟦ Δ ↦ 0x002A ⟧
-    ");
-    assert_emu!(1, "
+    "
+    );
+    assert_emu!(
+        1,
+        "
         ν0 ↦ ⟦ φ ↦ ν2 ⟧
         ν1 ↦ ⟦ Δ ↦ 0x002A ⟧
         ν2 ↦ ⟦ λ ↦ int.less, ρ ↦ ν1, 𝛼0 ↦ ν3 ⟧
         ν3 ↦ ⟦ Δ ↦ 0x002B ⟧
-    ");
+    "
+    );
 }

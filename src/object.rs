@@ -18,16 +18,16 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-use regex::Regex;
 use crate::atom::*;
 use crate::data::Data;
-use crate::path::Path;
 use crate::loc::Loc;
+use crate::path::Path;
 use crate::ph;
-use std::collections::HashMap;
-use std::str::FromStr;
-use std::fmt;
 use itertools::Itertools;
+use regex::Regex;
+use std::collections::HashMap;
+use std::fmt;
+use std::str::FromStr;
 
 pub type Ob = usize;
 
@@ -121,7 +121,12 @@ impl fmt::Display for Object {
         for i in self.attrs.iter() {
             let (attr, (path, psi)) = i;
             parts.push(
-                format!("{}↦{}", attr, path) + &(if *psi { "(𝜓)".to_string() } else { "".to_string() })
+                format!("{}↦{}", attr, path)
+                    + &(if *psi {
+                        "(𝜓)".to_string()
+                    } else {
+                        "".to_string()
+                    }),
             );
         }
         parts.sort();
@@ -135,30 +140,48 @@ impl FromStr for Object {
         let re = Regex::new("⟦(.*)⟧").unwrap();
         let mut obj = Object::open();
         let caps = re.captures(s).unwrap();
-        for pair in caps.get(1).unwrap().as_str().trim().split(",").map(|t| t.trim()) {
-            let (i, p) = pair.split("↦").map(|t| t.trim()).collect_tuple().ok_or(format!("Can't split '{}' in two parts at '{}'", pair, s))?;
+        for pair in caps
+            .get(1)
+            .unwrap()
+            .as_str()
+            .trim()
+            .split(",")
+            .map(|t| t.trim())
+        {
+            let (i, p) = pair
+                .split("↦")
+                .map(|t| t.trim())
+                .collect_tuple()
+                .ok_or(format!("Can't split '{}' in two parts at '{}'", pair, s))?;
             match i.chars().take(1).last().unwrap() {
                 'λ' => {
-                    obj = Object::atomic(
-                        match p {
-                            "int.sub" => int_sub,
-                            "int.add" => int_add,
-                            "bool.if" => bool_if,
-                            "int.less" => int_less,
-                            _ => panic!("Unknown lambda '{}'", p)
-                        }
-                    );
-                },
+                    obj = Object::atomic(match p {
+                        "int.sub" => int_sub,
+                        "int.add" => int_add,
+                        "bool.if" => bool_if,
+                        "int.less" => int_less,
+                        _ => panic!("Unknown lambda '{}'", p),
+                    });
+                }
                 'Δ' => {
-                    let hex : String = p.chars().skip(2).collect();
-                    let data : Data = Data::from_str_radix(&hex, 16).expect(&format!("Can't parse hex '{}' in '{}'", hex, s));
+                    let hex: String = p.chars().skip(2).collect();
+                    let data: Data = Data::from_str_radix(&hex, 16)
+                        .expect(&format!("Can't parse hex '{}' in '{}'", hex, s));
                     obj = Object::dataic(data);
-                },
+                }
                 _ => {
                     let psi_suffix = "(𝜓)";
                     let psi = p.ends_with(psi_suffix);
-                    let path = if psi { p.chars().take(p.len() - psi_suffix.len() - 1).collect() } else { p.to_string() };
-                    obj.push(Loc::from_str(i).unwrap(), Path::from_str(&path).unwrap(), psi);
+                    let path = if psi {
+                        p.chars().take(p.len() - psi_suffix.len() - 1).collect()
+                    } else {
+                        p.to_string()
+                    };
+                    obj.push(
+                        Loc::from_str(i).unwrap(),
+                        Path::from_str(&path).unwrap(),
+                        psi,
+                    );
                 }
             };
         }
@@ -195,4 +218,3 @@ fn prints_and_parses_simple_object() {
     let obj2 = Object::from_str(&text).unwrap();
     assert_eq!(obj2.to_string(), text);
 }
-

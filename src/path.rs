@@ -19,10 +19,10 @@
 // SOFTWARE.
 
 use crate::loc::Loc;
+use lazy_static::lazy_static;
 use rstest::rstest;
 use std::fmt;
 use std::str::FromStr;
-use lazy_static::lazy_static;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Path {
@@ -37,11 +37,11 @@ macro_rules! ph {
 }
 
 impl Path {
-    pub fn from_vec(locs : Vec<Loc>) -> Path {
+    pub fn from_vec(locs: Vec<Loc>) -> Path {
         Path { locs }
     }
 
-    pub fn from_loc(loc : Loc) -> Path {
+    pub fn from_loc(loc: Loc) -> Path {
         Path::from_vec(vec![loc])
     }
 
@@ -86,11 +86,7 @@ impl FromStr for Path {
             let loc = (check.check)(&p);
             if loc.is_some() {
                 let mut msg: String = String::new();
-                msg.push_str(&format!(
-                    "The {}th loc '{}' is wrong; ",
-                    pos,
-                    loc.unwrap()
-                ));
+                msg.push_str(&format!("The {}th loc '{}' is wrong; ", pos, loc.unwrap()));
                 msg.push_str(check.msg);
                 msg.push_str(&format!("; in '{}'", s));
                 return Err(msg);

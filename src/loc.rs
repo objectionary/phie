@@ -46,9 +46,13 @@ impl FromStr for Loc {
             static ref RE_OBJ: Regex = Regex::new("^[v|ν](\\d+)$").unwrap();
         }
         if let Some(caps) = RE_ARG.captures(s) {
-            Ok(Loc::Attr(caps.get(1).unwrap().as_str().parse::<i8>().unwrap()))
+            Ok(Loc::Attr(
+                caps.get(1).unwrap().as_str().parse::<i8>().unwrap(),
+            ))
         } else if let Some(caps) = RE_OBJ.captures(s) {
-            Ok(Loc::Obj(caps.get(1).unwrap().as_str().parse::<usize>().unwrap()))
+            Ok(Loc::Obj(
+                caps.get(1).unwrap().as_str().parse::<usize>().unwrap(),
+            ))
         } else {
             match s {
                 "R" => Ok(Loc::Root),
@@ -108,4 +112,3 @@ pub fn parses_and_prints(#[case] txt: &str) {
     let loc2 = Loc::from_str(&loc1.to_string()).unwrap();
     assert_eq!(loc1, loc2)
 }
-
