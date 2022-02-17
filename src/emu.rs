@@ -110,15 +110,19 @@ impl Emu {
             let nbk = self.baskets.iter().find_position(|b| b.is_empty()).unwrap().0 as Bk;
             let ob = self.basket(bk).ob;
             let obj = self.object(ob);
-            let (path, advice) = obj.attrs.get(&loc).expect(
-                &format!("Can't find {} in ν{}/β{}", loc, ob, bk)
-            );
-            let (target, psi) = self.find(bk, path).expect(
-                &format!("Can't find {} from β{}/ν{}", path, bk, ob)
-            );
-            self.baskets[nbk as usize] = Basket::start(target, if *advice { bk } else { psi });
-            let _ = &self.baskets[bk as usize].kids.insert(loc.clone(), Kid::Waiting(nbk, Loc::Phi));
-            trace!("new(β{}/ν{}, {}) -> β{}", bk, ob, loc, nbk);
+            if let Some((path, advice)) = obj.attrs.get(&loc) {
+                let (target, psi) = self.find(bk, path).expect(
+                    &format!("Can't find {} from β{}/ν{}", path, bk, ob)
+                );
+                let mut bsk = Basket::start(target, if *advice { bk } else { psi });
+                for k in obj.attrs.keys() {
+                    bsk.kids.insert(k.clone(), Kid::Start);
+                }
+                self.baskets[nbk as usize] = bsk;
+                let _ = &self.baskets[bk as usize].kids.insert(loc.clone(), Kid::Waiting(nbk, Loc::Phi));
+                self.request(nbk, Loc::Phi);
+                trace!("new(β{}/ν{}, {}) -> β{}", bk, ob, loc, nbk);
+            }
         }
     }
 
@@ -135,10 +139,12 @@ impl Emu {
 
     /// Copy data from object to basket.
     pub fn copy(&mut self, bk: Bk) {
-        let obj = self.object(self.basket(bk).ob);
-        if let Some(d) = obj.delta {
-            self.write(bk, Loc::Phi, d);
-            trace!("copy(β{}) -> 0x{:04X}", bk, d);
+        if let Some(Kid::Requested) = self.basket(bk).kids.get(&Loc::Phi) {
+            let obj = self.object(self.basket(bk).ob);
+            if let Some(d) = obj.delta {
+                self.write(bk, Loc::Phi, d);
+                trace!("copy(β{}) -> 0x{:04X}", bk, d);
+            }
         }
     }
 
@@ -157,16 +163,19 @@ impl Emu {
                 }
             }
         }
-        for (b, l, d) in changes.iter() {
-            let _ = &self.baskets[*b as usize].kids.insert(l.clone(), Kid::Dataized(*d));
-            trace!("propagate(β{}, {}, 0x{:04X})", b, l, *d);
+        if !changes.is_empty() {
+            let _ = &self.baskets[bk as usize].kids.insert(loc.clone(), Kid::Propagated);
+            for (b, l, d) in changes.iter() {
+                let _ = &self.baskets[*b as usize].kids.insert(l.clone(), Kid::Dataized(*d));
+                trace!("propagate(β{}, {}) : 0x{:04X} to β{}.{}", bk, loc, *d, b, l);
+            }
         }
     }
 
     /// Delete the basket if it's already finished.
     pub fn delete(&mut self, bk: Bk) {
         if bk != ROOT_BK {
-            if let Some(Kid::Dataized(_)) = self.basket(bk).kids.get(&Loc::Phi) {
+            if let Some(Kid::Propagated) = self.basket(bk).kids.get(&Loc::Phi) {
                 self.baskets[bk as usize] = Basket::empty();
                 trace!("delete(β{})", bk);
             }
@@ -179,7 +188,7 @@ impl Emu {
             None => panic!("Can't find {} in β{}", loc, bk),
             Some(Kid::Start) => {
                 let _ = &self.baskets[bk as usize].kids.insert(loc.clone(), Kid::Requested);
-                trace!("request(β{}, {})", bk, loc);
+                trace!("request(β{}, {}): requested", bk, loc);
             },
             Some(k) => panic!("Can't request {} in β{} since it's already {}", loc, bk, k),
         };
@@ -188,7 +197,8 @@ impl Emu {
     /// Write data into the attribute of the box.
     pub fn write(&mut self, bk: Bk, loc: Loc, d: Data) {
         match self.basket(bk).kids.get(&loc) {
-            None | Some(Kid::Waiting(_, _)) => {
+            None => panic!("Can't find {} in β{}", loc, bk),
+            Some(Kid::Requested) | Some(Kid::Waiting(_, _)) => {
                 let _ = &self.baskets[bk as usize].kids.insert(loc.clone(), Kid::Dataized(d));
                 trace!("write(β{}, {}, 0x{:04X})", bk, loc, d);
             },
@@ -209,7 +219,8 @@ impl Emu {
             Some(Kid::Dataized(d)) => {
                 trace!("read(β{}, {}) -> 0x{:04X}", bk, loc, *d);
                 Some(*d)
-            }
+            },
+            Some(Kid::Propagated) => None,
         }
     }
 
@@ -293,9 +304,11 @@ impl Emu {
     }
 
     pub fn cycle(&mut self) -> Option<Data> {
-        let mut cycles = 0;
+        let mut cycles = 1;
         loop {
+            trace!("Cycle #{}...", cycles);
             self.cycle_one();
+            self.log();
             if let Some(Kid::Dataized(d)) = self.basket(ROOT_BK).kids.get(&Loc::Phi) {
                 return Some(*d);
             }
