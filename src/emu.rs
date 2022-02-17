@@ -27,6 +27,7 @@ use crate::path::Path;
 use crate::ph;
 use arr_macro::arr;
 use std::str::FromStr;
+use std::fmt;
 use log::trace;
 use itertools::Itertools;
 
@@ -46,11 +47,32 @@ macro_rules! join {
 
 #[macro_export]
 macro_rules! assert_emu {
-    ($v:expr, $eq:expr, $txt:expr) => {
-        // let mut emu = Emu::parse_phi($txt).unwrap();
-        // let bx = emu.new($v, ROOT_BX, 0);
-        // assert_eq!($eq, emu.dataize(bx).unwrap());
+    ($eq:expr, $txt:expr) => {
+        let mut emu = Emu::parse_phi($txt).unwrap();
+        assert_eq!($eq, emu.cycle().unwrap());
     };
+}
+
+impl fmt::Display for Emu {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let mut lines = vec![];
+        for i in self.objects.iter().enumerate() {
+            let (ob, obj): (usize, &Object) = i;
+            if obj.is_empty() {
+                continue;
+            }
+            lines.push(format!(
+                "ν{} {}{}",
+                ob, obj,
+                self.baskets.iter().enumerate()
+                    .filter(|(_, d)| !d.is_empty() && d.ob as usize == ob)
+                    .map(|(i, d)| format!("\n\t➞ β{} {}", i, d))
+                    .collect::<Vec<String>>()
+                    .join("")
+            ));
+        }
+        f.write_str(lines.join("\n").as_str())
+    }
 }
 
 impl Emu {
@@ -74,26 +96,6 @@ impl Emu {
         self
     }
 
-    pub fn log(&self) {
-        let mut lines = vec![];
-        for i in self.objects.iter().enumerate() {
-            let (ob, obj): (usize, &Object) = i;
-            if obj.is_empty() {
-                continue;
-            }
-            lines.push(format!(
-                "ν{} {}{}",
-                ob, obj,
-                self.baskets.iter().enumerate()
-                    .filter(|(_, d)| !d.is_empty() && d.ob as usize == ob)
-                    .map(|(i, d)| format!("\n\t➞ β{} {}", i, d))
-                    .collect::<Vec<String>>()
-                    .join("")
-            ));
-        }
-        trace!("emu:\n{}", lines.join("\n"));
-    }
-
     /// Request dataization of phi-pointed objects.
     pub fn decorate(&mut self, bk: Bk) {
         if self.basket(bk).kids.contains_key(&Loc::Phi) {
@@ -115,9 +117,10 @@ impl Emu {
                     &format!("Can't find {} from β{}/ν{}", path, bk, ob)
                 );
                 let mut bsk = Basket::start(target, if *advice { bk } else { psi });
-                for k in obj.attrs.keys() {
+                for k in self.object(target).attrs.keys() {
                     bsk.kids.insert(k.clone(), Kid::Start);
                 }
+                bsk.kids.insert(Loc::Phi, Kid::Start);
                 self.baskets[nbk as usize] = bsk;
                 let _ = &self.baskets[bk as usize].kids.insert(loc.clone(), Kid::Waiting(nbk, Loc::Phi));
                 self.request(nbk, Loc::Phi);
@@ -185,31 +188,31 @@ impl Emu {
     /// Request dataization of one attribute of the basket.
     pub fn request(&mut self, bk: Bk, loc: Loc) {
         match self.basket(bk).kids.get(&loc) {
-            None => panic!("Can't find {} in β{}", loc, bk),
+            None => panic!("Can't find {} in β{}:\n{}", loc, bk, self),
             Some(Kid::Start) => {
                 let _ = &self.baskets[bk as usize].kids.insert(loc.clone(), Kid::Requested);
                 trace!("request(β{}, {}): requested", bk, loc);
             },
-            Some(k) => panic!("Can't request {} in β{} since it's already {}", loc, bk, k),
+            Some(k) => panic!("Can't request {} in β{} since it's already {}:\n{}", loc, bk, k, self),
         };
     }
 
     /// Write data into the attribute of the box.
     pub fn write(&mut self, bk: Bk, loc: Loc, d: Data) {
         match self.basket(bk).kids.get(&loc) {
-            None => panic!("Can't find {} in β{}", loc, bk),
+            None => panic!("Can't find {} in β{}:\n{}", loc, bk, self),
             Some(Kid::Requested) | Some(Kid::Waiting(_, _)) => {
                 let _ = &self.baskets[bk as usize].kids.insert(loc.clone(), Kid::Dataized(d));
                 trace!("write(β{}, {}, 0x{:04X})", bk, loc, d);
             },
-            Some(k) => panic!("Can't save 0x{:04X} to {} in β{} since it's {}", d, loc, bk, k),
+            Some(k) => panic!("Can't save 0x{:04X} to {} in β{} since it's {}:\n{}", d, loc, bk, k, self),
         };
     }
 
     /// Read data if available.
     pub fn read(&mut self, bk: Bk, loc: Loc) -> Option<Data> {
         match self.basket(bk).kids.get(&loc) {
-            None => panic!("Can't find {} in β{}", loc, bk),
+            None => panic!("Can't find {} in β{}:\n{}", loc, bk, self),
             Some(Kid::Start) => {
                 self.request(bk, loc);
                 None
@@ -308,40 +311,28 @@ impl Emu {
         loop {
             trace!("Cycle #{}...", cycles);
             self.cycle_one();
-            self.log();
+            trace!("Emu:\n{}", self);
             if let Some(Kid::Dataized(d)) = self.basket(ROOT_BK).kids.get(&Loc::Phi) {
                 return Some(*d);
             }
             cycles += 1;
             if cycles > 100 {
-                self.log();
-                panic!("Endless cycling :(");
+                panic!("Endless cycling:\n{}", self);
             }
         }
     }
 
     fn cycle_one(&mut self) {
-        for bk in 0..self.baskets.len() {
-            self.copy(bk as Bk);
-        }
-        for bk in 0..self.baskets.len() {
-            self.decorate(bk as Bk);
-        }
-        for bk in 0..self.baskets.len() {
-            for loc in self.keys(bk as Bk) {
-                self.new(bk as Bk, loc.clone());
-            }
-        }
-        for bk in 0..self.baskets.len() {
+        for i in 0..self.baskets.len() {
+            let bk = i as Bk;
+            self.copy(bk);
+            self.decorate(bk);
             self.delegate(bk as Bk);
-        }
-        for bk in 0..self.baskets.len() {
-            for loc in self.keys(bk as Bk) {
-                self.propagate(bk as Bk, loc.clone());
-            }
-        }
-        for bk in 0..self.baskets.len() {
             self.delete(bk as Bk);
+            for loc in self.keys(bk) {
+                self.new(bk, loc.clone());
+                self.propagate(bk, loc.clone());
+            }
         }
     }
 
@@ -379,76 +370,34 @@ pub fn with_simple_decorator() {
     assert_eq!(42, emu.cycle().unwrap());
 }
 
-// #[test]
-// pub fn with_many_decorators() {
-//     let mut emu = Emu::empty();
-//     emu.put(1, Object::dataic(42));
-//     emu.put(2, Object::open().with(Loc::Phi, ph!("v1"), false));
-//     emu.put(3, Object::open().with(Loc::Phi, ph!("v2"), false));
-//     emu.put(4, Object::open().with(Loc::Phi, ph!("v3"), false));
-//     let bx = emu.new(4, ROOT_BX, 0);
-//     assert_eq!(42, emu.dataize(bx).unwrap());
-// }
-//
-// #[test]
-// pub fn finds_complex_path() {
-//     let mut emu = Emu::parse_phi("
-//         ν1 ↦ ⟦ φ ↦ ν2 ⟧
-//         ν2 ↦ ⟦ 𝛼3 ↦ ν1 ⟧
-//         ν3 ↦ ⟦ 𝛼0 ↦ ξ.𝛼3.φ ⟧
-//     ").unwrap();
-//     let bx2 = emu.new(2, ROOT_BX, 0);
-//     let bx3 = emu.new(3, bx2, 0);
-//     assert_eq!(2, emu.find(bx3, &ph!("v3.0")).unwrap());
-// }
-//
-// #[test]
-// pub fn finds_through_copy() {
-//     let mut emu = Emu::parse_phi("
-//         ν1 ↦ ⟦ Δ ↦ 0x002A ⟧
-//         ν2 ↦ ⟦ 𝛼0 ↦ ν1 ⟧
-//         ν3 ↦ ⟦ φ ↦ ν2 ⟧
-//     ").unwrap();
-//     let bx2 = emu.new(3, ROOT_BX, 0);
-//     let bx3 = emu.new(3, bx2, 0);
-//     assert_eq!(1, emu.find(bx3, &ph!("$.0")).unwrap());
-// }
-//
-// #[test]
-// pub fn finds_in_itself() {
-//     let mut emu = Emu::empty();
-//     emu.put(1, Object::dataic(42));
-//     emu.put(2, Object::open().with(Loc::Phi, ph!("v1"), false));
-//     let bx = emu.new(2, ROOT_BX, 0);
-//     assert_eq!(1, emu.find(bx, &Path::from_item(Loc::Phi)).unwrap());
-// }
-//
-// #[test]
-// pub fn saves_ret_into_dabox() {
-//     let mut emu = Emu::empty();
-//     let d = 42;
-//     emu.put(1, Object::dataic(d));
-//     let bx = emu.new(1, ROOT_BX, 0);
-//     assert_eq!(d, emu.dataize(bx).unwrap());
-//     assert!(emu.baskets[bx].to_string().contains(&String::from(format!("{:04X}", d))));
-// }
-//
-// // []
-// //   42 > x
-// //   42 > y
-// //   int.add > @
-// //     $.x
-// //     $.y
-// #[test]
-// pub fn summarizes_two_numbers() {
-//     assert_emu!(3, 84, "
-//         ν1 ↦ ⟦ Δ ↦ 0x002A ⟧
-//         ν2 ↦ ⟦ λ ↦ int.add, ρ ↦ ξ.𝛼0, 𝛼0 ↦ ξ.𝛼1 ⟧
-//         ν3 ↦ ⟦ φ ↦ ν2(𝜓), 𝛼0 ↦ ν1, 𝛼1 ↦ ν1 ⟧
-//         ν5 ↦ ⟦ φ ↦ ν3(𝜓) ⟧
-//     ");
-// }
-//
+#[test]
+pub fn with_many_decorators() {
+    let mut emu = Emu::empty();
+    emu.put(0, Object::open().with(Loc::Phi, ph!("v4"), true));
+    emu.put(1, Object::dataic(42));
+    emu.put(2, Object::open().with(Loc::Phi, ph!("v1"), false));
+    emu.put(3, Object::open().with(Loc::Phi, ph!("v2"), false));
+    emu.put(4, Object::open().with(Loc::Phi, ph!("v3"), false));
+    assert_eq!(42, emu.cycle().unwrap());
+}
+
+// []
+//   42 > x
+//   42 > y
+//   int.add > @
+//     $.x
+//     $.y
+#[test]
+pub fn summarizes_two_numbers() {
+    assert_emu!(84, "
+        ν0 ↦ ⟦ φ ↦ ν3 ⟧
+        ν1 ↦ ⟦ Δ ↦ 0x002A ⟧
+        ν2 ↦ ⟦ λ ↦ int.add, ρ ↦ ξ.𝛼0, 𝛼0 ↦ ξ.𝛼1 ⟧
+        ν3 ↦ ⟦ φ ↦ ν2(𝜓), 𝛼0 ↦ ν1, 𝛼1 ↦ ν1 ⟧
+        ν5 ↦ ⟦ φ ↦ ν3(𝜓) ⟧
+    ");
+}
+
 // // [x] > a
 // //   $.x > @
 // // a > foo
