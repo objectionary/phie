@@ -26,6 +26,40 @@ $ target/release/fibonacci 7 40
 This will calculate the 7th Fibonacci number 40 times.
 Don't try to play with much larger numbers, this binary code is very slow. It's just an experiment.
 
-To compiler your own program instead of Fibonacci calculator, you have to 
-convert EO code into [𝜑-calculus](https://arxiv.org/abs/2111.13384) Rust structures, 
-and then... nah, you can't do it yet, sorry.
+To compile your own program instead of this primitive recursive Fibonacci calculator, you have to 
+convert EO code into [𝜑-calculus](https://arxiv.org/abs/2111.13384) terms and then
+pass them to `Emu` struct like this:
+
+```rust
+use eoc::emu::Emu;
+pub fn main() {
+    let emu: Emu = "
+        ν0 ↦ ⟦ φ ↦ ν3 ⟧
+        ν1 ↦ ⟦ Δ ↦ 0x002A ⟧
+        ν2 ↦ ⟦ λ ↦ int.add, ρ ↦ 𝜓.𝛼0, 𝛼0 ↦ 𝜓.𝛼1 ⟧
+        ν3 ↦ ⟦ φ ↦ ν2(𝜓), 𝛼0 ↦ ν1, 𝛼1 ↦ ν1 ⟧
+        ν5 ↦ ⟦ φ ↦ ν3(𝜓) ⟧
+    ".parse().unwrap();
+    print!("The result is: {}", emu.cycle());
+}
+```
+
+This code is equivalent to the following EO code:
+
+```text
+[] > foo
+  42 > x
+  x.add x > @
+```
+
+But in a more "functional" way:
+
+```text
+[] > foo
+  42 > x
+  int.add > @
+    x
+    x
+```
+
+More tests are in `src/emu.rs` file.
