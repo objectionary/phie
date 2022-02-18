@@ -18,4 +18,5 @@ This will calculate the 7th Fibonacci number 40 times.
 Don't try to play with much larger numbers, this binary code is very slow. It's just an experiment.
 
 To compiler your own program instead of Fibonacci calculator, you have to 
-convert EO code into Rust structures, and then... nah, you can't do it, sorry.
+convert EO code into [𝜑-calculus](https://arxiv.org/abs/2111.13384) Rust structures, 
+and then... nah, you can't do it yet, sorry.
