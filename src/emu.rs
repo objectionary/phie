@@ -23,7 +23,6 @@ use crate::data::Data;
 use crate::loc::Loc;
 use crate::object::{Ob, Object};
 use crate::path::Path;
-use crate::ph;
 use arr_macro::arr;
 use itertools::Itertools;
 use log::trace;
@@ -406,6 +405,9 @@ impl Emu {
         &self.baskets[bk as usize]
     }
 }
+
+#[cfg(test)]
+use crate::ph;
 
 #[test]
 pub fn simple_dataization_cycle() {

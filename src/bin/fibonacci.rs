@@ -20,12 +20,9 @@
 
 extern crate eoc;
 
-use eoc::atom::*;
 use eoc::data::Data;
 use eoc::emu::Emu;
-use simple_logger::SimpleLogger;
 use std::env;
-use std::str::FromStr;
 
 pub fn fibo(x: Data) -> Result<Data, String> {
     let mut emu = Emu::parse_phi(&format!(
@@ -63,6 +60,9 @@ pub fn main() {
     println!("{}-th Fibonacci number is {}", input, f);
     println!("Total is {}", total);
 }
+
+#[cfg(test)]
+use simple_logger::SimpleLogger;
 
 #[test]
 fn calculates_fibonacci() {

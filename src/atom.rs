@@ -18,10 +18,9 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-use crate::assert_emu;
+use crate::emu::Emu;
 use crate::basket::Bk;
 use crate::data::Data;
-use crate::emu::Emu;
 use crate::loc::Loc;
 
 pub type Atom = fn(&mut Emu, Bk) -> Option<Data>;
@@ -42,6 +41,9 @@ pub fn bool_if(emu: &mut Emu, bk: Bk) -> Option<Data> {
     let term = emu.read(bk, Loc::Rho)?;
     emu.read(bk, Loc::Attr(if term == 1 { 0 } else { 1 }))
 }
+
+#[cfg(test)]
+use crate::assert_emu;
 
 #[test]
 pub fn bool_if_works() {

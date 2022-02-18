@@ -22,7 +22,6 @@ use crate::atom::*;
 use crate::data::Data;
 use crate::loc::Loc;
 use crate::path::Path;
-use crate::ph;
 use itertools::Itertools;
 use regex::Regex;
 use std::collections::HashMap;
@@ -192,6 +191,9 @@ impl FromStr for Object {
         Ok(obj)
     }
 }
+
+#[cfg(test)]
+use crate::ph;
 
 #[test]
 fn makes_simple_object() {
