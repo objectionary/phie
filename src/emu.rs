@@ -87,7 +87,7 @@ impl FromStr for Emu {
 macro_rules! assert_emu {
     ($eq:expr, $txt:expr) => {
         let mut emu : Emu = $txt.parse().unwrap();
-        assert_eq!($eq, emu.cycle().unwrap());
+        assert_eq!($eq, emu.cycle().0);
     };
 }
 
@@ -129,29 +129,38 @@ impl Emu {
     /// Make new basket for this attribute.
     pub fn new(&mut self, bk: Bk, loc: Loc) {
         if let Some(Kid::Requested) = self.basket(bk).kids.get(&loc) {
-            let nbk = self
-                .baskets
-                .iter()
-                .find_position(|b| b.is_empty())
-                .unwrap()
-                .0 as Bk;
             let ob = self.basket(bk).ob;
             let obj = self.object(ob);
             if let Some((path, advice)) = obj.attrs.get(&loc) {
-                let (target, psi) = self
+                let (tob, psi) = self
                     .find(bk, path)
                     .expect(&format!("Can't find {} from β{}/ν{}", path, bk, ob));
-                let mut bsk = Basket::start(target, if *advice { bk } else { psi });
-                for k in self.object(target).attrs.keys() {
-                    bsk.kids.insert(k.clone(), Kid::Start);
-                }
-                bsk.kids.insert(Loc::Phi, Kid::Start);
-                self.baskets[nbk as usize] = bsk;
+                let tpsi = if *advice { bk } else { psi };
+                let nbk = if let Some(ebk) = self.find_existing_data(tob) {
+                    trace!("new(β{}/ν{}, {}) -> link to β{} since there is ν{}.Δ", bk, ob, loc, ebk, tob);
+                    ebk
+                } else if let Some(ebk) = self.find_existing(tob, tpsi) {
+                    trace!("new(β{}/ν{}, {}) -> link to β{} since it's ν{}.β{}", bk, ob, loc, ebk, tob, tpsi);
+                    ebk
+                } else {
+                    let id = self
+                        .baskets
+                        .iter()
+                        .find_position(|b| b.is_empty())
+                        .unwrap()
+                        .0 as Bk;
+                    let mut bsk = Basket::start(tob, tpsi);
+                    for k in self.object(tob).attrs.keys() {
+                        bsk.kids.insert(k.clone(), Kid::Start);
+                    }
+                    bsk.kids.insert(Loc::Phi, Kid::Requested);
+                    self.baskets[id as usize] = bsk;
+                    trace!("new(β{}/ν{}, {}) -> β{}", bk, ob, loc, id);
+                    id
+                };
                 let _ = &self.baskets[bk as usize]
                     .kids
                     .insert(loc.clone(), Kid::Waiting(nbk, Loc::Phi));
-                self.request(nbk, Loc::Phi);
-                trace!("new(β{}/ν{}, {}) -> β{}", bk, ob, loc, nbk);
             }
         }
     }
@@ -183,7 +192,9 @@ impl Emu {
     /// Propagate the value from this attribute to the one expecting it.
     pub fn propagate(&mut self, bk: Bk, loc: Loc) {
         let mut changes = vec![];
-        if let Some(Kid::Dataized(d)) = self.basket(bk).kids.get(&loc) {
+        let mut data = Data::MAX;
+        if let Some(Kid::Dataized(d) | Kid::Propagated(d)) = self.basket(bk).kids.get(&loc) {
+            data = *d;
             for i in 0..self.baskets.len() {
                 let bsk = self.basket(i as Bk);
                 for k in bsk.kids.keys() {
@@ -198,7 +209,7 @@ impl Emu {
         if !changes.is_empty() {
             let _ = &self.baskets[bk as usize]
                 .kids
-                .insert(loc.clone(), Kid::Propagated);
+                .insert(loc.clone(), Kid::Propagated(data));
             for (b, l, d) in changes.iter() {
                 let _ = &self.baskets[*b as usize]
                     .kids
@@ -211,9 +222,12 @@ impl Emu {
     /// Delete the basket if it's already finished.
     pub fn delete(&mut self, bk: Bk) {
         if bk != ROOT_BK {
-            if let Some(Kid::Propagated) = self.basket(bk).kids.get(&Loc::Phi) {
-                self.baskets[bk as usize] = Basket::empty();
-                trace!("delete(β{})", bk);
+            if let Some(Kid::Propagated(_)) = self.basket(bk).kids.get(&Loc::Phi) {
+                let obj = self.object(self.basket(bk).ob);
+                if !obj.constant {
+                    self.baskets[bk as usize] = Basket::empty();
+                    trace!("delete(β{})", bk);
+                }
             }
         }
     }
@@ -262,11 +276,9 @@ impl Emu {
             }
             Some(Kid::Requested) => None,
             Some(Kid::Waiting(_, _)) => None,
-            Some(Kid::Dataized(d)) => {
-                trace!("read(β{}, {}) -> 0x{:04X}", bk, loc, *d);
+            Some(Kid::Propagated(d)) | Some(Kid::Dataized(d)) => {
                 Some(*d)
-            }
-            Some(Kid::Propagated) => None,
+            },
         }
     }
 
@@ -358,17 +370,38 @@ impl Emu {
         ret
     }
 
-    pub fn cycle(&mut self) -> Option<Data> {
-        let mut cycles = 1;
+    /// Find already existing basket.
+    fn find_existing(&self, ob: Ob, psi: Bk) -> Option<Bk> {
+        let found = self.baskets.iter().find_position(|b| {
+            b.ob == ob && b.psi == psi
+        });
+        match found {
+            Some((pos, _bsk)) => Some(pos as Bk),
+            None => None
+        }
+    }
+
+    /// Find already existing basket pointing to the object with data.
+    fn find_existing_data(&self, ob: Ob) -> Option<Bk> {
+        let found = self.baskets.iter().find_position(|bsk| {
+            bsk.ob == ob && self.object(bsk.ob).delta.is_some()
+        });
+        match found {
+            Some((pos, _bsk)) => Some(pos as Bk),
+            None => None
+        }
+    }
+
+    pub fn cycle(&mut self) -> (Data, usize) {
+        let mut cycles : usize = 1;
         loop {
             self.cycle_one();
-            // trace!("Cycle #{}:\n{}", cycles, self);
             if let Some(Kid::Dataized(d)) = self.basket(ROOT_BK).kids.get(&Loc::Phi) {
                 trace!("cycle() -> 0x{:04X} in #{} cycle(s)", *d, cycles);
-                return Some(*d);
+                return (*d, cycles);
             }
             cycles += 1;
-            if cycles > 10000 {
+            if cycles > 1000 {
                 panic!(
                     "Too many cycles ({}), most probably endless recursion:\n{}",
                     cycles, self
@@ -416,7 +449,7 @@ pub fn simple_dataization_cycle() {
     let mut emu = Emu::empty();
     emu.put(0, Object::open().with(Loc::Phi, ph!("v1"), true));
     emu.put(1, Object::dataic(42));
-    assert_eq!(42, emu.cycle().unwrap());
+    assert_eq!(42, emu.cycle().0);
 }
 
 #[test]
@@ -425,7 +458,7 @@ pub fn with_simple_decorator() {
     emu.put(0, Object::open().with(Loc::Phi, ph!("v2"), true));
     emu.put(1, Object::dataic(42));
     emu.put(2, Object::open().with(Loc::Phi, ph!("v1"), false));
-    assert_eq!(42, emu.cycle().unwrap());
+    assert_eq!(42, emu.cycle().0);
 }
 
 #[test]
@@ -436,7 +469,7 @@ pub fn with_many_decorators() {
     emu.put(2, Object::open().with(Loc::Phi, ph!("v1"), false));
     emu.put(3, Object::open().with(Loc::Phi, ph!("v2"), false));
     emu.put(4, Object::open().with(Loc::Phi, ph!("v3"), false));
-    assert_eq!(42, emu.cycle().unwrap());
+    assert_eq!(42, emu.cycle().0);
 }
 
 // []
@@ -666,7 +699,7 @@ pub fn simple_recursion() {
         ν4 ↦ ⟦ Δ ↦ 0x0000 ⟧
         ν5 ↦ ⟦ Δ ↦ 0x002A ⟧
         ν6 ↦ ⟦ φ ↦ ν1(𝜓), 𝛼0 ↦ ν7 ⟧
-        ν7 ↦ ⟦ λ ↦ int.sub, ρ ↦ 𝜓.𝜓.𝛼0, 𝛼0 ↦ ν8 ⟧
+        ν7 ↦ ⟦! λ ↦ int.sub, ρ ↦ 𝜓.𝜓.𝛼0, 𝛼0 ↦ ν8 ⟧
         ν8 ↦ ⟦ Δ ↦ 0x0001 ⟧
         ν9 ↦ ⟦ φ ↦ ν1(𝜓), 𝛼0 ↦ ν10 ⟧
         ν10 ↦ ⟦ Δ ↦ 0x0007 ⟧
@@ -687,8 +720,8 @@ pub fn recursive_fibonacci() {
         ν6 ↦ ⟦ λ ↦ int.sub, ρ ↦ 𝜓.𝜓.𝛼0, 𝛼0 ↦ ν5 ⟧
         ν7 ↦ ⟦ Δ ↦ 0x0001 ⟧
         ν8 ↦ ⟦ λ ↦ int.sub, ρ ↦ 𝜓.𝜓.𝛼0, 𝛼0 ↦ ν7 ⟧
-        ν9 ↦ ⟦ φ ↦ ν3(𝜓), 𝛼0 ↦ ν8 ⟧
-        ν10 ↦ ⟦ φ ↦ ν3(𝜓), 𝛼0 ↦ ν6 ⟧
+        ν9 ↦ ⟦! φ ↦ ν3(𝜓), 𝛼0 ↦ ν8 ⟧
+        ν10 ↦ ⟦! φ ↦ ν3(𝜓), 𝛼0 ↦ ν6 ⟧
         ν11 ↦ ⟦ λ ↦ int.add, ρ ↦ ν9, 𝛼0 ↦ ν10 ⟧
         ν12 ↦ ⟦ λ ↦ int.less, ρ ↦ 𝜓.𝛼0, 𝛼0 ↦ ν5 ⟧
         ν13 ↦ ⟦ λ ↦ bool.if, ρ ↦ ν12, 𝛼0 ↦ ν7, 𝛼1 ↦ ν11 ⟧

@@ -27,12 +27,14 @@ use regex::Regex;
 use std::collections::HashMap;
 use std::fmt;
 use std::str::FromStr;
+use rstest::rstest;
 
 pub type Ob = usize;
 
 pub struct Object {
     pub delta: Option<Data>,
     pub lambda: Option<Atom>,
+    pub constant: bool,
     pub attrs: HashMap<Loc, (Path, bool)>,
 }
 
@@ -41,6 +43,7 @@ impl Object {
         Object {
             delta: None,
             lambda: None,
+            constant: false,
             attrs: HashMap::new(),
         }
     }
@@ -49,6 +52,7 @@ impl Object {
         Object {
             delta: Some(d),
             lambda: None,
+            constant: true,
             attrs: HashMap::new(),
         }
     }
@@ -57,6 +61,7 @@ impl Object {
         Object {
             delta: None,
             lambda: Some(a),
+            constant: false,
             attrs: HashMap::new(),
         }
     }
@@ -103,11 +108,23 @@ impl Object {
     ///   .with(Loc::Attr(0), ph!("$.1"), false);
     /// ```
     pub fn with(&self, loc: Loc, p: Path, psi: bool) -> Object {
+        let mut obj = self.copy();
+        obj.attrs.insert(loc, (p, psi));
+        obj
+    }
+
+    pub fn as_constant(&self) -> Object {
+        let mut obj = self.copy();
+        obj.constant = true;
+        obj
+    }
+
+    fn copy(&self) -> Object {
         let mut obj = Object::open();
         obj.lambda = self.lambda.clone();
+        obj.constant = self.constant;
         obj.delta = self.delta.clone();
         obj.attrs.extend(self.attrs.clone().into_iter());
-        obj.attrs.insert(loc, (p, psi));
         obj
     }
 }
@@ -116,7 +133,7 @@ impl fmt::Display for Object {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut parts = vec![];
         if let Some(_) = self.lambda {
-            parts.push("λ".to_string());
+            parts.push("λ↦noop".to_string());
         }
         if let Some(p) = self.delta {
             parts.push(format!("Δ↦0x{:04X}", p));
@@ -133,18 +150,18 @@ impl fmt::Display for Object {
             );
         }
         parts.sort();
-        write!(f, "⟦{}⟧", parts.iter().join(", "))
+        write!(f, "⟦{}{}⟧", if self.constant { "! " } else { "" }, parts.iter().join(", "))
     }
 }
 
 impl FromStr for Object {
     type Err = String;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let re = Regex::new("⟦(.*)⟧").unwrap();
+        let re = Regex::new("⟦(!?)(.*)⟧").unwrap();
         let mut obj = Object::open();
         let caps = re.captures(s).unwrap();
         for pair in caps
-            .get(1)
+            .get(2)
             .unwrap()
             .as_str()
             .trim()
@@ -159,6 +176,7 @@ impl FromStr for Object {
             match i.chars().take(1).last().unwrap() {
                 'λ' => {
                     obj = Object::atomic(match p {
+                        "noop" => noop,
                         "int.sub" => int_sub,
                         "int.add" => int_add,
                         "bool.if" => bool_if,
@@ -187,6 +205,9 @@ impl FromStr for Object {
                     );
                 }
             };
+        }
+        if !caps.get(1).unwrap().as_str().is_empty() {
+            obj.constant = true;
         }
         Ok(obj)
     }
@@ -217,10 +238,23 @@ fn extends_by_making_new_object() {
 #[test]
 fn prints_and_parses_simple_object() {
     let mut obj = Object::open();
+    obj.constant = true;
     obj.push(Loc::Attr(1), "v4".parse().unwrap(), false);
     obj.push(Loc::Rho, "$.0.@".parse().unwrap(), false);
     let text = obj.to_string();
-    assert_eq!("⟦ρ↦ξ.𝛼0.φ, 𝛼1↦ν4⟧", text);
+    assert_eq!("⟦! ρ↦ξ.𝛼0.φ, 𝛼1↦ν4⟧", text);
     let obj2 = Object::from_str(&text).unwrap();
     assert_eq!(obj2.to_string(), text);
+}
+
+#[rstest]
+#[case("ν7 ↦ ⟦! λ ↦ int.sub, ρ ↦ 𝜓.𝜓.𝛼0, 𝛼0 ↦ ν8 ⟧")]
+#[case("ν7 ↦ ⟦ Δ ↦ 0x0001 ⟧")]
+#[case("ν11 ↦ ⟦ λ ↦ int.add, ρ ↦ ν9, 𝛼0 ↦ ν10 ⟧")]
+fn prints_and_parses_some_object(#[case] text: String) {
+    let obj1 = Object::from_str(&text).unwrap();
+    let text2 = obj1.to_string();
+    let obj2 = Object::from_str(&text2).unwrap();
+    let text3 = obj2.to_string();
+    assert_eq!(text2, text3);
 }

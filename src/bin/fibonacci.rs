@@ -23,9 +23,8 @@ extern crate eoc;
 use eoc::data::Data;
 use eoc::emu::Emu;
 use std::env;
-use std::str::FromStr;
 
-pub fn fibo(x: Data) -> Result<Data, String> {
+pub fn fibo(x: Data) -> Data {
     let mut emu : Emu = format!(
         "
         ν0 ↦ ⟦ φ ↦ ν2 ⟧
@@ -36,15 +35,15 @@ pub fn fibo(x: Data) -> Result<Data, String> {
         ν6 ↦ ⟦ λ ↦ int.sub, ρ ↦ 𝜓.𝜓.𝛼0, 𝛼0 ↦ ν5 ⟧
         ν7 ↦ ⟦ Δ ↦ 0x0001 ⟧
         ν8 ↦ ⟦ λ ↦ int.sub, ρ ↦ 𝜓.𝜓.𝛼0, 𝛼0 ↦ ν7 ⟧
-        ν9 ↦ ⟦ φ ↦ ν3(𝜓), 𝛼0 ↦ ν8 ⟧
-        ν10 ↦ ⟦ φ ↦ ν3(𝜓), 𝛼0 ↦ ν6 ⟧
+        ν9 ↦ ⟦! φ ↦ ν3(𝜓), 𝛼0 ↦ ν8 ⟧
+        ν10 ↦ ⟦! φ ↦ ν3(𝜓), 𝛼0 ↦ ν6 ⟧
         ν11 ↦ ⟦ λ ↦ int.add, ρ ↦ ν9, 𝛼0 ↦ ν10 ⟧
         ν12 ↦ ⟦ λ ↦ int.less, ρ ↦ 𝜓.𝛼0, 𝛼0 ↦ ν5 ⟧
         ν13 ↦ ⟦ λ ↦ bool.if, ρ ↦ ν12, 𝛼0 ↦ ν7, 𝛼1 ↦ ν11 ⟧
         ",
         x
     ).parse().unwrap();
-    Ok(emu.cycle().unwrap())
+    emu.cycle().0
 }
 
 pub fn main() {
@@ -54,7 +53,7 @@ pub fn main() {
     let mut total = 0;
     let mut f = 0;
     for _ in 0..cycles {
-        f = fibo(input).unwrap();
+        f = fibo(input);
         total += f;
     }
     println!("{}-th Fibonacci number is {}", input, f);
@@ -67,5 +66,5 @@ use simple_logger::SimpleLogger;
 #[test]
 fn calculates_fibonacci() {
     SimpleLogger::new().init().unwrap();
-    assert_eq!(8, fibo(5).unwrap())
+    assert_eq!(21, fibo(7))
 }
