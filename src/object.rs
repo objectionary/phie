@@ -76,8 +76,10 @@ impl Object {
     /// first child.
     ///
     /// ```
-    /// use eoc::path::Item;
+    /// use eoc::loc::Loc;
+    /// use eoc::path::Path;
     /// use eoc::object::Object;
+    /// use std::str::FromStr;
     /// use eoc::ph;
     /// let mut obj = Object::open();
     /// obj.push(Loc::Phi, ph!("v13"), false);
@@ -92,8 +94,10 @@ impl Object {
     /// You can do the same, but with "fluent interface" of the `Object`.
     ///
     /// ```
-    /// use eoc::path::Item;
+    /// use eoc::loc::Loc;
+    /// use eoc::path::Path;
     /// use eoc::object::Object;
+    /// use std::str::FromStr;
     /// use eoc::ph;
     /// let obj = Object::open()
     ///   .with(Loc::Phi, ph!("v13"), false)

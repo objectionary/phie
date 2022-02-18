@@ -22,74 +22,32 @@ extern crate eoc;
 
 use eoc::atom::*;
 use eoc::data::Data;
-use eoc::emu::{Emu, ROOT_BK};
-use eoc::object::Object;
-use eoc::path::{Item, Path};
-use eoc::ph;
+use eoc::emu::Emu;
 use simple_logger::SimpleLogger;
 use std::env;
 use std::str::FromStr;
 
 pub fn fibo(x: Data) -> Result<Data, String> {
-    let mut emu = Emu::empty();
-    emu.put(1, Object::dataic(x));
-    emu.put(
-        2,
-        Object::open()
-            .with(Loc::Phi, ph!("v3"), true)
-            .with(Loc::Attr(0), ph!("v1"), false),
-    );
-    emu.put(3, Object::open().with(Loc::Phi, ph!("v13"), false));
-    emu.put(5, Object::dataic(2));
-    emu.put(
-        6,
-        Object::atomic(int_sub)
-            .with(Loc::Rho, ph!("$.0"), false)
-            .with(Loc::Attr(0), ph!("v5"), false),
-    );
-    emu.put(7, Object::dataic(1));
-    emu.put(
-        8,
-        Object::atomic(int_sub)
-            .with(Loc::Rho, ph!("$.0"), false)
-            .with(Loc::Attr(0), ph!("v7"), false),
-    );
-    emu.put(
-        9,
-        Object::open()
-            .with(Loc::Phi, ph!("v3"), true)
-            .with(Loc::Attr(0), ph!("v8"), false),
-    );
-    emu.put(
-        10,
-        Object::open()
-            .with(Loc::Phi, ph!("v3"), true)
-            .with(Loc::Attr(0), ph!("v6"), false),
-    );
-    emu.put(
-        11,
-        Object::atomic(int_add)
-            .with(Loc::Rho, ph!("v9"), false)
-            .with(Loc::Attr(0), ph!("v10"), false),
-    );
-    emu.put(
-        12,
-        Object::atomic(int_less)
-            .with(Loc::Rho, ph!("$.0"), false)
-            .with(Loc::Attr(0), ph!("v5"), false),
-    );
-    emu.put(
-        13,
-        Object::atomic(bool_if)
-            .with(Loc::Rho, ph!("v12"), false)
-            .with(Loc::Attr(0), ph!("v7"), false)
-            .with(Loc::Attr(1), ph!("v11"), false),
-    );
-    let bx = emu.new(2, ROOT_BK, 0);
-    emu.log();
-    let f = emu.dataize(bx)?;
-    emu.delete(bx);
-    Ok(f)
+    let mut emu = Emu::parse_phi(&format!(
+        "
+        ν0 ↦ ⟦ φ ↦ ν2 ⟧
+        ν1 ↦ ⟦ Δ ↦ 0x{:04X} ⟧
+        ν2 ↦ ⟦ φ ↦ ν3(𝜓), 𝛼0 ↦ ν1 ⟧
+        ν3 ↦ ⟦ φ ↦ ν13 ⟧
+        ν5 ↦ ⟦ Δ ↦ 0x0002 ⟧
+        ν6 ↦ ⟦ λ ↦ int.sub, ρ ↦ 𝜓.𝜓.𝛼0, 𝛼0 ↦ ν5 ⟧
+        ν7 ↦ ⟦ Δ ↦ 0x0001 ⟧
+        ν8 ↦ ⟦ λ ↦ int.sub, ρ ↦ 𝜓.𝜓.𝛼0, 𝛼0 ↦ ν7 ⟧
+        ν9 ↦ ⟦ φ ↦ ν3(𝜓), 𝛼0 ↦ ν8 ⟧
+        ν10 ↦ ⟦ φ ↦ ν3(𝜓), 𝛼0 ↦ ν6 ⟧
+        ν11 ↦ ⟦ λ ↦ int.add, ρ ↦ ν9, 𝛼0 ↦ ν10 ⟧
+        ν12 ↦ ⟦ λ ↦ int.less, ρ ↦ 𝜓.𝛼0, 𝛼0 ↦ ν5 ⟧
+        ν13 ↦ ⟦ λ ↦ bool.if, ρ ↦ ν12, 𝛼0 ↦ ν7, 𝛼1 ↦ ν11 ⟧
+        ",
+        x
+    ))
+    .unwrap();
+    Ok(emu.cycle().unwrap())
 }
 
 pub fn main() {
@@ -109,5 +67,5 @@ pub fn main() {
 #[test]
 fn calculates_fibonacci() {
     SimpleLogger::new().init().unwrap();
-    assert_eq!(87, fibo(3).unwrap())
+    assert_eq!(8, fibo(5).unwrap())
 }
