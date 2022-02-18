@@ -11,10 +11,11 @@ $ cargo build --release
 If everything goes well, an executable binary will be in `target/release/fibonacci`:
 
 ```bash
-$ target/release/fibonacci 17 1000
+$ target/release/fibonacci 7 40
 ```
 
-This will calculate the 17th Fibonacci number 1000 times.
+This will calculate the 7th Fibonacci number 40 times.
+Don't try to play with much larger numbers, this binary code is very slow. It's just an experiment.
 
 To compiler your own program instead of Fibonacci calculator, you have to 
 convert EO code into Rust structures, and then... nah, you can't do it, sorry.
