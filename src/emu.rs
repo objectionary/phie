@@ -44,14 +44,6 @@ macro_rules! join {
     };
 }
 
-#[macro_export]
-macro_rules! assert_emu {
-    ($eq:expr, $txt:expr) => {
-        let mut emu = Emu::parse_phi($txt).unwrap();
-        assert_eq!($eq, emu.cycle().unwrap());
-    };
-}
-
 impl fmt::Display for Emu {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut lines = vec![];
@@ -75,6 +67,28 @@ impl fmt::Display for Emu {
         }
         f.write_str(lines.join("\n").as_str())
     }
+}
+
+impl FromStr for Emu {
+    type Err = String;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let mut emu = Emu::empty();
+        let re_line = Regex::new("ν(\\d+) ↦ (⟦.*⟧)").unwrap();
+        for line in s.trim().split("\n").map(|t| t.trim()) {
+            let caps = re_line.captures(line).unwrap();
+            let v: Ob = caps.get(1).unwrap().as_str().parse().unwrap();
+            emu.put(v, Object::from_str(caps.get(2).unwrap().as_str()).unwrap());
+        }
+        Ok(emu)
+    }
+}
+
+#[macro_export]
+macro_rules! assert_emu {
+    ($eq:expr, $txt:expr) => {
+        let mut emu : Emu = $txt.parse().unwrap();
+        assert_eq!($eq, emu.cycle().unwrap());
+    };
 }
 
 impl Emu {
@@ -256,17 +270,6 @@ impl Emu {
         }
     }
 
-    pub fn parse_phi(txt: &str) -> Result<Emu, String> {
-        let mut emu = Emu::empty();
-        let re_line = Regex::new("ν(\\d+) ↦ (⟦.*⟧)").unwrap();
-        for line in txt.trim().split("\n").map(|t| t.trim()) {
-            let caps = re_line.captures(line).unwrap();
-            let v: Ob = caps.get(1).unwrap().as_str().parse().unwrap();
-            emu.put(v, Object::from_str(caps.get(2).unwrap().as_str()).unwrap());
-        }
-        Ok(emu)
-    }
-
     /// Suppose, the incoming path is `^.0.@.2`. We have to find the right
     /// object in the catalog of them and return the position of the found one
     /// together with the suggested \psi.
@@ -358,9 +361,8 @@ impl Emu {
     pub fn cycle(&mut self) -> Option<Data> {
         let mut cycles = 1;
         loop {
-            // trace!("Cycle #{}...", cycles);
             self.cycle_one();
-            // trace!("Emu:\n{}", self);
+            // trace!("Cycle #{}:\n{}", cycles, self);
             if let Some(Kid::Dataized(d)) = self.basket(ROOT_BK).kids.get(&Loc::Phi) {
                 trace!("cycle() -> 0x{:04X} in #{} cycle(s)", *d, cycles);
                 return Some(*d);
@@ -673,7 +675,7 @@ pub fn simple_recursion() {
 }
 
 #[test]
-pub fn fibonacci() {
+pub fn recursive_fibonacci() {
     assert_emu!(
         21,
         "

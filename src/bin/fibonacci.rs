@@ -23,9 +23,10 @@ extern crate eoc;
 use eoc::data::Data;
 use eoc::emu::Emu;
 use std::env;
+use std::str::FromStr;
 
 pub fn fibo(x: Data) -> Result<Data, String> {
-    let mut emu = Emu::parse_phi(&format!(
+    let mut emu : Emu = format!(
         "
         ν0 ↦ ⟦ φ ↦ ν2 ⟧
         ν1 ↦ ⟦ Δ ↦ 0x{:04X} ⟧
@@ -42,8 +43,7 @@ pub fn fibo(x: Data) -> Result<Data, String> {
         ν13 ↦ ⟦ λ ↦ bool.if, ρ ↦ ν12, 𝛼0 ↦ ν7, 𝛼1 ↦ ν11 ⟧
         ",
         x
-    ))
-    .unwrap();
+    ).parse().unwrap();
     Ok(emu.cycle().unwrap())
 }
 
