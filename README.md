@@ -4,10 +4,10 @@
 [![We recommend IntelliJ IDEA](https://www.elegantobjects.org/intellij-idea.svg)](https://www.jetbrains.com/idea/)
 
 [![make](https://github.com/yegor256/eoc/actions/workflows/cargo.yml/badge.svg)](https://github.com/yegor256/eoc/actions/workflows/cargo.yml)
-[![PDD status](http://www.0pdd.com/svg?name=cqfn/eo)](http://www.0pdd.com/p?name=cqfn/eo)
-[![Hits-of-Code](https://hitsofcode.com/github/cqfn/eo)](https://hitsofcode.com/view/github/cqfn/eo)
-![Lines of code](https://img.shields.io/tokei/lines/github/cqfn/eo)
-[![License](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/cqfn/eo/blob/master/LICENSE.txt)
+[![PDD status](http://www.0pdd.com/svg?name=yegor256/eoc)](http://www.0pdd.com/p?name=yegor256/eoc)
+[![Hits-of-Code](https://hitsofcode.com/github/yegor256/eoc)](https://hitsofcode.com/view/github/yegor256/eoc)
+![Lines of code](https://img.shields.io/tokei/lines/github/yegor256/eoc)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/yegor256/eoc/blob/master/LICENSE.txt)
 
 It's an experimental compiler of [EO](https://www.eolang.org) to binaries.
 
