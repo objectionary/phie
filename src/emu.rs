@@ -87,7 +87,7 @@ impl FromStr for Emu {
 macro_rules! assert_emu {
     ($eq:expr, $txt:expr) => {
         let mut emu : Emu = $txt.parse().unwrap();
-        assert_eq!($eq, emu.cycle().0);
+        assert_eq!($eq, emu.cycle().0, "The expected dataization result is {}", $eq);
     };
 }
 
@@ -223,10 +223,23 @@ impl Emu {
     pub fn delete(&mut self, bk: Bk) {
         if bk != ROOT_BK {
             if let Some(Kid::Propagated(_)) = self.basket(bk).kids.get(&Loc::Phi) {
-                let obj = self.object(self.basket(bk).ob);
-                if !obj.constant {
-                    self.baskets[bk as usize] = Basket::empty();
-                    trace!("delete(β{})", bk);
+                let mut waiting = false;
+                for i in 0..self.baskets.len() {
+                    let bsk = self.basket(i as Bk);
+                    for k in bsk.kids.keys() {
+                        if let Some(Kid::Waiting(b, _)) = &bsk.kids.get(k) {
+                            if *b == bk {
+                                waiting = true
+                            }
+                        }
+                    }
+                }
+                if !waiting {
+                    let obj = self.object(self.basket(bk).ob);
+                    if !obj.constant {
+                        self.baskets[bk as usize] = Basket::empty();
+                        trace!("delete(β{})", bk);
+                    }
                 }
             }
         }
@@ -492,6 +505,27 @@ pub fn summarizes_two_numbers() {
     );
 }
 
+// []
+//   int.add > x!          v1
+//     2                   v2
+//     3                   v3
+//   int.add > @           v4
+//     x
+//     x
+#[test]
+pub fn summarizes_two_pairs_of_numbers() {
+    assert_emu!(
+        10,
+        "
+        ν0 ↦ ⟦ φ ↦ ν4 ⟧
+        ν1 ↦ ⟦ λ ↦ int.add, ρ ↦ ν2, 𝛼0 ↦ ν3 ⟧
+        ν2 ↦ ⟦ Δ ↦ 0x0002 ⟧
+        ν3 ↦ ⟦ Δ ↦ 0x0003 ⟧
+        ν4 ↦ ⟦ λ ↦ int.add, ρ ↦ ν1, 𝛼0 ↦ ν1 ⟧
+        "
+    );
+}
+
 // [x] > a
 //   $.x > @
 // a > foo
@@ -720,8 +754,8 @@ pub fn recursive_fibonacci() {
         ν6 ↦ ⟦ λ ↦ int.sub, ρ ↦ 𝜓.𝜓.𝛼0, 𝛼0 ↦ ν5 ⟧
         ν7 ↦ ⟦ Δ ↦ 0x0001 ⟧
         ν8 ↦ ⟦ λ ↦ int.sub, ρ ↦ 𝜓.𝜓.𝛼0, 𝛼0 ↦ ν7 ⟧
-        ν9 ↦ ⟦! φ ↦ ν3(𝜓), 𝛼0 ↦ ν8 ⟧
-        ν10 ↦ ⟦! φ ↦ ν3(𝜓), 𝛼0 ↦ ν6 ⟧
+        ν9 ↦ ⟦ φ ↦ ν3(𝜓), 𝛼0 ↦ ν8 ⟧
+        ν10 ↦ ⟦ φ ↦ ν3(𝜓), 𝛼0 ↦ ν6 ⟧
         ν11 ↦ ⟦ λ ↦ int.add, ρ ↦ ν9, 𝛼0 ↦ ν10 ⟧
         ν12 ↦ ⟦ λ ↦ int.less, ρ ↦ 𝜓.𝛼0, 𝛼0 ↦ ν5 ⟧
         ν13 ↦ ⟦ λ ↦ bool.if, ρ ↦ ν12, 𝛼0 ↦ ν7, 𝛼1 ↦ ν11 ⟧
