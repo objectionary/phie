@@ -24,10 +24,10 @@ use crate::loc::Loc;
 use crate::path::Path;
 use itertools::Itertools;
 use regex::Regex;
+use rstest::rstest;
 use std::collections::HashMap;
 use std::fmt;
 use std::str::FromStr;
-use rstest::rstest;
 
 pub type Ob = usize;
 
@@ -150,7 +150,12 @@ impl fmt::Display for Object {
             );
         }
         parts.sort();
-        write!(f, "⟦{}{}⟧", if self.constant { "! " } else { "" }, parts.iter().join(", "))
+        write!(
+            f,
+            "⟦{}{}⟧",
+            if self.constant { "! " } else { "" },
+            parts.iter().join(", ")
+        )
     }
 }
 

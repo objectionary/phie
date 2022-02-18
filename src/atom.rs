@@ -18,9 +18,9 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-use crate::emu::Emu;
 use crate::basket::Bk;
 use crate::data::Data;
+use crate::emu::Emu;
 use crate::loc::Loc;
 
 pub type Atom = fn(&mut Emu, Bk) -> Option<Data>;

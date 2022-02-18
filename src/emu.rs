@@ -86,8 +86,13 @@ impl FromStr for Emu {
 #[macro_export]
 macro_rules! assert_emu {
     ($eq:expr, $txt:expr) => {
-        let mut emu : Emu = $txt.parse().unwrap();
-        assert_eq!($eq, emu.cycle().0, "The expected dataization result is {}", $eq);
+        let mut emu: Emu = $txt.parse().unwrap();
+        assert_eq!(
+            $eq,
+            emu.cycle().0,
+            "The expected dataization result is {}",
+            $eq
+        );
     };
 }
 
@@ -137,10 +142,25 @@ impl Emu {
                     .expect(&format!("Can't find {} from β{}/ν{}", path, bk, ob));
                 let tpsi = if *advice { bk } else { psi };
                 let nbk = if let Some(ebk) = self.find_existing_data(tob) {
-                    trace!("new(β{}/ν{}, {}) -> link to β{} since there is ν{}.Δ", bk, ob, loc, ebk, tob);
+                    trace!(
+                        "new(β{}/ν{}, {}) -> link to β{} since there is ν{}.Δ",
+                        bk,
+                        ob,
+                        loc,
+                        ebk,
+                        tob
+                    );
                     ebk
                 } else if let Some(ebk) = self.find_existing(tob, tpsi) {
-                    trace!("new(β{}/ν{}, {}) -> link to β{} since it's ν{}.β{}", bk, ob, loc, ebk, tob, tpsi);
+                    trace!(
+                        "new(β{}/ν{}, {}) -> link to β{} since it's ν{}.β{}",
+                        bk,
+                        ob,
+                        loc,
+                        ebk,
+                        tob,
+                        tpsi
+                    );
                     ebk
                 } else {
                     let id = self
@@ -289,9 +309,7 @@ impl Emu {
             }
             Some(Kid::Requested) => None,
             Some(Kid::Waiting(_, _)) => None,
-            Some(Kid::Propagated(d)) | Some(Kid::Dataized(d)) => {
-                Some(*d)
-            },
+            Some(Kid::Propagated(d)) | Some(Kid::Dataized(d)) => Some(*d),
         }
     }
 
@@ -385,28 +403,30 @@ impl Emu {
 
     /// Find already existing basket.
     fn find_existing(&self, ob: Ob, psi: Bk) -> Option<Bk> {
-        let found = self.baskets.iter().find_position(|b| {
-            b.ob == ob && b.psi == psi
-        });
+        let found = self
+            .baskets
+            .iter()
+            .find_position(|b| b.ob == ob && b.psi == psi);
         match found {
             Some((pos, _bsk)) => Some(pos as Bk),
-            None => None
+            None => None,
         }
     }
 
     /// Find already existing basket pointing to the object with data.
     fn find_existing_data(&self, ob: Ob) -> Option<Bk> {
-        let found = self.baskets.iter().find_position(|bsk| {
-            bsk.ob == ob && self.object(bsk.ob).delta.is_some()
-        });
+        let found = self
+            .baskets
+            .iter()
+            .find_position(|bsk| bsk.ob == ob && self.object(bsk.ob).delta.is_some());
         match found {
             Some((pos, _bsk)) => Some(pos as Bk),
-            None => None
+            None => None,
         }
     }
 
     pub fn cycle(&mut self) -> (Data, usize) {
-        let mut cycles : usize = 1;
+        let mut cycles: usize = 1;
         loop {
             self.cycle_one();
             if let Some(Kid::Dataized(d)) = self.basket(ROOT_BK).kids.get(&Loc::Phi) {

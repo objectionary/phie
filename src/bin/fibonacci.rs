@@ -25,7 +25,7 @@ use eoc::emu::Emu;
 use std::env;
 
 pub fn fibo(x: Data) -> Data {
-    let mut emu : Emu = format!(
+    let mut emu: Emu = format!(
         "
         ν0 ↦ ⟦ φ ↦ ν2 ⟧
         ν1 ↦ ⟦ Δ ↦ 0x{:04X} ⟧
@@ -42,7 +42,9 @@ pub fn fibo(x: Data) -> Data {
         ν13 ↦ ⟦ λ ↦ bool.if, ρ ↦ ν12, 𝛼0 ↦ ν7, 𝛼1 ↦ ν11 ⟧
         ",
         x
-    ).parse().unwrap();
+    )
+    .parse()
+    .unwrap();
     emu.cycle().0
 }
 
