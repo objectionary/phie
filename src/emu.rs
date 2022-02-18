@@ -34,8 +34,8 @@ pub const ROOT_BK: Bk = 0;
 pub const ROOT_OB: Ob = 0;
 
 pub struct Emu {
-    pub objects: [Object; 256],
-    pub baskets: [Basket; 256],
+    pub objects: [Object; 32],
+    pub baskets: [Basket; 128],
 }
 
 macro_rules! join {
@@ -96,8 +96,8 @@ impl Emu {
     /// additional objects.
     pub fn empty() -> Emu {
         let mut emu = Emu {
-            objects: arr![Object::open(); 256],
-            baskets: arr![Basket::empty(); 256],
+            objects: arr![Object::open(); 32],
+            baskets: arr![Basket::empty(); 128],
         };
         let mut basket = Basket::start(0, 0);
         basket.kids.insert(Loc::Phi, Kid::Start);
