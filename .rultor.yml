@@ -1,0 +1,19 @@
+assets:
+  credentials: yegor256/home#assets/eoc/credentials
+install: |
+  curl https://sh.rustup.rs -sSf | sh
+  rustup toolchain install stable
+  cargo -version
+  pdd --file=/dev/null
+merge:
+  script: |
+    cargo test
+deploy:
+  script: |
+    cargo test
+release:
+  script: |-
+    cargo publish
+    git commit -am "${tag}"
+    cargo test
+    cargo publish

@@ -7,6 +7,7 @@ license-file = "LICENSE.txt"
 keywords = ["eolang", "compiler", "emulator", "oop"]
 
 [dependencies]
+set-cargo-version = "1.2.0"
 regex = "1.5.4"
 lazy_static = "1.4.0"
 rstest = "0.12.0"
