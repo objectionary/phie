@@ -17,4 +17,5 @@ release:
     sed -i -e 's/^version = "0.0.0"/version = "${tag}"/' Cargo.toml
     git commit -am "${tag}"
     cargo test
+    mkdir -p ~/.cargo && cp ../credentials ~/.cargo
     cargo publish
