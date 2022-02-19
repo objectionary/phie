@@ -4,6 +4,7 @@
 [![We recommend IntelliJ IDEA](https://www.elegantobjects.org/intellij-idea.svg)](https://www.jetbrains.com/idea/)
 
 [![make](https://github.com/yegor256/eoc/actions/workflows/cargo.yml/badge.svg)](https://github.com/yegor256/eoc/actions/workflows/cargo.yml)
+[![crates.io](https://img.shields.io/crates/v/eoc.svg)](https://crates.io/crates/eoc)
 [![PDD status](http://www.0pdd.com/svg?name=yegor256/eoc)](http://www.0pdd.com/p?name=yegor256/eoc)
 [![Hits-of-Code](https://hitsofcode.com/github/yegor256/eoc)](https://hitsofcode.com/view/github/yegor256/eoc)
 ![Lines of code](https://img.shields.io/tokei/lines/github/yegor256/eoc)
