@@ -3,8 +3,12 @@ name = "eoc"
 version = "0.0.0"
 edition = "2021"
 repository = "https://github.com/yegor256/eoc"
+description = "EO-to-binaries experimental compiler"
+readme = "README.md"
 license-file = "LICENSE.txt"
+homepage = "https://github.com/yegor256/eoc"
 keywords = ["eolang", "compiler", "emulator", "oop"]
+categories = ["command-line-utilities"]
 
 [dependencies]
 regex = "1.5.4"
