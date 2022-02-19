@@ -8,14 +8,15 @@ install: |
   pdd --file=/dev/null
 merge:
   script: |
-    cargo test
+    cargo test --color=never
 deploy:
   script: |
-    cargo test
+    echo "Nowhere to deploy"
+    exit 1
 release:
   script: |-
     sed -i -e "s/^version = \"0.0.0\"/version = \"${tag}\"/" Cargo.toml
-    cargo test
+    cargo test --color=never
     git commit -am "${tag}"
     mkdir -p ~/.cargo && cp ../credentials ~/.cargo
-    cargo publish
+    cargo publish --color=never
