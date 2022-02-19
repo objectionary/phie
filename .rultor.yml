@@ -2,6 +2,7 @@ assets:
   credentials: yegor256/home#assets/eoc/credentials
 install: |
   curl https://sh.rustup.rs -sSf | bash -s -- -y
+  export PATH=$HOME/.cargo/bin:$PATH
   rustup toolchain install stable
   cargo -version
   pdd --file=/dev/null
