@@ -51,7 +51,7 @@ impl FromStr for Loc {
             ))
         } else if let Some(caps) = RE_OBJ.captures(s) {
             Ok(Loc::Obj(
-                caps.get(1).unwrap().as_str().parse::<usize>().unwrap(),
+                caps.get(1).unwrap().as_str().parse::<Ob>().unwrap(),
             ))
         } else {
             match s {
@@ -62,7 +62,7 @@ impl FromStr for Loc {
                 "ξ" | "$" => Ok(Loc::Xi),
                 "φ" | "@" => Ok(Loc::Phi),
                 "σ" | "&" => Ok(Loc::Sigma),
-                _ => Err(format!("Unknown item '{}'", s)),
+                _ => Err(format!("Unknown loc: '{}'", s)),
             }
         }
     }
@@ -70,18 +70,19 @@ impl FromStr for Loc {
 
 impl fmt::Display for Loc {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let s: String = match self {
-            Loc::Root => "Φ".to_owned(),
-            Loc::Rho => "ρ".to_owned(),
-            Loc::Delta => "Δ".to_owned(),
-            Loc::Psi => "𝜓".to_owned(),
-            Loc::Phi => "φ".to_owned(),
-            Loc::Xi => "ξ".to_owned(),
-            Loc::Sigma => "σ".to_owned(),
-            Loc::Attr(i) => format!("𝛼{}", i),
-            Loc::Obj(i) => format!("ν{}", i),
-        };
-        f.write_str(&*s)
+        f.write_str(
+            &match self {
+                Loc::Root => "Φ".to_owned(),
+                Loc::Rho => "ρ".to_owned(),
+                Loc::Delta => "Δ".to_owned(),
+                Loc::Psi => "𝜓".to_owned(),
+                Loc::Phi => "φ".to_owned(),
+                Loc::Xi => "ξ".to_owned(),
+                Loc::Sigma => "σ".to_owned(),
+                Loc::Attr(i) => format!("𝛼{}", i),
+                Loc::Obj(i) => format!("ν{}", i),
+            }
+        )
     }
 }
 
