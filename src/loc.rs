@@ -55,20 +55,13 @@ impl FromStr for Loc {
             ))
         } else {
             match s {
-                "R" => Ok(Loc::Root),
-                "Φ" => Ok(Loc::Root),
-                "^" => Ok(Loc::Rho),
-                "P" => Ok(Loc::Psi),
-                "𝜓" => Ok(Loc::Psi),
-                "D" => Ok(Loc::Delta),
-                "Δ" => Ok(Loc::Delta),
-                "ρ" => Ok(Loc::Rho),
-                "$" => Ok(Loc::Xi),
-                "ξ" => Ok(Loc::Xi),
-                "@" => Ok(Loc::Phi),
-                "φ" => Ok(Loc::Phi),
-                "&" => Ok(Loc::Sigma),
-                "σ" => Ok(Loc::Sigma),
+                "Φ" | "R" => Ok(Loc::Root),
+                "𝜓" | "P" => Ok(Loc::Psi),
+                "Δ" | "D" => Ok(Loc::Delta),
+                "ρ" | "^" => Ok(Loc::Rho),
+                "ξ" | "$" => Ok(Loc::Xi),
+                "φ" | "@" => Ok(Loc::Phi),
+                "σ" | "&" => Ok(Loc::Sigma),
                 _ => Err(format!("Unknown item '{}'", s)),
             }
         }
