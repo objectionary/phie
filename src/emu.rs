@@ -450,14 +450,15 @@ impl Emu {
             self.decorate(bk);
             self.delegate(bk as Bk);
             self.delete(bk as Bk);
-            for loc in self.keys(bk) {
+            for loc in self.locs(bk) {
                 self.new(bk, loc.clone());
                 self.propagate(bk, loc.clone());
             }
         }
     }
 
-    pub fn keys(&self, bk: Bk) -> Vec<Loc> {
+    /// Take all locs from the given basket.
+    fn locs(&self, bk: Bk) -> Vec<Loc> {
         let mut keys = vec![];
         for (k, _) in &self.basket(bk).kids {
             keys.push(k.clone());

@@ -93,10 +93,8 @@ impl fmt::Display for Basket {
 
 impl fmt::Display for Kid {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
+        f.write_str(
+            &match self {
                 Kid::Start => "→?".to_string(),
                 Kid::Requested => "→!".to_string(),
                 Kid::Waiting(bk, loc) => format!("⇉β{}.{}", bk, loc),
