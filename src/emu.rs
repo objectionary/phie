@@ -105,7 +105,7 @@ impl Emu {
             baskets: arr![Basket::empty(); 128],
         };
         let mut basket = Basket::start(0, 0);
-        basket.kids.insert(Loc::Phi, Kid::Start);
+        basket.kids.insert(Loc::Phi, Kid::Empty);
         emu.baskets[0] = basket;
         emu
     }
@@ -124,7 +124,7 @@ impl Emu {
     /// Request dataization of phi-pointed objects.
     pub fn decorate(&mut self, bk: Bk) {
         if self.basket(bk).kids.contains_key(&Loc::Phi) {
-            if let Some(Kid::Start) = self.basket(bk).kids.get(&Loc::Phi) {
+            if let Some(Kid::Empty) = self.basket(bk).kids.get(&Loc::Phi) {
                 self.request(bk, Loc::Phi);
                 trace!("decorate(β{})", bk);
             }
@@ -171,7 +171,7 @@ impl Emu {
                         .0 as Bk;
                     let mut bsk = Basket::start(tob, tpsi);
                     for k in self.object(tob).attrs.keys() {
-                        bsk.kids.insert(k.clone(), Kid::Start);
+                        bsk.kids.insert(k.clone(), Kid::Empty);
                     }
                     bsk.kids.insert(Loc::Phi, Kid::Requested);
                     self.baskets[id as usize] = bsk;
@@ -269,7 +269,7 @@ impl Emu {
     pub fn request(&mut self, bk: Bk, loc: Loc) {
         match self.basket(bk).kids.get(&loc) {
             None => panic!("Can't find {} in β{}:\n{}", loc, bk, self),
-            Some(Kid::Start) => {
+            Some(Kid::Empty) => {
                 let _ = &self.baskets[bk as usize]
                     .kids
                     .insert(loc.clone(), Kid::Requested);
@@ -303,7 +303,7 @@ impl Emu {
     pub fn read(&mut self, bk: Bk, loc: Loc) -> Option<Data> {
         match self.basket(bk).kids.get(&loc) {
             None => panic!("Can't find {} in β{}:\n{}", loc, bk, self),
-            Some(Kid::Start) => {
+            Some(Kid::Empty) => {
                 self.request(bk, loc);
                 None
             }

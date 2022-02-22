@@ -28,7 +28,7 @@ use std::fmt;
 pub type Bk = isize;
 
 pub enum Kid {
-    Start,
+    Empty,
     Requested,
     Waiting(Bk, Loc),
     Dataized(Data),
@@ -95,7 +95,7 @@ impl fmt::Display for Kid {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.write_str(
             &match self {
-                Kid::Start => "→?".to_string(),
+                Kid::Empty => "→?".to_string(),
                 Kid::Requested => "→!".to_string(),
                 Kid::Waiting(bk, loc) => format!("⇉β{}.{}", bk, loc),
                 Kid::Dataized(d) => format!("⇶0x{:04X}", d),
