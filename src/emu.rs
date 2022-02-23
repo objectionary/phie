@@ -319,7 +319,6 @@ impl Emu {
         let mut locs = locator.to_vec();
         let mut ret = Err("Nothing found".to_string());
         let mut last = 0;
-        let mut obj: &Object = self.object(bsk.ob);
         let mut log = vec![];
         let mut psi: Bk = bsk.psi;
         ret = loop {
@@ -340,8 +339,8 @@ impl Emu {
                     bsk.ob
                 }
                 Loc::Obj(i) => i as Ob,
-                _ => match obj.attrs.get(&loc) {
-                    None => match obj.attrs.get(&Loc::Phi) {
+                _ => match self.object(last).attrs.get(&loc) {
+                    None => match self.object(last).attrs.get(&Loc::Phi) {
                         None => {
                             return Err(format!(
                                 "Can't find {} in ν{} and there is no φ: {}",
@@ -364,7 +363,6 @@ impl Emu {
                     }
                 },
             };
-            obj = self.object(next);
             last = next;
             ret = Ok((next, psi))
         };
