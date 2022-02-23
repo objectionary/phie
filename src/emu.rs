@@ -180,7 +180,7 @@ impl Emu {
                 };
                 let _ = &self.baskets[bk as usize]
                     .kids
-                    .insert(loc.clone(), Kid::Waiting(nbk, Loc::Phi));
+                    .insert(loc.clone(), Kid::Waiting(nbk));
             }
         }
     }
@@ -210,16 +210,16 @@ impl Emu {
     }
 
     /// Propagate the value from this attribute to the one expecting it.
-    pub fn propagate(&mut self, bk: Bk, loc: Loc) {
+    pub fn propagate(&mut self, bk: Bk) {
         let mut changes = vec![];
         let mut data = Data::MAX;
-        if let Some(Kid::Dataized(d) | Kid::Propagated(d)) = self.basket(bk).kids.get(&loc) {
+        if let Some(Kid::Dataized(d) | Kid::Propagated(d)) = self.basket(bk).kids.get(&Loc::Phi) {
             data = *d;
             for i in 0..self.baskets.len() {
                 let bsk = self.basket(i as Bk);
                 for k in bsk.kids.keys() {
-                    if let Some(Kid::Waiting(b, l)) = &bsk.kids.get(k) {
-                        if *b == bk && *l == loc {
+                    if let Some(Kid::Waiting(b)) = &bsk.kids.get(k) {
+                        if *b == bk {
                             changes.push((i as Bk, k.clone(), *d));
                         }
                     }
@@ -229,12 +229,12 @@ impl Emu {
         if !changes.is_empty() {
             let _ = &self.baskets[bk as usize]
                 .kids
-                .insert(loc.clone(), Kid::Propagated(data));
+                .insert(Loc::Phi, Kid::Propagated(data));
             for (b, l, d) in changes.iter() {
                 let _ = &self.baskets[*b as usize]
                     .kids
                     .insert(l.clone(), Kid::Dataized(*d));
-                trace!("propagate(β{}, {}) : 0x{:04X} to β{}.{}", bk, loc, *d, b, l);
+                trace!("propagate(β{}) : 0x{:04X} to β{}.{}", bk, *d, b, l);
             }
         }
     }
@@ -247,7 +247,7 @@ impl Emu {
                 for i in 0..self.baskets.len() {
                     let bsk = self.basket(i as Bk);
                     for k in bsk.kids.keys() {
-                        if let Some(Kid::Waiting(b, _)) = &bsk.kids.get(k) {
+                        if let Some(Kid::Waiting(b)) = &bsk.kids.get(k) {
                             if *b == bk {
                                 waiting = true
                             }
@@ -286,7 +286,7 @@ impl Emu {
     pub fn write(&mut self, bk: Bk, loc: Loc, d: Data) {
         match self.basket(bk).kids.get(&loc) {
             None => panic!("Can't find {} in β{}:\n{}", loc, bk, self),
-            Some(Kid::Requested) | Some(Kid::Waiting(_, _)) => {
+            Some(Kid::Requested) | Some(Kid::Waiting(_)) => {
                 let _ = &self.baskets[bk as usize]
                     .kids
                     .insert(loc.clone(), Kid::Dataized(d));
@@ -308,7 +308,7 @@ impl Emu {
                 None
             }
             Some(Kid::Requested) => None,
-            Some(Kid::Waiting(_, _)) => None,
+            Some(Kid::Waiting(_)) => None,
             Some(Kid::Propagated(d)) | Some(Kid::Dataized(d)) => Some(*d),
         }
     }
@@ -425,6 +425,7 @@ impl Emu {
         }
     }
 
+    /// Run a single transition cycle.
     pub fn cycle(&mut self) -> (Data, usize) {
         let mut cycles: usize = 1;
         loop {
@@ -448,11 +449,11 @@ impl Emu {
             let bk = i as Bk;
             self.copy(bk);
             self.decorate(bk);
-            self.delegate(bk as Bk);
-            self.delete(bk as Bk);
+            self.delegate(bk);
+            self.delete(bk);
+            self.propagate(bk);
             for loc in self.locs(bk) {
                 self.new(bk, loc.clone());
-                self.propagate(bk, loc.clone());
             }
         }
     }

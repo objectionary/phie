@@ -30,7 +30,7 @@ pub type Bk = isize;
 pub enum Kid {
     Empty,
     Requested,
-    Waiting(Bk, Loc),
+    Waiting(Bk),
     Dataized(Data),
     Propagated(Data),
 }
@@ -66,8 +66,8 @@ impl Basket {
         self.kids.insert(loc, Kid::Requested);
     }
 
-    pub fn wait(&mut self, loc: Loc, bk: Bk, attr: Loc) {
-        self.kids.insert(loc, Kid::Waiting(bk, attr));
+    pub fn wait(&mut self, loc: Loc, bk: Bk) {
+        self.kids.insert(loc, Kid::Waiting(bk));
     }
 
     pub fn dataize(&mut self, loc: Loc, d: Data) {
@@ -97,7 +97,7 @@ impl fmt::Display for Kid {
             &match self {
                 Kid::Empty => "→?".to_string(),
                 Kid::Requested => "→!".to_string(),
-                Kid::Waiting(bk, loc) => format!("⇉β{}.{}", bk, loc),
+                Kid::Waiting(bk) => format!("⇉β{}.φ", bk),
                 Kid::Dataized(d) => format!("⇶0x{:04X}", d),
                 Kid::Propagated(d) => format!("⇶0x{:04X}★", d),
             }
@@ -118,6 +118,6 @@ fn makes_simple_basket() {
 fn prints_itself() {
     let mut basket = Basket::start(5, 7);
     basket.dataize(Loc::Delta, 42);
-    basket.wait(Loc::Rho, 42, Loc::Attr(1));
-    assert_eq!("[ν5, 𝜓:β7, Δ⇶0x002A, ρ⇉β42.𝛼1]", basket.to_string());
+    basket.wait(Loc::Rho, 42);
+    assert_eq!("[ν5, 𝜓:β7, Δ⇶0x002A, ρ⇉β42.φ]", basket.to_string());
 }
