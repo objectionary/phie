@@ -24,7 +24,7 @@ pub mod data;
 pub mod emu;
 pub mod loc;
 pub mod object;
-pub mod path;
+pub mod locator;
 
 #[cfg(test)]
 use simple_logger::SimpleLogger;

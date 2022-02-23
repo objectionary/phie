@@ -25,24 +25,24 @@ use std::fmt;
 use std::str::FromStr;
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct Path {
+pub struct Locator {
     locs: Vec<Loc>,
 }
 
 #[macro_export]
 macro_rules! ph {
     ($s:expr) => {
-        Path::from_str($s).unwrap()
+        Locator::from_str($s).unwrap()
     };
 }
 
-impl Path {
-    pub fn from_vec(locs: Vec<Loc>) -> Path {
-        Path { locs }
+impl Locator {
+    pub fn from_vec(locs: Vec<Loc>) -> Locator {
+        Locator { locs }
     }
 
-    pub fn from_loc(loc: Loc) -> Path {
-        Path::from_vec(vec![loc])
+    pub fn from_loc(loc: Loc) -> Locator {
+        Locator::from_vec(vec![loc])
     }
 
     pub fn loc(&self, id: usize) -> Option<&Loc> {
@@ -54,32 +54,32 @@ impl Path {
     }
 }
 
-type CheckFn = fn(&Path) -> Option<&Loc>;
+type CheckFn = fn(&Locator) -> Option<&Loc>;
 struct Check {
     check: CheckFn,
     msg: &'static str,
 }
 
-impl FromStr for Path {
+impl FromStr for Locator {
     type Err = String;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         lazy_static! {
             static ref CHECKS: [Check; 3] = [
                 Check {
-                    check: |p: &Path| p.locs[1..].iter().find(|i| matches!(i, Loc::Obj(_))),
+                    check: |p: &Locator| p.locs[1..].iter().find(|i| matches!(i, Loc::Obj(_))),
                     msg: "ν can only stay at the first position"
                 },
                 Check {
-                    check: |p: &Path| p.locs[1..].iter().find(|i| matches!(i, Loc::Root)),
-                    msg: "Φ can only start a path"
+                    check: |p: &Locator| p.locs[1..].iter().find(|i| matches!(i, Loc::Root)),
+                    msg: "Φ can only start a locator"
                 },
                 Check {
-                    check: |p: &Path| p.locs[0..1].iter().find(|i| matches!(i, Loc::Attr(_))),
-                    msg: "𝛼 can't start a path"
+                    check: |p: &Locator| p.locs[0..1].iter().find(|i| matches!(i, Loc::Attr(_))),
+                    msg: "𝛼 can't start a locator"
                 }
             ];
         }
-        let p = Path {
+        let p = Locator {
             locs: s.split('.').map(|i| Loc::from_str(i).unwrap()).collect(),
         };
         for (pos, check) in CHECKS.iter().enumerate() {
@@ -96,7 +96,7 @@ impl FromStr for Path {
     }
 }
 
-impl fmt::Display for Path {
+impl fmt::Display for Locator {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.write_str(
             &self
@@ -121,17 +121,17 @@ impl fmt::Display for Path {
 #[case("Φ.𝛼0.σ.𝛼3.ρ")]
 #[case("$.0")]
 #[case("$.0")]
-pub fn parses_and_prints(#[case] path: String) {
-    let p1 = Path::from_str(&path).unwrap();
-    let p2 = Path::from_str(&p1.to_string()).unwrap();
+pub fn parses_and_prints(#[case] locator: String) {
+    let p1 = Locator::from_str(&locator).unwrap();
+    let p2 = Locator::from_str(&p1.to_string()).unwrap();
     assert_eq!(p1, p2)
 }
 
 #[test]
 pub fn parses_and_prints_one() {
-    let path = "v5.&.0.^.^.@.$.81";
-    let p1 = Path::from_str(&path).unwrap();
-    let p2 = Path::from_str(&p1.to_string()).unwrap();
+    let locator = "v5.&.0.^.^.@.$.81";
+    let p1 = Locator::from_str(&locator).unwrap();
+    let p2 = Locator::from_str(&p1.to_string()).unwrap();
     assert_eq!(p1, p2)
 }
 
@@ -142,12 +142,12 @@ pub fn parses_and_prints_one() {
 #[case("invalid syntax")]
 #[case("$  .  5")]
 #[should_panic]
-pub fn fails_on_incorrect_path(#[case] path: String) {
-    ph!(&path);
+pub fn fails_on_incorrect_locator(#[case] locator: String) {
+    ph!(&locator);
 }
 
 #[rstest]
 #[case("$.0", 0, Loc::Xi)]
-pub fn fetches_loc_from_path(#[case] path: String, #[case] idx: usize, #[case] expected: Loc) {
-    assert_eq!(*ph!(&path).loc(idx).unwrap(), expected);
+pub fn fetches_loc_from_locator(#[case] locator: String, #[case] idx: usize, #[case] expected: Loc) {
+    assert_eq!(*ph!(&locator).loc(idx).unwrap(), expected);
 }

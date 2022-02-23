@@ -22,7 +22,7 @@ use crate::basket::{Basket, Bk, Kid};
 use crate::data::Data;
 use crate::loc::Loc;
 use crate::object::{Ob, Object};
-use crate::path::Path;
+use crate::locator::Locator;
 use arr_macro::arr;
 use itertools::Itertools;
 use log::trace;
@@ -126,10 +126,10 @@ impl Emu {
         if let Some(Kid::Requested) = self.basket(bk).kids.get(&loc) {
             let ob = self.basket(bk).ob;
             let obj = self.object(ob);
-            if let Some((path, advice)) = obj.attrs.get(&loc) {
+            if let Some((locator, advice)) = obj.attrs.get(&loc) {
                 let (tob, psi) = self
-                    .find(bk, path)
-                    .expect(&format!("Can't find {} from β{}/ν{}", path, bk, ob));
+                    .find(bk, locator)
+                    .expect(&format!("Can't find {} from β{}/ν{}", locator, bk, ob));
                 let tpsi = if *advice { bk } else { psi };
                 let nbk = if let Some(ebk) = self.find_existing_data(tob) {
                     trace!(
@@ -311,12 +311,12 @@ impl Emu {
         };
     }
 
-    /// Suppose, the incoming path is `^.0.@.2`. We have to find the right
+    /// Suppose, the incoming locator is `^.0.@.2`. We have to find the right
     /// object in the catalog of them and return the position of the found one
     /// together with the suggested \psi.
-    fn find(&self, bk: Bk, path: &Path) -> Result<(Ob, Bk), String> {
+    fn find(&self, bk: Bk, locator: &Locator) -> Result<(Ob, Bk), String> {
         let mut bsk = self.basket(bk);
-        let mut locs = path.to_vec();
+        let mut locs = locator.to_vec();
         let mut ret = Err("Nothing found".to_string());
         let mut last = 0;
         let mut obj: &Object = self.object(bsk.ob);
@@ -383,7 +383,7 @@ impl Emu {
             if self.object(next).is_empty() {
                 return Err(format!(
                     "The object ν{} is found by β{}.{}, but it's empty",
-                    next, bk, path
+                    next, bk, locator
                 ));
             }
         }
@@ -391,7 +391,7 @@ impl Emu {
             "find(β{}/ν{}, {}) -> (ν{}, β{}) : {}",
             bk,
             self.basket(bk).ob,
-            path,
+            locator,
             ret.clone().unwrap().0,
             ret.clone().unwrap().1,
             join!(log)

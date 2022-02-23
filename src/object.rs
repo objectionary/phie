@@ -21,7 +21,7 @@
 use crate::atom::*;
 use crate::data::Data;
 use crate::loc::Loc;
-use crate::path::Path;
+use crate::locator::Locator;
 use itertools::Itertools;
 use regex::Regex;
 use rstest::rstest;
@@ -35,7 +35,7 @@ pub struct Object {
     pub delta: Option<Data>,
     pub lambda: Option<Atom>,
     pub constant: bool,
-    pub attrs: HashMap<Loc, (Path, bool)>,
+    pub attrs: HashMap<Loc, (Locator, bool)>,
 }
 
 impl Object {
@@ -71,7 +71,7 @@ impl Object {
         self.lambda.is_none() && self.delta.is_none() && self.attrs.is_empty()
     }
 
-    /// Add a new attribute to it, by the path item:
+    /// Add a new attribute to it, by the locator loc:
     ///
     /// # Examples
     ///
@@ -81,7 +81,7 @@ impl Object {
     ///
     /// ```
     /// use eoc::loc::Loc;
-    /// use eoc::path::Path;
+    /// use eoc::locator::Locator;
     /// use eoc::object::Object;
     /// use std::str::FromStr;
     /// use eoc::ph;
@@ -90,7 +90,7 @@ impl Object {
     /// obj.push(Loc::Attr(0), ph!("$.1"), false);
     /// ```
     ///
-    pub fn push(&mut self, loc: Loc, p: Path, psi: bool) -> &mut Object {
+    pub fn push(&mut self, loc: Loc, p: Locator, psi: bool) -> &mut Object {
         self.attrs.insert(loc, (p, psi));
         self
     }
@@ -99,7 +99,7 @@ impl Object {
     ///
     /// ```
     /// use eoc::loc::Loc;
-    /// use eoc::path::Path;
+    /// use eoc::locator::Locator;
     /// use eoc::object::Object;
     /// use std::str::FromStr;
     /// use eoc::ph;
@@ -107,7 +107,7 @@ impl Object {
     ///   .with(Loc::Phi, ph!("v13"), false)
     ///   .with(Loc::Attr(0), ph!("$.1"), false);
     /// ```
-    pub fn with(&self, loc: Loc, p: Path, psi: bool) -> Object {
+    pub fn with(&self, loc: Loc, p: Locator, psi: bool) -> Object {
         let mut obj = self.copy();
         obj.attrs.insert(loc, (p, psi));
         obj
@@ -139,9 +139,9 @@ impl fmt::Display for Object {
             parts.push(format!("Δ↦0x{:04X}", p));
         }
         for i in self.attrs.iter() {
-            let (attr, (path, psi)) = i;
+            let (attr, (locator, psi)) = i;
             parts.push(
-                format!("{}↦{}", attr, path)
+                format!("{}↦{}", attr, locator)
                     + &(if *psi {
                         "(𝜓)".to_string()
                     } else {
@@ -198,14 +198,14 @@ impl FromStr for Object {
                 _ => {
                     let psi_suffix = "(𝜓)";
                     let psi = p.ends_with(psi_suffix);
-                    let path = if psi {
+                    let locator = if psi {
                         p.chars().take(p.len() - psi_suffix.len() - 1).collect()
                     } else {
                         p.to_string()
                     };
                     obj.push(
                         Loc::from_str(i).unwrap(),
-                        Path::from_str(&path).unwrap(),
+                        Locator::from_str(&locator).unwrap(),
                         psi,
                     );
                 }
