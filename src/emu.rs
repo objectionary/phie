@@ -105,7 +105,7 @@ impl Emu {
             baskets: arr![Basket::empty(); 128],
         };
         let mut basket = Basket::start(0, 0);
-        basket.kids.insert(Loc::Phi, Kid::Empty);
+        basket.kids.insert(Loc::Phi, Kid::Requested);
         emu.baskets[0] = basket;
         emu
     }
@@ -119,16 +119,6 @@ impl Emu {
         );
         self.objects[ob] = obj;
         self
-    }
-
-    /// Request dataization of phi-pointed objects.
-    pub fn decorate(&mut self, bk: Bk) {
-        if self.basket(bk).kids.contains_key(&Loc::Phi) {
-            if let Some(Kid::Empty) = self.basket(bk).kids.get(&Loc::Phi) {
-                self.request(bk, Loc::Phi);
-                trace!("decorate(β{})", bk);
-            }
-        }
     }
 
     /// Make new basket for this attribute.
@@ -451,7 +441,6 @@ impl Emu {
         for i in 0..self.baskets.len() {
             let bk = i as Bk;
             self.copy(bk);
-            self.decorate(bk);
             self.delegate(bk);
             self.delete(bk);
             self.propagate(bk);
