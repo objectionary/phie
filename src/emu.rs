@@ -318,7 +318,7 @@ impl Emu {
         let mut bsk = self.basket(bk);
         let mut locs = locator.to_vec();
         let mut ret = Err("Nothing found".to_string());
-        let mut last = 0;
+        let mut ob = 0;
         let mut log = vec![];
         let mut psi: Bk = bsk.psi;
         ret = loop {
@@ -339,13 +339,13 @@ impl Emu {
                     bsk.ob
                 }
                 Loc::Obj(i) => i as Ob,
-                _ => match self.object(last).attrs.get(&loc) {
-                    None => match self.object(last).attrs.get(&Loc::Phi) {
+                _ => match self.object(ob).attrs.get(&loc) {
+                    None => match self.object(ob).attrs.get(&Loc::Phi) {
                         None => {
                             return Err(format!(
                                 "Can't find {} in ν{} and there is no φ: {}",
                                 loc,
-                                last,
+                                ob,
                                 join!(log)
                             ))
                         }
@@ -353,17 +353,17 @@ impl Emu {
                             locs.insert(0, loc);
                             locs.splice(0..0, p.to_vec());
                             log.push(format!("++{}", p));
-                            last
+                            ob
                         }
                     },
                     Some((p, _psi)) => {
                         locs.splice(0..0, p.to_vec());
                         log.push(format!("+{}", p));
-                        last
+                        ob
                     }
                 },
             };
-            last = next;
+            ob = next;
             ret = Ok((next, psi))
         };
         if let Ok((next, _psi)) = ret {
