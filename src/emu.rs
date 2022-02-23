@@ -188,11 +188,14 @@ impl Emu {
     /// Give control to the atom of the basket.
     pub fn delegate(&mut self, bk: Bk) {
         if let Some(Kid::Requested) = self.basket(bk).kids.get(&Loc::Phi) {
-            let obj = self.object(self.basket(bk).ob);
-            if let Some(a) = obj.lambda {
-                if let Some(d) = a(self, bk) {
-                    self.write(bk, Loc::Phi, d);
-                    trace!("delegate(β{}) -> 0x{:04X})", bk, d);
+            let bsk = self.basket(bk);
+            if bsk.kids.values().find(|k| matches!(k, Kid::Waiting(_))).is_none() {
+                let obj = self.object(bsk.ob);
+                if let Some(a) = obj.lambda {
+                    if let Some(d) = a(self, bk) {
+                        self.write(bk, Loc::Phi, d);
+                        trace!("delegate(β{}) -> 0x{:04X})", bk, d);
+                    }
                 }
             }
         }
@@ -282,8 +285,22 @@ impl Emu {
         };
     }
 
+    /// Read data if available.
+    pub fn read(&mut self, bk: Bk, loc: Loc) -> Option<Data> {
+        match self.basket(bk).kids.get(&loc) {
+            None => panic!("Can't find {} in β{}:\n{}", loc, bk, self),
+            Some(Kid::Empty) => {
+                self.request(bk, loc);
+                None
+            }
+            Some(Kid::Requested) => None,
+            Some(Kid::Waiting(_)) => None,
+            Some(Kid::Propagated(d)) | Some(Kid::Dataized(d)) => Some(*d),
+        }
+    }
+
     /// Write data into the attribute of the box.
-    pub fn write(&mut self, bk: Bk, loc: Loc, d: Data) {
+    fn write(&mut self, bk: Bk, loc: Loc, d: Data) {
         match self.basket(bk).kids.get(&loc) {
             None => panic!("Can't find {} in β{}:\n{}", loc, bk, self),
             Some(Kid::Requested) | Some(Kid::Waiting(_)) => {
@@ -297,20 +314,6 @@ impl Emu {
                 d, loc, bk, k, self
             ),
         };
-    }
-
-    /// Read data if available.
-    pub fn read(&mut self, bk: Bk, loc: Loc) -> Option<Data> {
-        match self.basket(bk).kids.get(&loc) {
-            None => panic!("Can't find {} in β{}:\n{}", loc, bk, self),
-            Some(Kid::Empty) => {
-                self.request(bk, loc);
-                None
-            }
-            Some(Kid::Requested) => None,
-            Some(Kid::Waiting(_)) => None,
-            Some(Kid::Propagated(d)) | Some(Kid::Dataized(d)) => Some(*d),
-        }
     }
 
     /// Suppose, the incoming path is `^.0.@.2`. We have to find the right
