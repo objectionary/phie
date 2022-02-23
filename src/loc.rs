@@ -70,19 +70,17 @@ impl FromStr for Loc {
 
 impl fmt::Display for Loc {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.write_str(
-            &match self {
-                Loc::Root => "Φ".to_owned(),
-                Loc::Rho => "ρ".to_owned(),
-                Loc::Delta => "Δ".to_owned(),
-                Loc::Psi => "𝜓".to_owned(),
-                Loc::Phi => "φ".to_owned(),
-                Loc::Xi => "ξ".to_owned(),
-                Loc::Sigma => "σ".to_owned(),
-                Loc::Attr(i) => format!("𝛼{}", i),
-                Loc::Obj(i) => format!("ν{}", i),
-            }
-        )
+        f.write_str(&match self {
+            Loc::Root => "Φ".to_owned(),
+            Loc::Rho => "ρ".to_owned(),
+            Loc::Delta => "Δ".to_owned(),
+            Loc::Psi => "𝜓".to_owned(),
+            Loc::Phi => "φ".to_owned(),
+            Loc::Xi => "ξ".to_owned(),
+            Loc::Sigma => "σ".to_owned(),
+            Loc::Attr(i) => format!("𝛼{}", i),
+            Loc::Obj(i) => format!("ν{}", i),
+        })
     }
 }
 

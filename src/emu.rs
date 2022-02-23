@@ -179,7 +179,12 @@ impl Emu {
     pub fn delegate(&mut self, bk: Bk) {
         if let Some(Kid::Requested) = self.basket(bk).kids.get(&Loc::Phi) {
             let bsk = self.basket(bk);
-            if bsk.kids.values().find(|k| matches!(k, Kid::Waiting(_))).is_none() {
+            if bsk
+                .kids
+                .values()
+                .find(|k| matches!(k, Kid::Waiting(_)))
+                .is_none()
+            {
                 let obj = self.object(bsk.ob);
                 if let Some(a) = obj.lambda {
                     if let Some(d) = a(self, bk) {
