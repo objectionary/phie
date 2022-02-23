@@ -21,8 +21,8 @@
 use crate::basket::{Basket, Bk, Kid};
 use crate::data::Data;
 use crate::loc::Loc;
-use crate::object::{Ob, Object};
 use crate::locator::Locator;
+use crate::object::{Ob, Object};
 use arr_macro::arr;
 use itertools::Itertools;
 use log::trace;
@@ -341,7 +341,7 @@ impl Emu {
                     ob
                 }
                 Loc::Obj(i) => i as Ob,
-                Loc::Attr(_) => match obj.attrs.get(&loc) {
+                _ => match obj.attrs.get(&loc) {
                     None => match obj.attrs.get(&Loc::Phi) {
                         None => {
                             return Err(format!(
@@ -358,16 +358,6 @@ impl Emu {
                             last
                         }
                     },
-                    Some((p, _psi)) => {
-                        locs.splice(0..0, p.to_vec());
-                        log.push(format!("+{}", p));
-                        last
-                    }
-                },
-                _ => match obj.attrs.get(&loc) {
-                    None => {
-                        return Err(format!("Can't get {} from ν{}: {}", loc, last, join!(log)))
-                    }
                     Some((p, _psi)) => {
                         locs.splice(0..0, p.to_vec());
                         log.push(format!("+{}", p));

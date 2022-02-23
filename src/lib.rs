@@ -23,8 +23,8 @@ pub mod basket;
 pub mod data;
 pub mod emu;
 pub mod loc;
-pub mod object;
 pub mod locator;
+pub mod object;
 
 #[cfg(test)]
 use simple_logger::SimpleLogger;

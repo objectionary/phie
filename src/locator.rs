@@ -148,6 +148,10 @@ pub fn fails_on_incorrect_locator(#[case] locator: String) {
 
 #[rstest]
 #[case("$.0", 0, Loc::Xi)]
-pub fn fetches_loc_from_locator(#[case] locator: String, #[case] idx: usize, #[case] expected: Loc) {
+pub fn fetches_loc_from_locator(
+    #[case] locator: String,
+    #[case] idx: usize,
+    #[case] expected: Loc,
+) {
     assert_eq!(*ph!(&locator).loc(idx).unwrap(), expected);
 }
