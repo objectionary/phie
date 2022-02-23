@@ -210,9 +210,7 @@ impl Emu {
     /// Propagate the value from this attribute to the one expecting it.
     pub fn propagate(&mut self, bk: Bk) {
         let mut changes = vec![];
-        let mut data = Data::MAX;
         if let Some(Kid::Dataized(d)) = self.basket(bk).kids.get(&Loc::Phi) {
-            data = *d;
             for i in 0..self.baskets.len() {
                 let bsk = self.basket(i as Bk);
                 for k in bsk.kids.keys() {
