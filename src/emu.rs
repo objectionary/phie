@@ -211,7 +211,7 @@ impl Emu {
     pub fn propagate(&mut self, bk: Bk) {
         let mut changes = vec![];
         let mut data = Data::MAX;
-        if let Some(Kid::Dataized(d) | Kid::Propagated(d)) = self.basket(bk).kids.get(&Loc::Phi) {
+        if let Some(Kid::Dataized(d)) = self.basket(bk).kids.get(&Loc::Phi) {
             data = *d;
             for i in 0..self.baskets.len() {
                 let bsk = self.basket(i as Bk);
@@ -224,23 +224,18 @@ impl Emu {
                 }
             }
         }
-        if !changes.is_empty() {
-            let _ = &self.baskets[bk as usize]
+        for (b, l, d) in changes.iter() {
+            let _ = &self.baskets[*b as usize]
                 .kids
-                .insert(Loc::Phi, Kid::Propagated(data));
-            for (b, l, d) in changes.iter() {
-                let _ = &self.baskets[*b as usize]
-                    .kids
-                    .insert(l.clone(), Kid::Dataized(*d));
-                trace!("propagate(β{}) : 0x{:04X} to β{}.{}", bk, *d, b, l);
-            }
+                .insert(l.clone(), Kid::Dataized(*d));
+            trace!("propagate(β{}) : 0x{:04X} to β{}.{}", bk, *d, b, l);
         }
     }
 
     /// Delete the basket if it's already finished.
     pub fn delete(&mut self, bk: Bk) {
         if bk != ROOT_BK {
-            if let Some(Kid::Propagated(_)) = self.basket(bk).kids.get(&Loc::Phi) {
+            if let Some(Kid::Dataized(_)) = self.basket(bk).kids.get(&Loc::Phi) {
                 let mut waiting = false;
                 for i in 0..self.baskets.len() {
                     let bsk = self.basket(i as Bk);
@@ -290,7 +285,7 @@ impl Emu {
             }
             Some(Kid::Requested) => None,
             Some(Kid::Waiting(_)) => None,
-            Some(Kid::Propagated(d)) | Some(Kid::Dataized(d)) => Some(*d),
+            Some(Kid::Dataized(d)) => Some(*d),
         }
     }
 

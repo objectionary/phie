@@ -32,7 +32,6 @@ pub enum Kid {
     Requested,
     Waiting(Bk),
     Dataized(Data),
-    Propagated(Data),
 }
 
 pub struct Basket {
@@ -98,7 +97,6 @@ impl fmt::Display for Kid {
             Kid::Requested => "→!".to_string(),
             Kid::Waiting(bk) => format!("⇉β{}.φ", bk),
             Kid::Dataized(d) => format!("⇶0x{:04X}", d),
-            Kid::Propagated(d) => format!("⇶0x{:04X}★", d),
         })
     }
 }
