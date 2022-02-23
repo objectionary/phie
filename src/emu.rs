@@ -336,9 +336,8 @@ impl Emu {
                     }
                     psi = bsk.psi;
                     bsk = self.basket(psi);
-                    let ob = bsk.ob;
-                    log.push(format!("𝜓=β{}/ν{}", psi, ob));
-                    ob
+                    log.push(format!("𝜓=β{}/ν{}", psi, bsk.ob));
+                    bsk.ob
                 }
                 Loc::Obj(i) => i as Ob,
                 _ => match obj.attrs.get(&loc) {
@@ -354,7 +353,7 @@ impl Emu {
                         Some((p, _psi)) => {
                             locs.insert(0, loc);
                             locs.splice(0..0, p.to_vec());
-                            log.push(format!("+{}", p));
+                            log.push(format!("++{}", p));
                             last
                         }
                     },
