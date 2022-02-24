@@ -90,8 +90,8 @@ impl Object {
     /// obj.push(Loc::Attr(0), ph!("$.1"), false);
     /// ```
     ///
-    pub fn push(&mut self, loc: Loc, p: Locator, psi: bool) -> &mut Object {
-        self.attrs.insert(loc, (p, psi));
+    pub fn push(&mut self, loc: Loc, p: Locator, xi: bool) -> &mut Object {
+        self.attrs.insert(loc, (p, xi));
         self
     }
 
@@ -107,9 +107,9 @@ impl Object {
     ///   .with(Loc::Phi, ph!("v13"), false)
     ///   .with(Loc::Attr(0), ph!("$.1"), false);
     /// ```
-    pub fn with(&self, loc: Loc, p: Locator, psi: bool) -> Object {
+    pub fn with(&self, loc: Loc, p: Locator, xi: bool) -> Object {
         let mut obj = self.copy();
-        obj.attrs.insert(loc, (p, psi));
+        obj.attrs.insert(loc, (p, xi));
         obj
     }
 
@@ -139,11 +139,11 @@ impl fmt::Display for Object {
             parts.push(format!("Δ↦0x{:04X}", p));
         }
         for i in self.attrs.iter() {
-            let (attr, (locator, psi)) = i;
+            let (attr, (locator, xi)) = i;
             parts.push(
                 format!("{}↦{}", attr, locator)
-                    + &(if *psi {
-                        "(𝜓)".to_string()
+                    + &(if *xi {
+                        "(𝜉)".to_string()
                     } else {
                         "".to_string()
                     }),
@@ -196,17 +196,17 @@ impl FromStr for Object {
                     obj = Object::dataic(data);
                 }
                 _ => {
-                    let psi_suffix = "(𝜓)";
-                    let psi = p.ends_with(psi_suffix);
-                    let locator = if psi {
-                        p.chars().take(p.len() - psi_suffix.len() - 1).collect()
+                    let xi_suffix = "(𝜉)";
+                    let xi = p.ends_with(xi_suffix);
+                    let locator = if xi {
+                        p.chars().take(p.len() - xi_suffix.len() - 1).collect()
                     } else {
                         p.to_string()
                     };
                     obj.push(
                         Loc::from_str(i).unwrap(),
                         Locator::from_str(&locator).unwrap(),
-                        psi,
+                        xi,
                     );
                 }
             };
@@ -253,7 +253,7 @@ fn prints_and_parses_simple_object() {
 }
 
 #[rstest]
-#[case("ν7 ↦ ⟦! λ ↦ int-sub, ρ ↦ 𝜓.𝜓.𝛼0, 𝛼0 ↦ ν8 ⟧")]
+#[case("ν7 ↦ ⟦! λ ↦ int-sub, ρ ↦ 𝜉.𝜉.𝛼0, 𝛼0 ↦ ν8 ⟧")]
 #[case("ν7 ↦ ⟦ Δ ↦ 0x0001 ⟧")]
 #[case("ν11 ↦ ⟦ λ ↦ int-add, ρ ↦ ν9, 𝛼0 ↦ ν10 ⟧")]
 fn prints_and_parses_some_object(#[case] text: String) {
