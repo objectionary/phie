@@ -56,7 +56,7 @@ impl FromStr for Loc {
         } else {
             match s {
                 "Φ" | "R" => Ok(Loc::Root),
-                "𝜉" | "P" => Ok(Loc::Psi),
+                "𝜓" | "P" => Ok(Loc::Psi),
                 "Δ" | "D" => Ok(Loc::Delta),
                 "ρ" | "^" => Ok(Loc::Rho),
                 "ξ" | "$" => Ok(Loc::Xi),
@@ -74,7 +74,7 @@ impl fmt::Display for Loc {
             Loc::Root => "Φ".to_owned(),
             Loc::Rho => "ρ".to_owned(),
             Loc::Delta => "Δ".to_owned(),
-            Loc::Psi => "𝜉".to_owned(),
+            Loc::Psi => "𝜓".to_owned(),
             Loc::Phi => "φ".to_owned(),
             Loc::Xi => "ξ".to_owned(),
             Loc::Sigma => "σ".to_owned(),
@@ -92,7 +92,7 @@ impl fmt::Display for Loc {
 #[case("@")]
 #[case("D")]
 #[case("P")]
-#[case("𝜉")]
+#[case("ξ")]
 #[case("Δ")]
 #[case("v78")]
 #[case("Φ")]

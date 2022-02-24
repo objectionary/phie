@@ -143,7 +143,7 @@ impl fmt::Display for Object {
             parts.push(
                 format!("{}↦{}", attr, locator)
                     + &(if *xi {
-                        "(𝜉)".to_string()
+                        "(ξ)".to_string()
                     } else {
                         "".to_string()
                     }),
@@ -196,7 +196,7 @@ impl FromStr for Object {
                     obj = Object::dataic(data);
                 }
                 _ => {
-                    let xi_suffix = "(𝜉)";
+                    let xi_suffix = "(ξ)";
                     let xi = p.ends_with(xi_suffix);
                     let locator = if xi {
                         p.chars().take(p.len() - xi_suffix.len() - 1).collect()
@@ -253,7 +253,7 @@ fn prints_and_parses_simple_object() {
 }
 
 #[rstest]
-#[case("ν7 ↦ ⟦! λ ↦ int-sub, ρ ↦ 𝜉.𝜉.𝛼0, 𝛼0 ↦ ν8 ⟧")]
+#[case("ν7 ↦ ⟦! λ ↦ int-sub, ρ ↦ ξ.ξ.𝛼0, 𝛼0 ↦ ν8 ⟧")]
 #[case("ν7 ↦ ⟦ Δ ↦ 0x0001 ⟧")]
 #[case("ν11 ↦ ⟦ λ ↦ int-add, ρ ↦ ν9, 𝛼0 ↦ ν10 ⟧")]
 fn prints_and_parses_some_object(#[case] text: String) {
