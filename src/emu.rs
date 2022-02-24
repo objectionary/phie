@@ -127,10 +127,10 @@ impl Emu {
             let ob = self.basket(bk).ob;
             let obj = self.object(ob);
             if let Some((locator, advice)) = obj.attrs.get(&loc) {
-                let (tob, xi) = self
+                let (tob, psi) = self
                     .find(bk, locator)
                     .expect(&format!("Can't find {} from β{}/ν{}", locator, bk, ob));
-                let txi = if *advice { bk } else { xi };
+                let tpsi = if *advice { bk } else { psi };
                 let nbk = if let Some(ebk) = self.find_existing_data(tob) {
                     trace!(
                         "new(β{}/ν{}, {}) -> link to β{} since there is ν{}.Δ",
@@ -141,7 +141,7 @@ impl Emu {
                         tob
                     );
                     ebk
-                } else if let Some(ebk) = self.find_existing(tob, txi) {
+                } else if let Some(ebk) = self.find_existing(tob, tpsi) {
                     trace!(
                         "new(β{}/ν{}, {}) -> link to β{} since it's ν{}.β{}",
                         bk,
@@ -149,7 +149,7 @@ impl Emu {
                         loc,
                         ebk,
                         tob,
-                        txi
+                        tpsi
                     );
                     ebk
                 } else {
@@ -159,7 +159,7 @@ impl Emu {
                         .find_position(|b| b.is_empty())
                         .unwrap()
                         .0 as Bk;
-                    let mut bsk = Basket::start(tob, txi);
+                    let mut bsk = Basket::start(tob, tpsi);
                     for k in self.object(tob).attrs.keys() {
                         bsk.kids.insert(k.clone(), Kid::Empty);
                     }
@@ -306,14 +306,14 @@ impl Emu {
 
     /// Suppose, the incoming locator is `^.0.@.2`. We have to find the right
     /// object in the catalog of them and return the position of the found one
-    /// together with the suggested \xi.
+    /// together with the suggested \psi.
     fn find(&self, bk: Bk, locator: &Locator) -> Result<(Ob, Bk), String> {
         let mut bsk = self.basket(bk);
         let mut locs = locator.to_vec();
         let mut ret = Err("Nothing found".to_string());
         let mut ob = 0;
         let mut log = vec![];
-        let mut xi: Bk = bsk.xi;
+        let mut psi: Bk = bsk.psi;
         ret = loop {
             if locs.is_empty() {
                 break ret;
@@ -323,12 +323,12 @@ impl Emu {
             let next = match loc {
                 Loc::Root => ROOT_OB,
                 Loc::Psi => {
-                    if bsk.xi == ROOT_BK {
+                    if bsk.psi == ROOT_BK {
                         return Err(format!("The root doesn't have 𝜉: {}", join!(log)));
                     }
-                    xi = bsk.xi;
-                    bsk = self.basket(xi);
-                    log.push(format!("𝜉=β{}/ν{}", xi, bsk.ob));
+                    psi = bsk.psi;
+                    bsk = self.basket(psi);
+                    log.push(format!("𝜉=β{}/ν{}", psi, bsk.ob));
                     bsk.ob
                 }
                 Loc::Obj(i) => i as Ob,
@@ -342,14 +342,14 @@ impl Emu {
                                 join!(log)
                             ))
                         }
-                        Some((p, _xi)) => {
+                        Some((p, _psi)) => {
                             locs.insert(0, loc);
                             locs.splice(0..0, p.to_vec());
                             log.push(format!("++{}", p));
                             ob
                         }
                     },
-                    Some((p, _xi)) => {
+                    Some((p, _psi)) => {
                         locs.splice(0..0, p.to_vec());
                         log.push(format!("+{}", p));
                         ob
@@ -357,9 +357,9 @@ impl Emu {
                 },
             };
             ob = next;
-            ret = Ok((next, xi))
+            ret = Ok((next, psi))
         };
-        if let Ok((next, _xi)) = ret {
+        if let Ok((next, _psi)) = ret {
             if self.object(next).is_empty() {
                 return Err(format!(
                     "The object ν{} is found by β{}.{}, but it's empty",
@@ -380,11 +380,11 @@ impl Emu {
     }
 
     /// Find already existing basket.
-    fn find_existing(&self, ob: Ob, xi: Bk) -> Option<Bk> {
+    fn find_existing(&self, ob: Ob, psi: Bk) -> Option<Bk> {
         let found = self
             .baskets
             .iter()
-            .find_position(|b| b.ob == ob && b.xi == xi);
+            .find_position(|b| b.ob == ob && b.psi == psi);
         match found {
             Some((pos, _bsk)) => Some(pos as Bk),
             None => None,

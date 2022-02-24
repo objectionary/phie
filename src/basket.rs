@@ -36,7 +36,7 @@ pub enum Kid {
 
 pub struct Basket {
     pub ob: Ob,
-    pub xi: Bk,
+    pub psi: Bk,
     pub kids: HashMap<Loc, Kid>,
 }
 
@@ -44,21 +44,21 @@ impl Basket {
     pub fn empty() -> Basket {
         Basket {
             ob: 0,
-            xi: -1,
+            psi: -1,
             kids: HashMap::new(),
         }
     }
 
-    pub fn start(ob: Ob, xi: Bk) -> Basket {
+    pub fn start(ob: Ob, psi: Bk) -> Basket {
         Basket {
             ob,
-            xi,
+            psi,
             kids: HashMap::new(),
         }
     }
 
     pub fn is_empty(&self) -> bool {
-        self.xi < 0
+        self.psi < 0
     }
 
     pub fn request(&mut self, loc: Loc) {
@@ -78,7 +78,7 @@ impl fmt::Display for Basket {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut parts = vec![];
         parts.push(format!("ν{}", self.ob));
-        parts.push(format!("𝜉:β{}", self.xi));
+        parts.push(format!("𝜉:β{}", self.psi));
         parts.extend(
             self.kids
                 .iter()
