@@ -38,6 +38,11 @@ pub struct Emu {
     pub baskets: [Basket; 128],
 }
 
+pub struct Perf {
+    pub cycles: usize,
+    pub ticks: usize,
+}
+
 macro_rules! join {
     ($log:expr) => {
         $log.iter().join("; ")
@@ -122,7 +127,7 @@ impl Emu {
     }
 
     /// Make new basket for this attribute.
-    pub fn new(&mut self, bk: Bk, loc: Loc) {
+    pub fn new(&mut self, ticks: &mut usize, bk: Bk, loc: Loc) {
         if let Some(Kid::Requested) = self.basket(bk).kids.get(&loc) {
             let ob = self.basket(bk).ob;
             let obj = self.object(ob);
@@ -171,12 +176,13 @@ impl Emu {
                 let _ = &self.baskets[bk as usize]
                     .kids
                     .insert(loc.clone(), Kid::Waiting(nbk));
+                *ticks += 1;
             }
         }
     }
 
     /// Give control to the atom of the basket.
-    pub fn delegate(&mut self, bk: Bk) {
+    pub fn delegate(&mut self, ticks: &mut usize, bk: Bk) {
         if let Some(Kid::Requested) = self.basket(bk).kids.get(&Loc::Phi) {
             let bsk = self.basket(bk);
             if bsk
@@ -190,6 +196,7 @@ impl Emu {
                     if let Some(d) = a(self, bk) {
                         self.write(bk, Loc::Phi, d);
                         trace!("delegate(β{}) -> 0x{:04X})", bk, d);
+                        *ticks += 1;
                     }
                 }
             }
@@ -197,18 +204,19 @@ impl Emu {
     }
 
     /// Copy data from object to basket.
-    pub fn copy(&mut self, bk: Bk) {
+    pub fn copy(&mut self, ticks: &mut usize, bk: Bk) {
         if let Some(Kid::Requested) = self.basket(bk).kids.get(&Loc::Phi) {
             let obj = self.object(self.basket(bk).ob);
             if let Some(d) = obj.delta {
                 self.write(bk, Loc::Phi, d);
                 trace!("copy(β{}) -> 0x{:04X}", bk, d);
+                *ticks += 1;
             }
         }
     }
 
     /// Propagate the value from this attribute to the one expecting it.
-    pub fn propagate(&mut self, bk: Bk) {
+    pub fn propagate(&mut self, ticks: &mut usize, bk: Bk) {
         let mut changes = vec![];
         if let Some(Kid::Dataized(d)) = self.basket(bk).kids.get(&Loc::Phi) {
             for i in 0..self.baskets.len() {
@@ -227,11 +235,12 @@ impl Emu {
                 .kids
                 .insert(l.clone(), Kid::Dataized(*d));
             trace!("propagate(β{}) : 0x{:04X} to β{}.{}", bk, *d, b, l);
+            *ticks += 1;
         }
     }
 
     /// Delete the basket if it's already finished.
-    pub fn delete(&mut self, bk: Bk) {
+    pub fn delete(&mut self, ticks: &mut usize, bk: Bk) {
         if bk != ROOT_BK {
             if let Some(Kid::Dataized(_)) = self.basket(bk).kids.get(&Loc::Phi) {
                 let mut waiting = false;
@@ -250,6 +259,7 @@ impl Emu {
                     if !obj.constant {
                         self.baskets[bk as usize] = Basket::empty();
                         trace!("delete(β{})", bk);
+                        *ticks += 1;
                     }
                 }
             }
@@ -389,13 +399,19 @@ impl Emu {
     }
 
     /// Run a single transition cycle.
-    pub fn cycle(&mut self) -> (Data, usize) {
-        let mut cycles: usize = 1;
+    pub fn cycle(&mut self) -> (Data, Perf) {
+        let mut cycles = 0;
+        let mut ticks = 0;
         loop {
-            self.cycle_one();
+            ticks += self.cycle_one();
             if let Some(Kid::Dataized(d)) = self.basket(ROOT_BK).kids.get(&Loc::Phi) {
-                trace!("cycle() -> 0x{:04X} in #{} cycle(s)", *d, cycles);
-                return (*d, cycles);
+                trace!(
+                    "cycle() -> 0x{:04X} in #{} cycle(s) and {} ticks",
+                    *d,
+                    cycles,
+                    ticks
+                );
+                return (*d, Perf { cycles, ticks });
             }
             cycles += 1;
             if cycles > 1000 {
@@ -407,17 +423,19 @@ impl Emu {
         }
     }
 
-    fn cycle_one(&mut self) {
+    fn cycle_one(&mut self) -> usize {
+        let mut ticks: usize = 0;
         for i in 0..self.baskets.len() {
             let bk = i as Bk;
-            self.copy(bk);
-            self.delegate(bk);
-            self.delete(bk);
-            self.propagate(bk);
+            self.copy(&mut ticks, bk);
+            self.delegate(&mut ticks, bk);
+            self.delete(&mut ticks, bk);
+            self.propagate(&mut ticks, bk);
             for loc in self.locs(bk) {
-                self.new(bk, loc.clone());
+                self.new(&mut ticks, bk, loc.clone());
             }
         }
+        ticks
     }
 
     /// Take all locs from the given basket.
