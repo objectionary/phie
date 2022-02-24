@@ -256,29 +256,15 @@ impl Emu {
         }
     }
 
-    /// Request dataization of one attribute of the basket.
-    pub fn request(&mut self, bk: Bk, loc: Loc) {
+    /// Read data if available.
+    pub fn read(&mut self, bk: Bk, loc: Loc) -> Option<Data> {
         match self.basket(bk).kids.get(&loc) {
             None => panic!("Can't find {} in β{}:\n{}", loc, bk, self),
             Some(Kid::Empty) => {
                 let _ = &self.baskets[bk as usize]
                     .kids
                     .insert(loc.clone(), Kid::Requested);
-                trace!("request(β{}, {}): requested", bk, loc);
-            }
-            Some(k) => panic!(
-                "Can't request {} in β{} since it's already {}:\n{}",
-                loc, bk, k, self
-            ),
-        };
-    }
-
-    /// Read data if available.
-    pub fn read(&mut self, bk: Bk, loc: Loc) -> Option<Data> {
-        match self.basket(bk).kids.get(&loc) {
-            None => panic!("Can't find {} in β{}:\n{}", loc, bk, self),
-            Some(Kid::Empty) => {
-                self.request(bk, loc);
+                trace!("read(β{}, {}): requested", bk, loc);
                 None
             }
             Some(Kid::Requested) => None,
@@ -324,7 +310,7 @@ impl Emu {
                 Loc::Root => ROOT_OB,
                 Loc::Xi => {
                     if bsk.psi == ROOT_BK {
-                        return Err(format!("The root doesn't have ξ: {}", join!(log)));
+                        return Err(format!("Object Φ doesn't have ξ: {}", join!(log)));
                     }
                     psi = bsk.psi;
                     bsk = self.basket(psi);
@@ -362,7 +348,7 @@ impl Emu {
         if let Ok((next, _psi)) = ret {
             if self.object(next).is_empty() {
                 return Err(format!(
-                    "The object ν{} is found by β{}.{}, but it's empty",
+                    "Object ν{} is found by β{}.{}, but it's empty",
                     next, bk, locator
                 ));
             }
