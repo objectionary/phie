@@ -267,8 +267,7 @@ impl Emu {
                 trace!("read(β{}, {}): requested", bk, loc);
                 None
             }
-            Some(Kid::Requested) => None,
-            Some(Kid::Waiting(_)) => None,
+            Some(Kid::Waiting(_)) | Some(Kid::Requested) => None,
             Some(Kid::Dataized(d)) => Some(*d),
         }
     }
