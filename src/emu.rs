@@ -127,87 +127,6 @@ impl Emu {
         self
     }
 
-    /// Make new basket for this attribute.
-    pub fn new(&mut self, perf: &mut Perf, bk: Bk, loc: Loc) {
-        if let Some(Kid::Requested) = self.basket(bk).kids.get(&loc) {
-            let ob = self.basket(bk).ob;
-            let obj = self.object(ob);
-            if let Some((locator, advice)) = obj.attrs.get(&loc) {
-                let (tob, psi) = self
-                    .find(bk, locator)
-                    .expect(&format!("Can't find {} from β{}/ν{}", locator, bk, ob));
-                let tpsi = if *advice { bk } else { psi };
-                let nbk = if let Some(ebk) = self.find_existing_data(tob) {
-                    trace!(
-                        "new(β{}/ν{}, {}) -> link to β{} since there is ν{}.Δ",
-                        bk,
-                        ob,
-                        loc,
-                        ebk,
-                        tob
-                    );
-                    ebk
-                } else if let Some(ebk) = self.find_existing(tob, tpsi) {
-                    trace!(
-                        "new(β{}/ν{}, {}) -> link to β{} since it's ν{}.β{}",
-                        bk,
-                        ob,
-                        loc,
-                        ebk,
-                        tob,
-                        tpsi
-                    );
-                    ebk
-                } else {
-                    let id = self
-                        .baskets
-                        .iter()
-                        .find_position(|b| b.is_empty())
-                        .unwrap()
-                        .0 as Bk;
-                    let mut bsk = Basket::start(tob, tpsi);
-                    for k in self.object(tob).attrs.keys() {
-                        bsk.kids.insert(k.clone(), Kid::Empty);
-                    }
-                    bsk.kids.insert(Loc::Phi, Kid::Requested);
-                    self.baskets[id as usize] = bsk;
-                    trace!("new(β{}/ν{}, {}) -> β{}", bk, ob, loc, id);
-                    id
-                };
-                let _ = &self.baskets[bk as usize]
-                    .kids
-                    .insert(loc.clone(), Kid::Waiting(nbk));
-                (*perf).hits += 1;
-            }
-        }
-        (*perf).ticks += 1;
-    }
-
-    /// Give control to the atom of the basket.
-    pub fn delegate(&mut self, perf: &mut Perf, bk: Bk) {
-        if let Some(Kid::Requested) = self.basket(bk).kids.get(&Loc::Phi) {
-            let bsk = self.basket(bk);
-            if bsk
-                .kids
-                .values()
-                .find(|k| matches!(k, Kid::Waiting(_)))
-                .is_none()
-            {
-                let obj = self.object(bsk.ob);
-                if let Some(a) = obj.lambda {
-                    if let Some(d) = a(self, bk) {
-                        let _ = &self.baskets[bk as usize]
-                            .kids
-                            .insert(Loc::Phi, Kid::Dataized(d));
-                        trace!("delegate(β{}) -> 0x{:04X})", bk, d);
-                        (*perf).hits += 1;
-                    }
-                }
-            }
-        }
-        (*perf).ticks += 1;
-    }
-
     /// Copy data from object to basket.
     pub fn copy(&mut self, perf: &mut Perf, bk: Bk) {
         if let Some(Kid::Requested) = self.basket(bk).kids.get(&Loc::Phi) {
@@ -276,6 +195,87 @@ impl Emu {
             }
             (*perf).ticks += 1;
         }
+    }
+
+    /// Give control to the atom of the basket.
+    pub fn delegate(&mut self, perf: &mut Perf, bk: Bk) {
+        if let Some(Kid::Requested) = self.basket(bk).kids.get(&Loc::Phi) {
+            let bsk = self.basket(bk);
+            if bsk
+                .kids
+                .values()
+                .find(|k| matches!(k, Kid::Waiting(_)))
+                .is_none()
+            {
+                let obj = self.object(bsk.ob);
+                if let Some(a) = obj.lambda {
+                    if let Some(d) = a(self, bk) {
+                        let _ = &self.baskets[bk as usize]
+                            .kids
+                            .insert(Loc::Phi, Kid::Dataized(d));
+                        trace!("delegate(β{}) -> 0x{:04X})", bk, d);
+                        (*perf).hits += 1;
+                    }
+                }
+            }
+        }
+        (*perf).ticks += 1;
+    }
+
+    /// Make new basket for this attribute.
+    pub fn new(&mut self, perf: &mut Perf, bk: Bk, loc: Loc) {
+        if let Some(Kid::Requested) = self.basket(bk).kids.get(&loc) {
+            let ob = self.basket(bk).ob;
+            let obj = self.object(ob);
+            if let Some((locator, advice)) = obj.attrs.get(&loc) {
+                let (tob, psi) = self
+                    .find(bk, locator)
+                    .expect(&format!("Can't find {} from β{}/ν{}", locator, bk, ob));
+                let tpsi = if *advice { bk } else { psi };
+                let nbk = if let Some(ebk) = self.find_existing_data(tob) {
+                    trace!(
+                        "new(β{}/ν{}, {}) -> link to β{} since there is ν{}.Δ",
+                        bk,
+                        ob,
+                        loc,
+                        ebk,
+                        tob
+                    );
+                    ebk
+                } else if let Some(ebk) = self.find_existing(tob, tpsi) {
+                    trace!(
+                        "new(β{}/ν{}, {}) -> link to β{} since it's ν{}.β{}",
+                        bk,
+                        ob,
+                        loc,
+                        ebk,
+                        tob,
+                        tpsi
+                    );
+                    ebk
+                } else {
+                    let id = self
+                        .baskets
+                        .iter()
+                        .find_position(|b| b.is_empty())
+                        .unwrap()
+                        .0 as Bk;
+                    let mut bsk = Basket::start(tob, tpsi);
+                    for k in self.object(tob).attrs.keys() {
+                        bsk.kids.insert(k.clone(), Kid::Empty);
+                    }
+                    bsk.kids.insert(Loc::Phi, Kid::Requested);
+                    self.baskets[id as usize] = bsk;
+                    trace!("new(β{}/ν{}, {}) -> β{}", bk, ob, loc, id);
+                    id
+                };
+                let _ = &self.baskets[bk as usize]
+                    .kids
+                    .insert(loc.clone(), Kid::Waiting(nbk));
+                (*perf).hits += 1;
+            }
+        }
+        (*perf).ticks += 1;
     }
 
     /// Read data if available.
