@@ -194,7 +194,9 @@ impl Emu {
                 let obj = self.object(bsk.ob);
                 if let Some(a) = obj.lambda {
                     if let Some(d) = a(self, bk) {
-                        self.write(bk, Loc::Phi, d);
+                        let _ = &self.baskets[bk as usize]
+                            .kids
+                            .insert(Loc::Phi, Kid::Dataized(d));
                         trace!("delegate(β{}) -> 0x{:04X})", bk, d);
                         *ticks += 1;
                     }
@@ -208,7 +210,9 @@ impl Emu {
         if let Some(Kid::Requested) = self.basket(bk).kids.get(&Loc::Phi) {
             let obj = self.object(self.basket(bk).ob);
             if let Some(d) = obj.delta {
-                self.write(bk, Loc::Phi, d);
+                let _ = &self.baskets[bk as usize]
+                    .kids
+                    .insert(Loc::Phi, Kid::Dataized(d));
                 trace!("copy(β{}) -> 0x{:04X}", bk, d);
                 *ticks += 1;
             }
@@ -280,23 +284,6 @@ impl Emu {
             Some(Kid::Waiting(_)) | Some(Kid::Requested) => None,
             Some(Kid::Dataized(d)) => Some(*d),
         }
-    }
-
-    /// Write data into the attribute of the box.
-    fn write(&mut self, bk: Bk, loc: Loc, d: Data) {
-        match self.basket(bk).kids.get(&loc) {
-            None => panic!("Can't find {} in β{}:\n{}", loc, bk, self),
-            Some(Kid::Requested) | Some(Kid::Waiting(_)) => {
-                let _ = &self.baskets[bk as usize]
-                    .kids
-                    .insert(loc.clone(), Kid::Dataized(d));
-                trace!("write(β{}, {}, 0x{:04X})", bk, loc, d);
-            }
-            Some(k) => panic!(
-                "Can't save 0x{:04X} to {} in β{} since it's {}:\n{}",
-                d, loc, bk, k, self
-            ),
-        };
     }
 
     /// Suppose, the incoming locator is `^.0.@.2`. We have to find the right
