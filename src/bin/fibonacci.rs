@@ -45,7 +45,7 @@ pub fn fibo(x: Data) -> Data {
     )
     .parse()
     .unwrap();
-    emu.cycle().0
+    emu.dataize().0
 }
 
 pub fn main() {

@@ -95,7 +95,7 @@ macro_rules! assert_emu {
         let mut emu: Emu = $txt.parse().unwrap();
         assert_eq!(
             $eq,
-            emu.cycle().0,
+            emu.dataize().0,
             "The expected dataization result is {}",
             $eq
         );
@@ -393,8 +393,8 @@ impl Emu {
         }
     }
 
-    /// Run a single transition cycle.
-    pub fn cycle(&mut self) -> (Data, Perf) {
+    /// Dataize the first object.
+    pub fn dataize(&mut self) -> (Data, Perf) {
         let mut cycles = 0;
         let mut perf = Perf {
             ticks: 0,
@@ -402,10 +402,10 @@ impl Emu {
             cycles: 0,
         };
         loop {
-            self.cycle_one(&mut perf);
+            self.cycle(&mut perf);
             if let Some(Kid::Dataized(d)) = self.basket(ROOT_BK).kids.get(&Loc::Phi) {
                 trace!(
-                    "cycle() -> 0x{:04X} in #{} cycle(s), {} hits, and {} ticks",
+                    "dataize() -> 0x{:04X} in #{} cycle(s), {} hits, and {} ticks",
                     *d,
                     perf.cycles,
                     perf.hits,
@@ -423,7 +423,7 @@ impl Emu {
         }
     }
 
-    fn cycle_one(&mut self, perf: &mut Perf) {
+    fn cycle(&mut self, perf: &mut Perf) {
         for i in 0..self.baskets.len() {
             let bk = i as Bk;
             self.copy(perf, bk);
@@ -462,7 +462,7 @@ pub fn simple_dataization_cycle() {
     let mut emu = Emu::empty();
     emu.put(0, Object::open().with(Loc::Phi, ph!("v1"), true));
     emu.put(1, Object::dataic(42));
-    assert_eq!(42, emu.cycle().0);
+    assert_eq!(42, emu.dataize().0);
 }
 
 #[test]
@@ -471,7 +471,7 @@ pub fn with_simple_decorator() {
     emu.put(0, Object::open().with(Loc::Phi, ph!("v2"), true));
     emu.put(1, Object::dataic(42));
     emu.put(2, Object::open().with(Loc::Phi, ph!("v1"), false));
-    assert_eq!(42, emu.cycle().0);
+    assert_eq!(42, emu.dataize().0);
 }
 
 #[test]
@@ -482,7 +482,7 @@ pub fn with_many_decorators() {
     emu.put(2, Object::open().with(Loc::Phi, ph!("v1"), false));
     emu.put(3, Object::open().with(Loc::Phi, ph!("v2"), false));
     emu.put(4, Object::open().with(Loc::Phi, ph!("v3"), false));
-    assert_eq!(42, emu.cycle().0);
+    assert_eq!(42, emu.dataize().0);
 }
 
 // []
