@@ -303,7 +303,14 @@ impl Emu {
             cycles: 0,
         };
         loop {
+            let start = perf.hits;
             self.cycle(&mut perf);
+            if start == perf.hits {
+                panic!(
+                    "We are stuck, not hits in the recent cycle #{}:\n{}",
+                    cycles, self
+                );
+            }
             perf.cycles += 1;
             if let Some(Kid::Dataized(d)) = self.basket(ROOT_BK).kids.get(&Loc::Phi) {
                 trace!(
