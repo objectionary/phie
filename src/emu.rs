@@ -294,6 +294,37 @@ impl Emu {
         }
     }
 
+    /// Dataize the first object.
+    pub fn dataize(&mut self) -> (Data, Perf) {
+        let mut cycles = 0;
+        let mut perf = Perf {
+            ticks: 0,
+            hits: 0,
+            cycles: 0,
+        };
+        loop {
+            self.cycle(&mut perf);
+            perf.cycles += 1;
+            if let Some(Kid::Dataized(d)) = self.basket(ROOT_BK).kids.get(&Loc::Phi) {
+                trace!(
+                    "dataize() -> 0x{:04X} in #{} cycle(s), {} hits, and {} ticks",
+                    *d,
+                    perf.cycles,
+                    perf.hits,
+                    perf.ticks
+                );
+                return (*d, perf);
+            }
+            cycles += 1;
+            if cycles > 1000 {
+                panic!(
+                    "Too many cycles ({}), most probably endless recursion:\n{}",
+                    cycles, self
+                );
+            }
+        }
+    }
+
     /// Suppose, the incoming locator is `^.0.@.2`. We have to find the right
     /// object in the catalog of them and return the position of the found one
     /// together with the suggested \psi.
@@ -390,36 +421,6 @@ impl Emu {
         match found {
             Some((pos, _bsk)) => Some(pos as Bk),
             None => None,
-        }
-    }
-
-    /// Dataize the first object.
-    pub fn dataize(&mut self) -> (Data, Perf) {
-        let mut cycles = 0;
-        let mut perf = Perf {
-            ticks: 0,
-            hits: 0,
-            cycles: 0,
-        };
-        loop {
-            self.cycle(&mut perf);
-            if let Some(Kid::Dataized(d)) = self.basket(ROOT_BK).kids.get(&Loc::Phi) {
-                trace!(
-                    "dataize() -> 0x{:04X} in #{} cycle(s), {} hits, and {} ticks",
-                    *d,
-                    perf.cycles,
-                    perf.hits,
-                    perf.ticks
-                );
-                return (*d, perf);
-            }
-            cycles += 1;
-            if cycles > 1000 {
-                panic!(
-                    "Too many cycles ({}), most probably endless recursion:\n{}",
-                    cycles, self
-                );
-            }
         }
     }
 
