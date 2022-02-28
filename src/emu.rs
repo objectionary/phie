@@ -23,12 +23,14 @@ use crate::data::Data;
 use crate::loc::Loc;
 use crate::locator::Locator;
 use crate::object::{Ob, Object};
+use crate::perf::{Perf, Transition};
 use arr_macro::arr;
 use itertools::Itertools;
 use log::trace;
 use regex::Regex;
 use std::fmt;
 use std::str::FromStr;
+use std::time::Instant;
 
 pub const ROOT_BK: Bk = 0;
 pub const ROOT_OB: Ob = 0;
@@ -36,12 +38,6 @@ pub const ROOT_OB: Ob = 0;
 pub struct Emu {
     pub objects: [Object; 32],
     pub baskets: [Basket; 128],
-}
-
-pub struct Perf {
-    pub cycles: usize,
-    pub hits: usize,
-    pub ticks: usize,
 }
 
 macro_rules! join {
@@ -129,17 +125,18 @@ impl Emu {
 
     /// Copy data from object to basket.
     pub fn copy(&mut self, perf: &mut Perf, bk: Bk) {
-        if let Some(Kid::Requested) = self.basket(bk).kids.get(&Loc::Phi) {
-            let obj = self.object(self.basket(bk).ob);
+        let bsk = self.basket(bk);
+        if let Some(Kid::Requested) = bsk.kids.get(&Loc::Phi) {
+            let obj = self.object(bsk.ob);
             if let Some(d) = obj.delta {
                 let _ = &self.baskets[bk as usize]
                     .kids
                     .insert(Loc::Phi, Kid::Dataized(d));
                 trace!("copy(β{}) -> 0x{:04X}", bk, d);
-                (*perf).hits += 1;
+                perf.hit(Transition::CPY);
             }
         }
-        (*perf).ticks += 1;
+        perf.tick(Transition::CPY);
     }
 
     /// Propagate the value from this attribute to the one expecting it.
@@ -148,13 +145,16 @@ impl Emu {
         if let Some(Kid::Dataized(d)) = self.basket(bk).kids.get(&Loc::Phi) {
             for i in 0..self.baskets.len() {
                 let bsk = self.basket(i as Bk);
+                if bsk.is_empty() {
+                    continue;
+                }
                 for k in bsk.kids.keys() {
                     if let Some(Kid::Waiting(b)) = &bsk.kids.get(k) {
                         if *b == bk {
                             changes.push((i as Bk, k.clone(), *d));
                         }
                     }
-                    (*perf).ticks += 1;
+                    perf.tick(Transition::PPG);
                 }
             }
         }
@@ -163,9 +163,9 @@ impl Emu {
                 .kids
                 .insert(l.clone(), Kid::Dataized(*d));
             trace!("propagate(β{}) : 0x{:04X} to β{}.{}", bk, *d, b, l);
-            (*perf).hits += 1;
+            perf.hit(Transition::PPG);
         }
-        (*perf).ticks += 1;
+        perf.tick(Transition::PPG);
     }
 
     /// Delete the basket if it's already finished.
@@ -175,13 +175,16 @@ impl Emu {
                 let mut waiting = false;
                 for i in 0..self.baskets.len() {
                     let bsk = self.basket(i as Bk);
+                    if bsk.is_empty() {
+                        continue;
+                    }
+                    perf.tick(Transition::DEL);
                     for k in bsk.kids.keys() {
                         if let Some(Kid::Waiting(b)) = &bsk.kids.get(k) {
                             if *b == bk {
                                 waiting = true
                             }
                         }
-                        (*perf).ticks += 1;
                     }
                 }
                 if !waiting {
@@ -189,18 +192,18 @@ impl Emu {
                     if !obj.constant {
                         self.baskets[bk as usize] = Basket::empty();
                         trace!("delete(β{})", bk);
-                        (*perf).hits += 1;
+                        perf.hit(Transition::DEL);
                     }
                 }
             }
-            (*perf).ticks += 1;
+            perf.tick(Transition::DEL);
         }
     }
 
     /// Give control to the atom of the basket.
     pub fn delegate(&mut self, perf: &mut Perf, bk: Bk) {
-        if let Some(Kid::Requested) = self.basket(bk).kids.get(&Loc::Phi) {
-            let bsk = self.basket(bk);
+        let bsk = self.basket(bk);
+        if let Some(Kid::Requested) = bsk.kids.get(&Loc::Phi) {
             if bsk
                 .kids
                 .values()
@@ -214,12 +217,12 @@ impl Emu {
                             .kids
                             .insert(Loc::Phi, Kid::Dataized(d));
                         trace!("delegate(β{}) -> 0x{:04X})", bk, d);
-                        (*perf).hits += 1;
+                        perf.hit(Transition::DLG);
                     }
                 }
             }
         }
-        (*perf).ticks += 1;
+        perf.tick(Transition::DLG);
     }
 
     /// Make new basket for this attribute.
@@ -269,13 +272,13 @@ impl Emu {
                     trace!("new(β{}/ν{}, {}) -> β{}", bk, ob, loc, id);
                     id
                 };
+                perf.hit(Transition::NEW);
                 let _ = &self.baskets[bk as usize]
                     .kids
                     .insert(loc.clone(), Kid::Waiting(nbk));
-                (*perf).hits += 1;
             }
         }
-        (*perf).ticks += 1;
+        perf.tick(Transition::NEW);
     }
 
     /// Read data if available.
@@ -297,28 +300,26 @@ impl Emu {
     /// Dataize the first object.
     pub fn dataize(&mut self) -> (Data, Perf) {
         let mut cycles = 0;
-        let mut perf = Perf {
-            ticks: 0,
-            hits: 0,
-            cycles: 0,
-        };
+        let mut perf = Perf::new();
+        let time = Instant::now();
         loop {
-            let start = perf.hits;
+            let start = perf.total_hits();
             self.cycle(&mut perf);
-            if start == perf.hits {
+            if start == perf.total_hits() {
                 panic!(
-                    "We are stuck, not hits in the recent cycle #{}:\n{}",
-                    cycles, self
+                    "We are stuck, no hits after {}, in the recent cycle #{}:\n{}",
+                    perf.total_hits(),
+                    cycles,
+                    self
                 );
             }
             perf.cycles += 1;
             if let Some(Kid::Dataized(d)) = self.basket(ROOT_BK).kids.get(&Loc::Phi) {
                 trace!(
-                    "dataize() -> 0x{:04X} in #{} cycle(s), {} hits, and {} ticks",
+                    "dataize() -> 0x{:04X} in {:?}\n{}",
                     *d,
-                    perf.cycles,
-                    perf.hits,
-                    perf.ticks
+                    time.elapsed(),
+                    perf
                 );
                 return (*d, perf);
             }
@@ -434,6 +435,9 @@ impl Emu {
     fn cycle(&mut self, perf: &mut Perf) {
         for i in 0..self.baskets.len() {
             let bk = i as Bk;
+            if self.basket(bk).is_empty() {
+                continue;
+            }
             self.copy(perf, bk);
             self.delegate(perf, bk);
             self.delete(perf, bk);
