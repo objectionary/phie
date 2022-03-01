@@ -28,6 +28,7 @@ use arr_macro::arr;
 use itertools::Itertools;
 use log::{debug, trace};
 use regex::Regex;
+use std::collections::HashSet;
 use std::fmt;
 use std::str::FromStr;
 use std::time::Instant;
@@ -39,9 +40,15 @@ const MAX_CYCLES: usize = 100000;
 const MAX_OBJECTS: usize = 32;
 const MAX_BASKETS: usize = 2048;
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum Opt {
+    DontDelete,
+}
+
 pub struct Emu {
     pub objects: [Object; MAX_OBJECTS],
     pub baskets: [Basket; MAX_BASKETS],
+    pub opts: HashSet<Opt>,
 }
 
 macro_rules! join {
@@ -93,6 +100,7 @@ impl FromStr for Emu {
 macro_rules! assert_emu {
     ($eq:expr, $txt:expr) => {
         let mut emu: Emu = $txt.parse().unwrap();
+        emu.opt(Opt::DontDelete);
         assert_eq!(
             $eq,
             emu.dataize().0,
@@ -109,11 +117,16 @@ impl Emu {
         let mut emu = Emu {
             objects: arr![Object::open(); 32],
             baskets: arr![Basket::empty(); 2048],
+            opts: HashSet::new(),
         };
         let mut basket = Basket::start(0, 0);
         basket.kids.insert(Loc::Phi, Kid::Requested);
         emu.baskets[0] = basket;
         emu
+    }
+
+    pub fn opt(&mut self, opt: Opt) {
+        self.opts.insert(opt);
     }
 
     /// Add an additional object
@@ -445,7 +458,9 @@ impl Emu {
             }
             self.copy(perf, bk);
             self.delegate(perf, bk);
-            self.delete(perf, bk);
+            if !self.opts.contains(&Opt::DontDelete) {
+                self.delete(perf, bk);
+            }
             self.propagate(perf, bk);
             for loc in self.locs(bk) {
                 self.new(perf, bk, loc.clone());
@@ -790,7 +805,7 @@ pub fn simple_recursion() {
         ν7 ↦ ⟦ λ ↦ int-sub, ρ ↦ ξ.ξ.𝛼0, 𝛼0 ↦ ν8 ⟧
         ν8 ↦ ⟦ Δ ↦ 0x0001 ⟧
         ν9 ↦ ⟦ φ ↦ ν1(ξ), 𝛼0 ↦ ν10 ⟧
-        ν10 ↦ ⟦ Δ ↦ 0x0007 ⟧
+        ν10 ↦ ⟦ Δ ↦ 0x000A ⟧
     "
     );
 }

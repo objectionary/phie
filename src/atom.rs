@@ -49,6 +49,9 @@ pub fn bool_if(emu: &mut Emu, bk: Bk) -> Option<Data> {
 #[cfg(test)]
 use crate::assert_emu;
 
+#[cfg(test)]
+use crate::emu::Opt;
+
 #[test]
 pub fn bool_if_works() {
     assert_emu!(
