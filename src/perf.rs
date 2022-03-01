@@ -56,6 +56,10 @@ impl Perf {
     pub fn total_hits(&self) -> usize {
         self.hits.values().fold(0, |sum, x| sum + x)
     }
+
+    pub fn total_ticks(&self) -> usize {
+        self.ticks.values().fold(0, |sum, x| sum + x)
+    }
 }
 
 impl fmt::Display for Perf {
@@ -64,8 +68,10 @@ impl fmt::Display for Perf {
         lines.push(format!("Cycles: {}", self.cycles));
         lines.push("Ticks:".to_string());
         lines.extend(self.ticks.iter().map(|(t, c)| format!("\t{}: {}", t, c)));
+        lines.push(format!("\tTotal: {}", self.total_ticks()));
         lines.push("Hits:".to_string());
         lines.extend(self.hits.iter().map(|(t, c)| format!("\t{}: {}", t, c)));
+        lines.push(format!("\tTotal: {}", self.total_hits()));
         f.write_str(lines.join("\n").as_str())
     }
 }
