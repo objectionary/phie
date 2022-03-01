@@ -26,7 +26,7 @@ use crate::object::{Ob, Object};
 use crate::perf::{Perf, Transition};
 use arr_macro::arr;
 use itertools::Itertools;
-use log::trace;
+use log::{debug, trace};
 use regex::Regex;
 use std::fmt;
 use std::str::FromStr;
@@ -35,6 +35,7 @@ use std::time::Instant;
 pub const ROOT_BK: Bk = 0;
 pub const ROOT_OB: Ob = 0;
 
+const MAX_CYCLES: usize = 100000;
 const MAX_OBJECTS: usize = 32;
 const MAX_BASKETS: usize = 2048;
 
@@ -318,7 +319,7 @@ impl Emu {
             }
             perf.cycles += 1;
             if let Some(Kid::Dataized(d)) = self.basket(ROOT_BK).kids.get(&Loc::Phi) {
-                trace!(
+                debug!(
                     "dataize() -> 0x{:04X} in {:?}\n{}\n{}",
                     *d,
                     time.elapsed(),
@@ -328,7 +329,7 @@ impl Emu {
                 return (*d, perf);
             }
             cycles += 1;
-            if cycles > 1000 {
+            if cycles > MAX_CYCLES {
                 panic!(
                     "Too many cycles ({}), most probably endless recursion:\n{}",
                     cycles, self

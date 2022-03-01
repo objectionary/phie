@@ -49,6 +49,7 @@ pub fn fibo(x: Data) -> Data {
 }
 
 pub fn main() {
+    env_logger::init();
     let args: Vec<String> = env::args().collect();
     let input = args[1].parse().unwrap();
     let cycles = args[2].parse().unwrap();
