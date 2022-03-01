@@ -35,9 +35,12 @@ use std::time::Instant;
 pub const ROOT_BK: Bk = 0;
 pub const ROOT_OB: Ob = 0;
 
+const MAX_OBJECTS: usize = 32;
+const MAX_BASKETS: usize = 2048;
+
 pub struct Emu {
-    pub objects: [Object; 32],
-    pub baskets: [Basket; 128],
+    pub objects: [Object; MAX_OBJECTS],
+    pub baskets: [Basket; MAX_BASKETS],
 }
 
 macro_rules! join {
@@ -104,7 +107,7 @@ impl Emu {
     pub fn empty() -> Emu {
         let mut emu = Emu {
             objects: arr![Object::open(); 32],
-            baskets: arr![Basket::empty(); 128],
+            baskets: arr![Basket::empty(); 2048],
         };
         let mut basket = Basket::start(0, 0);
         basket.kids.insert(Loc::Phi, Kid::Requested);
@@ -261,7 +264,7 @@ impl Emu {
                         .baskets
                         .iter()
                         .find_position(|b| b.is_empty())
-                        .unwrap()
+                        .expect("No more empty baskets left")
                         .0 as Bk;
                     let mut bsk = Basket::start(tob, tpsi);
                     for k in self.object(tob).attrs.keys() {
@@ -316,10 +319,11 @@ impl Emu {
             perf.cycles += 1;
             if let Some(Kid::Dataized(d)) = self.basket(ROOT_BK).kids.get(&Loc::Phi) {
                 trace!(
-                    "dataize() -> 0x{:04X} in {:?}\n{}",
+                    "dataize() -> 0x{:04X} in {:?}\n{}\n{}",
                     *d,
                     time.elapsed(),
-                    perf
+                    perf,
+                    self
                 );
                 return (*d, perf);
             }
@@ -782,7 +786,7 @@ pub fn simple_recursion() {
         ν4 ↦ ⟦ Δ ↦ 0x0000 ⟧
         ν5 ↦ ⟦ Δ ↦ 0x002A ⟧
         ν6 ↦ ⟦ φ ↦ ν1(ξ), 𝛼0 ↦ ν7 ⟧
-        ν7 ↦ ⟦! λ ↦ int-sub, ρ ↦ ξ.ξ.𝛼0, 𝛼0 ↦ ν8 ⟧
+        ν7 ↦ ⟦ λ ↦ int-sub, ρ ↦ ξ.ξ.𝛼0, 𝛼0 ↦ ν8 ⟧
         ν8 ↦ ⟦ Δ ↦ 0x0001 ⟧
         ν9 ↦ ⟦ φ ↦ ν1(ξ), 𝛼0 ↦ ν10 ⟧
         ν10 ↦ ⟦ Δ ↦ 0x0007 ⟧

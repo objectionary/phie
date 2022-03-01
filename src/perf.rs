@@ -18,6 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+use itertools::Itertools;
 use std::collections::HashMap;
 use std::fmt;
 
@@ -67,10 +68,20 @@ impl fmt::Display for Perf {
         let mut lines = vec![];
         lines.push(format!("Cycles: {}", self.cycles));
         lines.push("Ticks:".to_string());
-        lines.extend(self.ticks.iter().map(|(t, c)| format!("\t{}: {}", t, c)));
+        lines.extend(
+            self.ticks
+                .iter()
+                .map(|(t, c)| format!("\t{}: {}", t, c))
+                .sorted(),
+        );
         lines.push(format!("\tTotal: {}", self.total_ticks()));
         lines.push("Hits:".to_string());
-        lines.extend(self.hits.iter().map(|(t, c)| format!("\t{}: {}", t, c)));
+        lines.extend(
+            self.hits
+                .iter()
+                .map(|(t, c)| format!("\t{}: {}", t, c))
+                .sorted(),
+        );
         lines.push(format!("\tTotal: {}", self.total_hits()));
         f.write_str(lines.join("\n").as_str())
     }
@@ -81,4 +92,13 @@ pub fn simple_increment() {
     let mut perf = Perf::new();
     perf.hit(Transition::DEL);
     assert!(perf.to_string().contains("DEL: 1"));
+}
+
+#[test]
+pub fn sorts_them() {
+    let mut perf = Perf::new();
+    perf.hit(Transition::DEL);
+    perf.hit(Transition::PPG);
+    perf.hit(Transition::NEW);
+    assert!(perf.to_string().contains("DEL: 1\n\tNEW: 1\n\tPPG: 1"));
 }
