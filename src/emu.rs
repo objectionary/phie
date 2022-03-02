@@ -792,8 +792,7 @@ pub fn deep_simulation_of_recursion() {
 //   7              v10
 #[test]
 pub fn simple_recursion() {
-    assert_dataized_eq!(
-        42,
+    let mut emu = Emu::from_str(
         "
         ν0 ↦ ⟦ φ ↦ ν9 ⟧
         ν1 ↦ ⟦ φ ↦ ν2 ⟧
@@ -805,9 +804,15 @@ pub fn simple_recursion() {
         ν7 ↦ ⟦ λ ↦ int-sub, ρ ↦ ξ.ξ.𝛼0, 𝛼0 ↦ ν8 ⟧
         ν8 ↦ ⟦ Δ ↦ 0x0001 ⟧
         ν9 ↦ ⟦ φ ↦ ν1(ξ), 𝛼0 ↦ ν10 ⟧
-        ν10 ↦ ⟦ Δ ↦ 0x000A ⟧
-    "
-    );
+        ν10 ↦ ⟦ Δ ↦ 0x0007 ⟧
+        ",
+    )
+    .unwrap();
+    emu.opt(Opt::DontDelete);
+    let dtz = emu.dataize();
+    let perf = dtz.1;
+    assert_eq!(9, emu.baskets.iter().filter(|bsk| bsk.ob == 1).count());
+    assert_eq!(4, *perf.hits.get(&Transition::CPY).unwrap());
 }
 
 #[test]
