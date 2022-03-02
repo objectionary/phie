@@ -33,7 +33,7 @@ pub type Ob = usize;
 
 pub struct Object {
     pub delta: Option<Data>,
-    pub lambda: Option<Atom>,
+    pub lambda: Option<(String, Atom)>,
     pub constant: bool,
     pub attrs: HashMap<Loc, (Locator, bool)>,
 }
@@ -57,10 +57,10 @@ impl Object {
         }
     }
 
-    pub fn atomic(a: Atom) -> Object {
+    pub fn atomic(n: String, a: Atom) -> Object {
         Object {
             delta: None,
-            lambda: Some(a),
+            lambda: Some((n, a)),
             constant: false,
             attrs: HashMap::new(),
         }
@@ -132,10 +132,10 @@ impl Object {
 impl fmt::Display for Object {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut parts = vec![];
-        if let Some(_) = self.lambda {
-            parts.push("λ↦noop".to_string());
+        if let Some(a) = &self.lambda {
+            parts.push(format!("λ↦{}", a.0));
         }
-        if let Some(p) = self.delta {
+        if let Some(p) = &self.delta {
             parts.push(format!("Δ↦0x{:04X}", p));
         }
         for i in self.attrs.iter() {
@@ -180,14 +180,16 @@ impl FromStr for Object {
                 .ok_or(format!("Can't split '{}' in two parts at '{}'", pair, s))?;
             match i.chars().take(1).last().unwrap() {
                 'λ' => {
-                    obj = Object::atomic(match p {
-                        "noop" => noop,
-                        "int-sub" => int_sub,
-                        "int-add" => int_add,
-                        "bool-if" => bool_if,
-                        "int-less" => int_less,
-                        _ => panic!("Unknown lambda '{}'", p),
-                    });
+                    obj = Object::atomic(
+                        p.to_string(),
+                        match p {
+                            "int-sub" => int_sub,
+                            "int-add" => int_add,
+                            "bool-if" => bool_if,
+                            "int-less" => int_less,
+                            _ => panic!("Unknown lambda '{}'", p),
+                        },
+                    );
                 }
                 'Δ' => {
                     let hex: String = p.chars().skip(2).collect();

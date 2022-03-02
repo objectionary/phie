@@ -228,8 +228,10 @@ impl Emu {
                 .is_none()
             {
                 let obj = self.object(bsk.ob);
-                if let Some(a) = obj.lambda {
-                    if let Some(d) = a(self, bk) {
+                if let Some((n, func)) = &obj.lambda {
+                    let name = n.clone();
+                    if let Some(d) = func(self, bk) {
+                        perf.atom(name);
                         let _ = &self.baskets[bk as usize]
                             .kids
                             .insert(Loc::Phi, Kid::Dataized(d));

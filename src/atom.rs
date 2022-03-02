@@ -25,10 +25,6 @@ use crate::loc::Loc;
 
 pub type Atom = fn(&mut Emu, Bk) -> Option<Data>;
 
-pub fn noop(_emu: &mut Emu, _bk: Bk) -> Option<Data> {
-    Some(0)
-}
-
 pub fn int_add(emu: &mut Emu, bk: Bk) -> Option<Data> {
     Some(emu.read(bk, Loc::Rho)? + emu.read(bk, Loc::Attr(0))?)
 }

@@ -33,6 +33,7 @@ pub enum Transition {
 
 pub struct Perf {
     pub cycles: usize,
+    pub atoms: HashMap<String, usize>,
     pub hits: HashMap<Transition, usize>,
     pub ticks: HashMap<Transition, usize>,
 }
@@ -40,6 +41,7 @@ pub struct Perf {
 impl Perf {
     pub fn new() -> Perf {
         Perf {
+            atoms: HashMap::new(),
             ticks: HashMap::new(),
             hits: HashMap::new(),
             cycles: 0,
@@ -54,6 +56,10 @@ impl Perf {
         *self.hits.entry(t).or_insert(0) += 1;
     }
 
+    pub fn atom(&mut self, a: String) {
+        *self.atoms.entry(a).or_insert(0) += 1;
+    }
+
     pub fn total_hits(&self) -> usize {
         self.hits.values().fold(0, |sum, x| sum + x)
     }
@@ -61,28 +67,32 @@ impl Perf {
     pub fn total_ticks(&self) -> usize {
         self.ticks.values().fold(0, |sum, x| sum + x)
     }
+
+    pub fn total_atoms(&self) -> usize {
+        self.atoms.values().fold(0, |sum, x| sum + x)
+    }
+}
+
+macro_rules! print {
+    ($lines:expr, $title:expr, $list:expr, $total:expr) => {
+        $lines.push(format!("{}:", $title));
+        $lines.extend(
+            $list
+                .iter()
+                .map(|(t, c)| format!("\t{}: {}", t, c))
+                .sorted(),
+        );
+        $lines.push(format!("\tTotal: {}", $total));
+    };
 }
 
 impl fmt::Display for Perf {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut lines = vec![];
         lines.push(format!("Cycles: {}", self.cycles));
-        lines.push("Ticks:".to_string());
-        lines.extend(
-            self.ticks
-                .iter()
-                .map(|(t, c)| format!("\t{}: {}", t, c))
-                .sorted(),
-        );
-        lines.push(format!("\tTotal: {}", self.total_ticks()));
-        lines.push("Hits:".to_string());
-        lines.extend(
-            self.hits
-                .iter()
-                .map(|(t, c)| format!("\t{}: {}", t, c))
-                .sorted(),
-        );
-        lines.push(format!("\tTotal: {}", self.total_hits()));
+        print!(lines, "Atoms", self.atoms, self.total_atoms());
+        print!(lines, "Ticks", self.ticks, self.total_ticks());
+        print!(lines, "Hits", self.hits, self.total_hits());
         f.write_str(lines.join("\n").as_str())
     }
 }
