@@ -97,7 +97,7 @@ impl FromStr for Emu {
 }
 
 #[macro_export]
-macro_rules! assert_emu {
+macro_rules! assert_dataized_eq {
     ($eq:expr, $txt:expr) => {
         let mut emu: Emu = $txt.parse().unwrap();
         emu.opt(Opt::DontDelete);
@@ -525,7 +525,7 @@ pub fn with_many_decorators() {
 //     $.y
 #[test]
 pub fn summarizes_two_numbers() {
-    assert_emu!(
+    assert_dataized_eq!(
         84,
         "
         ν0 ↦ ⟦ φ ↦ ν3 ⟧
@@ -546,7 +546,7 @@ pub fn summarizes_two_numbers() {
 //     x
 #[test]
 pub fn summarizes_two_pairs_of_numbers() {
-    assert_emu!(
+    assert_dataized_eq!(
         10,
         "
         ν0 ↦ ⟦ φ ↦ ν4 ⟧
@@ -564,7 +564,7 @@ pub fn summarizes_two_pairs_of_numbers() {
 //   a 42 > @
 #[test]
 pub fn calls_itself_once() {
-    assert_emu!(
+    assert_dataized_eq!(
         42,
         "
         ν0 ↦ ⟦ φ ↦ ν4 ⟧
@@ -584,7 +584,7 @@ pub fn calls_itself_once() {
 // b 42 > foo
 #[test]
 pub fn injects_xi_correctly() {
-    assert_emu!(
+    assert_dataized_eq!(
         42,
         "
         ν0 ↦ ⟦ φ ↦ ν5 ⟧
@@ -605,7 +605,7 @@ pub fn injects_xi_correctly() {
 // v2 42 > @         v4
 #[test]
 pub fn reverse_to_abstract() {
-    assert_emu!(
+    assert_dataized_eq!(
         42,
         "
         ν0 ↦ ⟦ φ ↦ ν3 ⟧
@@ -629,7 +629,7 @@ pub fn reverse_to_abstract() {
 //   42             v7
 #[test]
 pub fn passes_xi_through_two_layers() {
-    assert_emu!(
+    assert_dataized_eq!(
         42,
         "
         ν0 ↦ ⟦ φ ↦ ν6 ⟧
@@ -659,7 +659,7 @@ pub fn passes_xi_through_two_layers() {
 //   42             v9
 #[test]
 pub fn passes_xi_through_three_layers() {
-    assert_emu!(
+    assert_dataized_eq!(
         42,
         "
         ν0 ↦ ⟦ φ ↦ ν8 ⟧
@@ -694,7 +694,7 @@ pub fn passes_xi_through_three_layers() {
 //   42             v11
 #[test]
 pub fn passes_xi_through_four_layers() {
-    assert_emu!(
+    assert_dataized_eq!(
         42,
         "
         ν0 ↦ ⟦ φ ↦ ν10 ⟧
@@ -726,7 +726,7 @@ pub fn passes_xi_through_four_layers() {
 //   42           v8
 #[test]
 pub fn simulation_of_recursion() {
-    assert_emu!(
+    assert_dataized_eq!(
         42,
         "
         ν0 ↦ ⟦ φ ↦ ν7 ⟧
@@ -759,7 +759,7 @@ pub fn simulation_of_recursion() {
 //   42           v11
 #[test]
 pub fn deep_simulation_of_recursion() {
-    assert_emu!(
+    assert_dataized_eq!(
         42,
         "
         ν0 ↦ ⟦ φ ↦ ν10 ⟧
@@ -792,7 +792,7 @@ pub fn deep_simulation_of_recursion() {
 //   7              v10
 #[test]
 pub fn simple_recursion() {
-    assert_emu!(
+    assert_dataized_eq!(
         42,
         "
         ν0 ↦ ⟦ φ ↦ ν9 ⟧
@@ -812,7 +812,7 @@ pub fn simple_recursion() {
 
 #[test]
 pub fn recursive_fibonacci() {
-    assert_emu!(
+    assert_dataized_eq!(
         21,
         "
         ν0 ↦ ⟦ φ ↦ ν2 ⟧

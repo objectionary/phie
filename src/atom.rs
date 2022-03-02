@@ -47,14 +47,14 @@ pub fn bool_if(emu: &mut Emu, bk: Bk) -> Option<Data> {
 }
 
 #[cfg(test)]
-use crate::assert_emu;
+use crate::assert_dataized_eq;
 
 #[cfg(test)]
 use crate::emu::Opt;
 
 #[test]
 pub fn bool_if_works() {
-    assert_emu!(
+    assert_dataized_eq!(
         42,
         "
         ν0 ↦ ⟦ φ ↦ ν2 ⟧
@@ -64,7 +64,7 @@ pub fn bool_if_works() {
         ν4 ↦ ⟦ Δ ↦ 0x0000 ⟧
     "
     );
-    assert_emu!(
+    assert_dataized_eq!(
         42,
         "
         ν0 ↦ ⟦ φ ↦ ν2 ⟧
@@ -78,7 +78,7 @@ pub fn bool_if_works() {
 
 #[test]
 pub fn int_add_works() {
-    assert_emu!(
+    assert_dataized_eq!(
         49,
         "
         ν0 ↦ ⟦ φ ↦ ν2 ⟧
@@ -91,7 +91,7 @@ pub fn int_add_works() {
 
 #[test]
 pub fn int_sub_works() {
-    assert_emu!(
+    assert_dataized_eq!(
         40,
         "
         ν0 ↦ ⟦ φ ↦ ν2 ⟧
@@ -104,7 +104,7 @@ pub fn int_sub_works() {
 
 #[test]
 pub fn int_less_works() {
-    assert_emu!(
+    assert_dataized_eq!(
         0,
         "
         ν0 ↦ ⟦ φ ↦ ν2 ⟧
@@ -113,7 +113,7 @@ pub fn int_less_works() {
         ν3 ↦ ⟦ Δ ↦ 0x0002 ⟧
     "
     );
-    assert_emu!(
+    assert_dataized_eq!(
         0,
         "
         ν0 ↦ ⟦ φ ↦ ν2 ⟧
@@ -122,7 +122,7 @@ pub fn int_less_works() {
         ν3 ↦ ⟦ Δ ↦ 0x002A ⟧
     "
     );
-    assert_emu!(
+    assert_dataized_eq!(
         1,
         "
         ν0 ↦ ⟦ φ ↦ ν2 ⟧
