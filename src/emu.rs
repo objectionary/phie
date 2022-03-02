@@ -36,9 +36,9 @@ use std::time::Instant;
 pub const ROOT_BK: Bk = 0;
 pub const ROOT_OB: Ob = 0;
 
-const MAX_CYCLES: usize = 100000;
+const MAX_CYCLES: usize = 1000;
 const MAX_OBJECTS: usize = 32;
-const MAX_BASKETS: usize = 2048;
+const MAX_BASKETS: usize = 128;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Opt {
@@ -116,7 +116,7 @@ impl Emu {
     pub fn empty() -> Emu {
         let mut emu = Emu {
             objects: arr![Object::open(); 32],
-            baskets: arr![Basket::empty(); 2048],
+            baskets: arr![Basket::empty(); 128],
             opts: HashSet::new(),
         };
         let mut basket = Basket::start(0, 0);
@@ -817,8 +817,7 @@ pub fn simple_recursion() {
 
 #[test]
 pub fn recursive_fibonacci() {
-    assert_dataized_eq!(
-        21,
+    let mut emu = Emu::from_str(
         "
         ν0 ↦ ⟦ φ ↦ ν2 ⟧
         ν1 ↦ ⟦ Δ ↦ 0x0007 ⟧
@@ -833,6 +832,8 @@ pub fn recursive_fibonacci() {
         ν11 ↦ ⟦ λ ↦ int-add, ρ ↦ ν9, 𝛼0 ↦ ν10 ⟧
         ν12 ↦ ⟦ λ ↦ int-less, ρ ↦ ξ.𝛼0, 𝛼0 ↦ ν5 ⟧
         ν13 ↦ ⟦ λ ↦ bool-if, ρ ↦ ν12, 𝛼0 ↦ ν7, 𝛼1 ↦ ν11 ⟧
-        "
-    );
+        ",
+    )
+    .unwrap();
+    assert_eq!(21, emu.dataize().0);
 }
