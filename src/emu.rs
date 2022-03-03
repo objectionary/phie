@@ -43,6 +43,8 @@ const MAX_BASKETS: usize = 128;
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Opt {
     DontDelete,
+    StopWhenTooManyCycles,
+    StopWhenStuck,
 }
 
 pub struct Emu {
@@ -101,6 +103,7 @@ macro_rules! assert_dataized_eq {
     ($eq:expr, $txt:expr) => {
         let mut emu: Emu = $txt.parse().unwrap();
         emu.opt(Opt::DontDelete);
+        emu.opt(Opt::StopWhenTooManyCycles);
         assert_eq!(
             $eq,
             emu.dataize().0,
@@ -324,7 +327,7 @@ impl Emu {
         loop {
             let start = perf.total_hits();
             self.cycle(&mut perf);
-            if start == perf.total_hits() {
+            if self.opts.contains(&Opt::StopWhenStuck) && start == perf.total_hits() {
                 panic!(
                     "We are stuck, no hits after {}, in the recent cycle #{}:\n{}",
                     perf.total_hits(),
@@ -344,7 +347,7 @@ impl Emu {
                 return (*d, perf);
             }
             cycles += 1;
-            if cycles > MAX_CYCLES {
+            if self.opts.contains(&Opt::StopWhenTooManyCycles) && cycles > MAX_CYCLES {
                 panic!(
                     "Too many cycles ({}), most probably endless recursion:\n{}",
                     cycles, self
@@ -837,5 +840,6 @@ pub fn recursive_fibonacci() {
         ",
     )
     .unwrap();
+    // emu.opt(Opt::DontDelete);
     assert_eq!(21, emu.dataize().0);
 }
