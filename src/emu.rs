@@ -238,7 +238,7 @@ impl Emu {
                         let _ = &self.baskets[bk as usize]
                             .kids
                             .insert(Loc::Phi, Kid::Dataized(d));
-                        trace!("delegate(β{}) -> 0x{:04X})", bk, d);
+                        trace!("delegate(β{}) -> 0x{:04X}", bk, d);
                         perf.hit(Transition::DLG);
                     }
                 }
@@ -267,17 +267,6 @@ impl Emu {
                         tob
                     );
                     ebk
-                } else if let Some(ebk) = self.find_existing(tob, tpsi) {
-                    trace!(
-                        "new(β{}/ν{}, {}) -> link to β{} since it's ν{}.β{}",
-                        bk,
-                        ob,
-                        loc,
-                        ebk,
-                        tob,
-                        tpsi
-                    );
-                    ebk
                 } else {
                     let id = self
                         .baskets
@@ -291,7 +280,7 @@ impl Emu {
                     }
                     bsk.kids.insert(Loc::Phi, Kid::Requested);
                     self.baskets[id as usize] = bsk;
-                    trace!("new(β{}/ν{}, {}) -> β{}", bk, ob, loc, id);
+                    trace!("new(β{}/ν{}, {}) -> β{} created", bk, ob, loc, id);
                     id
                 };
                 perf.hit(Transition::NEW);
@@ -311,7 +300,7 @@ impl Emu {
                 let _ = &self.baskets[bk as usize]
                     .kids
                     .insert(loc.clone(), Kid::Requested);
-                trace!("read(β{}, {}): requested", bk, loc);
+                trace!("read(β{}, {}): was empty, requested", bk, loc);
                 None
             }
             Some(Kid::Waiting(_)) | Some(Kid::Requested) => None,
@@ -429,18 +418,6 @@ impl Emu {
             join!(log)
         );
         ret
-    }
-
-    /// Find already existing basket.
-    fn find_existing(&self, ob: Ob, psi: Bk) -> Option<Bk> {
-        let found = self
-            .baskets
-            .iter()
-            .find_position(|b| b.ob == ob && b.psi == psi);
-        match found {
-            Some((pos, _bsk)) => Some(pos as Bk),
-            None => None,
-        }
     }
 
     /// Find already existing basket pointing to the object with data.
@@ -820,12 +797,31 @@ pub fn simple_recursion() {
     assert_eq!(4, *perf.hits.get(&Transition::CPY).unwrap());
 }
 
+#[cfg(test)]
+fn fibo(n: Data) -> Data {
+    if n < 2 {
+        return 1;
+    }
+    fibo(n - 1) + fibo(n - 2)
+}
+
+#[cfg(test)]
+fn fibo_ops(n: Data) -> usize {
+    if n < 2 {
+        return 2;
+    }
+    fibo_ops(n - 1) + fibo_ops(n - 2) + 5
+}
+
 #[test]
+#[ignore]
 pub fn recursive_fibonacci() {
+    let input = 3;
     let mut emu = Emu::from_str(
-        "
+        format!(
+            "
         ν0 ↦ ⟦ φ ↦ ν2 ⟧
-        ν1 ↦ ⟦ Δ ↦ 0x0007 ⟧
+        ν1 ↦ ⟦ Δ ↦ 0x{:04X} ⟧
         ν2 ↦ ⟦ φ ↦ ν3(ξ), 𝛼0 ↦ ν1 ⟧
         ν3 ↦ ⟦ φ ↦ ν13 ⟧
         ν5 ↦ ⟦ Δ ↦ 0x0002 ⟧
@@ -838,8 +834,14 @@ pub fn recursive_fibonacci() {
         ν12 ↦ ⟦ λ ↦ int-less, ρ ↦ ξ.𝛼0, 𝛼0 ↦ ν5 ⟧
         ν13 ↦ ⟦ λ ↦ bool-if, ρ ↦ ν12, 𝛼0 ↦ ν7, 𝛼1 ↦ ν11 ⟧
         ",
+            input
+        )
+        .as_str(),
     )
     .unwrap();
-    // emu.opt(Opt::DontDelete);
-    assert_eq!(21, emu.dataize().0);
+    emu.opt(Opt::DontDelete);
+    let dtz = emu.dataize();
+    assert_eq!(fibo(input), dtz.0);
+    let perf = dtz.1;
+    assert_eq!(fibo_ops(input), perf.total_atoms());
 }
