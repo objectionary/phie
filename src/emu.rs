@@ -308,43 +308,6 @@ impl Emu {
         }
     }
 
-    /// Dataize the first object.
-    pub fn dataize(&mut self) -> (Data, Perf) {
-        let mut cycles = 0;
-        let mut perf = Perf::new();
-        let time = Instant::now();
-        loop {
-            let start = perf.total_hits();
-            self.cycle(&mut perf);
-            if self.opts.contains(&Opt::StopWhenStuck) && start == perf.total_hits() {
-                panic!(
-                    "We are stuck, no hits after {}, in the recent cycle #{}:\n{}",
-                    perf.total_hits(),
-                    cycles,
-                    self
-                );
-            }
-            perf.cycles += 1;
-            if let Some(Kid::Dataized(d)) = self.basket(ROOT_BK).kids.get(&Loc::Phi) {
-                debug!(
-                    "dataize() -> 0x{:04X} in {:?}\n{}\n{}",
-                    *d,
-                    time.elapsed(),
-                    perf,
-                    self
-                );
-                return (*d, perf);
-            }
-            cycles += 1;
-            if self.opts.contains(&Opt::StopWhenTooManyCycles) && cycles > MAX_CYCLES {
-                panic!(
-                    "Too many cycles ({}), most probably endless recursion:\n{}",
-                    cycles, self
-                );
-            }
-        }
-    }
-
     /// Suppose, the incoming locator is `^.0.@.2`. We have to find the right
     /// object in the catalog of them and return the position of the found one
     /// together with the suggested \psi.
@@ -432,21 +395,76 @@ impl Emu {
         }
     }
 
+    fn object(&self, ob: Ob) -> &Object {
+        &self.objects[ob]
+    }
+
+    fn basket(&self, bk: Bk) -> &Basket {
+        &self.baskets[bk as usize]
+    }
+}
+
+impl Emu {
+    /// Dataize the first object.
+    pub fn dataize(&mut self) -> (Data, Perf) {
+        let mut cycles = 0;
+        let mut perf = Perf::new();
+        let time = Instant::now();
+        loop {
+            let start = perf.total_hits();
+            self.cycle(&mut perf);
+            if self.opts.contains(&Opt::StopWhenStuck) && start == perf.total_hits() {
+                panic!(
+                    "We are stuck, no hits after {}, in the recent cycle #{}:\n{}",
+                    perf.total_hits(),
+                    cycles,
+                    self
+                );
+            }
+            perf.cycles += 1;
+            if let Some(Kid::Dataized(d)) = self.basket(ROOT_BK).kids.get(&Loc::Phi) {
+                debug!(
+                    "dataize() -> 0x{:04X} in {:?}\n{}\n{}",
+                    *d,
+                    time.elapsed(),
+                    perf,
+                    self
+                );
+                return (*d, perf);
+            }
+            cycles += 1;
+            if self.opts.contains(&Opt::StopWhenTooManyCycles) && cycles > MAX_CYCLES {
+                panic!(
+                    "Too many cycles ({}), most probably endless recursion:\n{}",
+                    cycles, self
+                );
+            }
+        }
+    }
+
     fn cycle(&mut self, perf: &mut Perf) {
+        self.cycle_one(perf, |s, p, bk| s.copy(p, bk));
+        self.cycle_one(perf, |s, p, bk| s.delegate(p, bk));
+        if !self.opts.contains(&Opt::DontDelete) {
+            self.cycle_one(perf, |s, p, bk| s.delete(p, bk));
+        }
+        self.cycle_one(perf, |s, p, bk| s.propagate(p, bk));
+        self.cycle_one(perf, |s, p, bk| s.new_all(p, bk));
+    }
+
+    fn cycle_one(&mut self, perf: &mut Perf, f: fn(&mut Emu, &mut Perf, Bk)) {
         for i in 0..self.baskets.len() {
             let bk = i as Bk;
             if self.basket(bk).is_empty() {
                 continue;
             }
-            self.copy(perf, bk);
-            self.delegate(perf, bk);
-            if !self.opts.contains(&Opt::DontDelete) {
-                self.delete(perf, bk);
-            }
-            self.propagate(perf, bk);
-            for loc in self.locs(bk) {
-                self.new(perf, bk, loc.clone());
-            }
+            f(self, perf, bk);
+        }
+    }
+
+    fn new_all(&mut self, perf: &mut Perf, bk: Bk) {
+        for loc in self.locs(bk) {
+            self.new(perf, bk, loc.clone());
         }
     }
 
@@ -457,14 +475,6 @@ impl Emu {
             keys.push(k.clone());
         }
         keys
-    }
-
-    fn object(&self, ob: Ob) -> &Object {
-        &self.objects[ob]
-    }
-
-    fn basket(&self, bk: Bk) -> &Basket {
-        &self.baskets[bk as usize]
     }
 }
 
