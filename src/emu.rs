@@ -38,7 +38,7 @@ pub const ROOT_OB: Ob = 0;
 
 const MAX_CYCLES: usize = 1000;
 const MAX_OBJECTS: usize = 32;
-const MAX_BASKETS: usize = 128;
+const MAX_BASKETS: usize = 256;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Opt {
@@ -120,7 +120,7 @@ impl Emu {
     pub fn empty() -> Emu {
         let mut emu = Emu {
             objects: arr![Object::open(); 32],
-            baskets: arr![Basket::empty(); 128],
+            baskets: arr![Basket::empty(); 256],
             opts: HashSet::new(),
         };
         let mut basket = Basket::start(0, 0);
