@@ -185,6 +185,7 @@ impl FromStr for Object {
                         match p {
                             "int-sub" => int_sub,
                             "int-add" => int_add,
+                            "int-neg" => int_neg,
                             "bool-if" => bool_if,
                             "int-less" => int_less,
                             _ => panic!("Unknown lambda '{}'", p),

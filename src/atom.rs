@@ -29,6 +29,10 @@ pub fn int_add(emu: &mut Emu, bk: Bk) -> Option<Data> {
     Some(emu.read(bk, Loc::Rho)? + emu.read(bk, Loc::Attr(0))?)
 }
 
+pub fn int_neg(emu: &mut Emu, bk: Bk) -> Option<Data> {
+    Some(-emu.read(bk, Loc::Rho)?)
+}
+
 pub fn int_sub(emu: &mut Emu, bk: Bk) -> Option<Data> {
     Some(emu.read(bk, Loc::Rho)? - emu.read(bk, Loc::Attr(0))?)
 }

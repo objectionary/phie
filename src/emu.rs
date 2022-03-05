@@ -258,15 +258,8 @@ impl Emu {
                     .find(bk, locator)
                     .expect(&format!("Can't find {} from β{}/ν{}", locator, bk, ob));
                 let tpsi = if *advice { bk } else { psi };
-                let nbk = if let Some(ebk) = self.find_existing_data(tob) {
-                    trace!(
-                        "new(β{}/ν{}, {}) -> link to β{} since there is ν{}.Δ",
-                        bk,
-                        ob,
-                        loc,
-                        ebk,
-                        tob
-                    );
+                let nbk = if let Some(ebk) = self.stashed(tob, tpsi) {
+                    trace!("new(β{}/ν{}, {}) -> link to stashed β{}", bk, ob, loc, ebk);
                     ebk
                 } else {
                     let id = self
@@ -384,16 +377,24 @@ impl Emu {
         ret
     }
 
-    /// Find already existing basket pointing to the object with data.
-    fn find_existing_data(&self, ob: Ob) -> Option<Bk> {
-        let found = self
-            .baskets
-            .iter()
-            .find_position(|bsk| bsk.ob == ob && self.object(bsk.ob).delta.is_some());
-        match found {
-            Some((pos, _bsk)) => Some(pos as Bk),
-            None => None,
+    /// Find already existing basket.
+    fn stashed(&self, ob: Ob, psi: Bk) -> Option<Bk> {
+        if let Some((pos, _bsk)) = self.baskets.iter().find_position(|bsk| {
+            if bsk.ob != ob {
+                return false;
+            }
+            let obj = self.object(bsk.ob);
+            if obj.delta.is_some() {
+                return true;
+            }
+            if !obj.constant {
+                return false;
+            }
+            return bsk.psi == psi;
+        }) {
+            return Some(pos as Bk);
         }
+        None
     }
 
     fn object(&self, ob: Ob) -> &Object {
@@ -536,6 +537,63 @@ pub fn summarizes_two_numbers() {
         ν5 ↦ ⟦ φ ↦ ν3(ξ) ⟧
         "
     );
+}
+
+// []
+//   int-add > @    v1
+//     int-add      v2
+//       42         v9
+//       42         v9
+//     int-add      v3
+//       int-neg    v4
+//         42       v9
+//       42         v9
+//       42         v9
+#[test]
+pub fn preserves_calculation_results() {
+    let mut emu = Emu::from_str(
+        "
+        ν0 ↦ ⟦ φ ↦ ν1 ⟧
+        ν1 ↦ ⟦ λ ↦ int-add, ρ ↦ ν2, 𝛼0 ↦ ν3 ⟧
+        ν2 ↦ ⟦ λ ↦ int-add, ρ ↦ ν9, 𝛼0 ↦ ν9 ⟧
+        ν3 ↦ ⟦ λ ↦ int-add, ρ ↦ ν4, 𝛼0 ↦ ν9 ⟧
+        ν4 ↦ ⟦ λ ↦ int-neg, ρ ↦ ν9 ⟧
+        ν9 ↦ ⟦ Δ ↦ 0x002A ⟧
+        ",
+    )
+    .unwrap();
+    let dtz = emu.dataize();
+    assert_eq!(84, dtz.0);
+    let perf = dtz.1;
+    assert_eq!(4, perf.total_atoms());
+}
+
+// []
+//   foo > @        v1
+//     int-add      v2
+//       42         v9
+//       42         v9
+// [x] > foo        v3
+//   int-add        v4
+//     $.x
+//     42           v9
+#[test]
+pub fn calculates_argument_once() {
+    let mut emu = Emu::from_str(
+        "
+        ν0 ↦ ⟦ φ ↦ ν1 ⟧
+        ν1 ↦ ⟦ λ ↦ int-add, ρ ↦ ν2, 𝛼0 ↦ ν3 ⟧
+        ν2 ↦ ⟦ λ ↦ int-add, ρ ↦ ν9, 𝛼0 ↦ ν9 ⟧
+        ν3 ↦ ⟦ λ ↦ int-add, ρ ↦ ν4, 𝛼0 ↦ ν9 ⟧
+        ν4 ↦ ⟦ λ ↦ int-neg, ρ ↦ ν9 ⟧
+        ν9 ↦ ⟦ Δ ↦ 0x002A ⟧
+        ",
+    )
+    .unwrap();
+    let dtz = emu.dataize();
+    assert_eq!(84, dtz.0);
+    let perf = dtz.1;
+    assert_eq!(4, perf.total_atoms());
 }
 
 // []
@@ -833,9 +891,8 @@ fn fibo_ops(n: Data) -> usize {
 }
 
 #[test]
-#[ignore]
 pub fn recursive_fibonacci() {
-    let input = 3;
+    let input = 7;
     let mut emu = Emu::from_str(
         format!(
             "
@@ -844,9 +901,9 @@ pub fn recursive_fibonacci() {
             ν2 ↦ ⟦ φ ↦ ν3(ξ), 𝛼0 ↦ ν1 ⟧
             ν3 ↦ ⟦ φ ↦ ν13 ⟧
             ν5 ↦ ⟦ Δ ↦ 0x0002 ⟧
-            ν6 ↦ ⟦ λ ↦ int-sub, ρ ↦ ξ.ξ.𝛼0, 𝛼0 ↦ ν5 ⟧
+            ν6 ↦ ⟦! λ ↦ int-sub, ρ ↦ ξ.ξ.𝛼0, 𝛼0 ↦ ν5 ⟧
             ν7 ↦ ⟦ Δ ↦ 0x0001 ⟧
-            ν8 ↦ ⟦ λ ↦ int-sub, ρ ↦ ξ.ξ.𝛼0, 𝛼0 ↦ ν7 ⟧
+            ν8 ↦ ⟦! λ ↦ int-sub, ρ ↦ ξ.ξ.𝛼0, 𝛼0 ↦ ν7 ⟧
             ν9 ↦ ⟦ φ ↦ ν3(ξ), 𝛼0 ↦ ν8 ⟧
             ν10 ↦ ⟦ φ ↦ ν3(ξ), 𝛼0 ↦ ν6 ⟧
             ν11 ↦ ⟦ λ ↦ int-add, ρ ↦ ν9, 𝛼0 ↦ ν10 ⟧
@@ -858,10 +915,12 @@ pub fn recursive_fibonacci() {
         .as_str(),
     )
     .unwrap();
-    emu.opt(Opt::DontDelete);
-    emu.opt(Opt::LogSnapshots);
+    // emu.opt(Opt::LogSnapshots);
     let dtz = emu.dataize();
-    assert_eq!(fibo(input), dtz.0);
+    assert_eq!(fibo(input), dtz.0, "Wrong number calculated");
     let perf = dtz.1;
-    assert_eq!(fibo_ops(input), perf.total_atoms());
+    assert!(
+        perf.total_atoms() < fibo_ops(input),
+        "Too many atomic operations"
+    );
 }
