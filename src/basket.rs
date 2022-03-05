@@ -28,10 +28,11 @@ use std::fmt;
 pub type Bk = isize;
 
 pub enum Kid {
-    Empty,
-    Requested,
-    Waiting(Bk),
-    Dataized(Data),
+    Empt,
+    Rqtd,
+    Need,
+    Wait(Bk, Loc),
+    Dtzd(Data),
 }
 
 pub struct Basket {
@@ -62,15 +63,15 @@ impl Basket {
     }
 
     pub fn request(&mut self, loc: Loc) {
-        self.kids.insert(loc, Kid::Requested);
+        self.kids.insert(loc, Kid::Rqtd);
     }
 
-    pub fn wait(&mut self, loc: Loc, bk: Bk) {
-        self.kids.insert(loc, Kid::Waiting(bk));
+    pub fn wait(&mut self, loc: Loc, bk: Bk, tloc: Loc) {
+        self.kids.insert(loc, Kid::Wait(bk, tloc));
     }
 
     pub fn dataize(&mut self, loc: Loc, d: Data) {
-        self.kids.insert(loc, Kid::Dataized(d));
+        self.kids.insert(loc, Kid::Dtzd(d));
     }
 }
 
@@ -93,10 +94,11 @@ impl fmt::Display for Basket {
 impl fmt::Display for Kid {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.write_str(&match self {
-            Kid::Empty => "→∅".to_string(),
-            Kid::Requested => "→?".to_string(),
-            Kid::Waiting(bk) => format!("⇉β{}.φ", bk),
-            Kid::Dataized(d) => format!("⇶0x{:04X}", d),
+            Kid::Empt => "→∅".to_string(),
+            Kid::Rqtd => "→?".to_string(),
+            Kid::Need => "→!".to_string(),
+            Kid::Wait(bk, loc) => format!("⇉β{}.{}", bk, loc),
+            Kid::Dtzd(d) => format!("⇶0x{:04X}", d),
         })
     }
 }
@@ -105,7 +107,7 @@ impl fmt::Display for Kid {
 fn makes_simple_basket() {
     let mut basket = Basket::start(0, 0);
     basket.dataize(Loc::Delta, 42);
-    if let Kid::Dataized(d) = basket.kids.get(&Loc::Delta).unwrap() {
+    if let Kid::Dtzd(d) = basket.kids.get(&Loc::Delta).unwrap() {
         assert_eq!(42, *d);
     }
 }
@@ -114,6 +116,6 @@ fn makes_simple_basket() {
 fn prints_itself() {
     let mut basket = Basket::start(5, 7);
     basket.dataize(Loc::Delta, 42);
-    basket.wait(Loc::Rho, 42);
+    basket.wait(Loc::Rho, 42, Loc::Phi);
     assert_eq!("[ν5, ξ:β7, Δ⇶0x002A, ρ⇉β42.φ]", basket.to_string());
 }

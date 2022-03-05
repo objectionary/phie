@@ -29,6 +29,7 @@ pub enum Transition {
     NEW,
     DLG,
     PPG,
+    FND,
 }
 
 pub struct Perf {

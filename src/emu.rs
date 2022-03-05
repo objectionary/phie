@@ -124,7 +124,7 @@ impl Emu {
             opts: HashSet::new(),
         };
         let mut basket = Basket::start(0, 0);
-        basket.kids.insert(Loc::Phi, Kid::Requested);
+        basket.kids.insert(Loc::Phi, Kid::Rqtd);
         emu.baskets[0] = basket;
         emu
     }
@@ -147,12 +147,12 @@ impl Emu {
     /// Copy data from object to basket.
     pub fn copy(&mut self, perf: &mut Perf, bk: Bk) {
         let bsk = self.basket(bk);
-        if let Some(Kid::Requested) = bsk.kids.get(&Loc::Phi) {
+        if let Some(Kid::Rqtd) = bsk.kids.get(&Loc::Phi) {
             let obj = self.object(bsk.ob);
             if let Some(d) = obj.delta {
                 let _ = &self.baskets[bk as usize]
                     .kids
-                    .insert(Loc::Phi, Kid::Dataized(d));
+                    .insert(Loc::Phi, Kid::Dtzd(d));
                 trace!("copy(β{}) -> 0x{:04X}", bk, d);
                 perf.hit(Transition::CPY);
             }
@@ -161,17 +161,17 @@ impl Emu {
     }
 
     /// Propagate the value from this attribute to the one expecting it.
-    pub fn propagate(&mut self, perf: &mut Perf, bk: Bk) {
+    pub fn propagate(&mut self, perf: &mut Perf, bk: Bk, loc: Loc) {
         let mut changes = vec![];
-        if let Some(Kid::Dataized(d)) = self.basket(bk).kids.get(&Loc::Phi) {
+        if let Some(Kid::Dtzd(d)) = self.basket(bk).kids.get(&loc) {
             for i in 0..self.baskets.len() {
                 let bsk = self.basket(i as Bk);
                 if bsk.is_empty() {
                     continue;
                 }
                 for k in bsk.kids.keys() {
-                    if let Some(Kid::Waiting(b)) = &bsk.kids.get(k) {
-                        if *b == bk {
+                    if let Some(Kid::Wait(b, l)) = &bsk.kids.get(k) {
+                        if *b == bk && *l == loc {
                             changes.push((i as Bk, k.clone(), *d));
                         }
                     }
@@ -182,8 +182,8 @@ impl Emu {
         for (b, l, d) in changes.iter() {
             let _ = &self.baskets[*b as usize]
                 .kids
-                .insert(l.clone(), Kid::Dataized(*d));
-            trace!("propagate(β{}) : 0x{:04X} to β{}.{}", bk, *d, b, l);
+                .insert(l.clone(), Kid::Dtzd(*d));
+            trace!("propagate(β{}, {}) : 0x{:04X} to β{}.{}", bk, loc, *d, b, l);
             perf.hit(Transition::PPG);
         }
         perf.tick(Transition::PPG);
@@ -192,7 +192,7 @@ impl Emu {
     /// Delete the basket if it's already finished.
     pub fn delete(&mut self, perf: &mut Perf, bk: Bk) {
         if bk != ROOT_BK {
-            if let Some(Kid::Dataized(_)) = self.basket(bk).kids.get(&Loc::Phi) {
+            if let Some(Kid::Dtzd(_)) = self.basket(bk).kids.get(&Loc::Phi) {
                 let mut waiting = false;
                 for i in 0..self.baskets.len() {
                     let bsk = self.basket(i as Bk);
@@ -201,7 +201,7 @@ impl Emu {
                     }
                     perf.tick(Transition::DEL);
                     for k in bsk.kids.keys() {
-                        if let Some(Kid::Waiting(b)) = &bsk.kids.get(k) {
+                        if let Some(Kid::Wait(b, _)) = &bsk.kids.get(k) {
                             if *b == bk {
                                 waiting = true
                             }
@@ -224,11 +224,11 @@ impl Emu {
     /// Give control to the atom of the basket.
     pub fn delegate(&mut self, perf: &mut Perf, bk: Bk) {
         let bsk = self.basket(bk);
-        if let Some(Kid::Requested) = bsk.kids.get(&Loc::Phi) {
+        if let Some(Kid::Rqtd) = bsk.kids.get(&Loc::Phi) {
             if bsk
                 .kids
                 .values()
-                .find(|k| matches!(k, Kid::Waiting(_)))
+                .find(|k| matches!(k, Kid::Wait(_, _)))
                 .is_none()
             {
                 let obj = self.object(bsk.ob);
@@ -238,7 +238,7 @@ impl Emu {
                         perf.atom(name);
                         let _ = &self.baskets[bk as usize]
                             .kids
-                            .insert(Loc::Phi, Kid::Dataized(d));
+                            .insert(Loc::Phi, Kid::Dtzd(d));
                         trace!("delegate(β{}) -> 0x{:04X}", bk, d);
                         perf.hit(Transition::DLG);
                     }
@@ -249,13 +249,47 @@ impl Emu {
     }
 
     /// Make new basket for this attribute.
+    pub fn find(&mut self, perf: &mut Perf, bk: Bk, loc: Loc) {
+        if let Some(Kid::Rqtd) = self.basket(bk).kids.get(&loc) {
+            let ob = self.basket(bk).ob;
+            let obj = self.object(ob);
+            if let Some((locator, _)) = obj.attrs.get(&loc) {
+                let (_tob, _psi, attr) = self
+                    .search(bk, locator)
+                    .expect(&format!("Can't find {} from β{}/ν{}", locator, bk, ob));
+                if let Some((pbk, ploc)) = attr {
+                    let bsk = self.basket(pbk);
+                    if let Some(Kid::Empt) = bsk.kids.get(&ploc) {
+                        let _ = &self.baskets[pbk as usize]
+                            .kids
+                            .insert(ploc.clone(), Kid::Wait(bk, loc.clone()));
+                        let _ = &self.baskets[bk as usize]
+                            .kids
+                            .insert(loc.clone(), Kid::Need);
+                    } else {
+                        let _ = &self.baskets[bk as usize]
+                            .kids
+                            .insert(loc.clone(), Kid::Wait(pbk, ploc.clone()));
+                    }
+                } else {
+                    let _ = &self.baskets[bk as usize]
+                        .kids
+                        .insert(loc.clone(), Kid::Need);
+                }
+                perf.hit(Transition::FND);
+            }
+        }
+        perf.tick(Transition::FND);
+    }
+
+    /// Make new basket for this attribute.
     pub fn new(&mut self, perf: &mut Perf, bk: Bk, loc: Loc) {
-        if let Some(Kid::Requested) = self.basket(bk).kids.get(&loc) {
+        if let Some(Kid::Need) = self.basket(bk).kids.get(&loc) {
             let ob = self.basket(bk).ob;
             let obj = self.object(ob);
             if let Some((locator, advice)) = obj.attrs.get(&loc) {
-                let (tob, psi) = self
-                    .find(bk, locator)
+                let (tob, psi, _attr) = self
+                    .search(bk, locator)
                     .expect(&format!("Can't find {} from β{}/ν{}", locator, bk, ob));
                 let tpsi = if *advice { bk } else { psi };
                 let nbk = if let Some(ebk) = self.stashed(tob, tpsi) {
@@ -266,13 +300,16 @@ impl Emu {
                         .baskets
                         .iter()
                         .find_position(|b| b.is_empty())
-                        .expect("No more empty baskets left")
+                        .expect(
+                            format!("No more empty baskets left in the pool of {}", MAX_BASKETS)
+                                .as_str(),
+                        )
                         .0 as Bk;
                     let mut bsk = Basket::start(tob, tpsi);
                     for k in self.object(tob).attrs.keys() {
-                        bsk.kids.insert(k.clone(), Kid::Empty);
+                        bsk.kids.insert(k.clone(), Kid::Empt);
                     }
-                    bsk.kids.insert(Loc::Phi, Kid::Requested);
+                    bsk.kids.insert(Loc::Phi, Kid::Rqtd);
                     self.baskets[id as usize] = bsk;
                     trace!("new(β{}/ν{}, {}) -> β{} created", bk, ob, loc, id);
                     id
@@ -280,7 +317,7 @@ impl Emu {
                 perf.hit(Transition::NEW);
                 let _ = &self.baskets[bk as usize]
                     .kids
-                    .insert(loc.clone(), Kid::Waiting(nbk));
+                    .insert(loc.clone(), Kid::Wait(nbk, Loc::Phi));
             }
         }
         perf.tick(Transition::NEW);
@@ -290,23 +327,24 @@ impl Emu {
     pub fn read(&mut self, bk: Bk, loc: Loc) -> Option<Data> {
         match self.basket(bk).kids.get(&loc) {
             None => panic!("Can't find {} in β{}:\n{}", loc, bk, self),
-            Some(Kid::Empty) => {
+            Some(Kid::Empt) => {
                 let _ = &self.baskets[bk as usize]
                     .kids
-                    .insert(loc.clone(), Kid::Requested);
+                    .insert(loc.clone(), Kid::Rqtd);
                 trace!("read(β{}, {}): was empty, requested", bk, loc);
                 None
             }
-            Some(Kid::Waiting(_)) | Some(Kid::Requested) => None,
-            Some(Kid::Dataized(d)) => Some(*d),
+            Some(Kid::Need) | Some(Kid::Wait(_, _)) | Some(Kid::Rqtd) => None,
+            Some(Kid::Dtzd(d)) => Some(*d),
         }
     }
 
     /// Suppose, the incoming locator is `^.0.@.2`. We have to find the right
     /// object in the catalog of them and return the position of the found one
     /// together with the suggested \psi.
-    fn find(&self, bk: Bk, locator: &Locator) -> Result<(Ob, Bk), String> {
+    fn search(&self, bk: Bk, locator: &Locator) -> Result<(Ob, Bk, Option<(Bk, Loc)>), String> {
         let mut bsk = self.basket(bk);
+        let mut attr = None;
         let mut locs = locator.to_vec();
         let mut ret = Err("Nothing found".to_string());
         let mut ob = 0;
@@ -325,6 +363,7 @@ impl Emu {
                         return Err(format!("Object Φ doesn't have ξ: {}", join!(log)));
                     }
                     psi = bsk.psi;
+                    attr = Some((psi, Loc::Root));
                     bsk = self.basket(psi);
                     log.push(format!("ξ=β{}/ν{}", psi, bsk.ob));
                     bsk.ob
@@ -341,13 +380,15 @@ impl Emu {
                             ))
                         }
                         Some((p, _psi)) => {
-                            locs.insert(0, loc);
+                            locs.insert(0, loc.clone());
+                            attr = Some((attr.unwrap().0, loc));
                             locs.splice(0..0, p.to_vec());
                             log.push(format!("++{}", p));
                             ob
                         }
                     },
                     Some((p, _psi)) => {
+                        attr = Some((attr.unwrap().0, loc.clone()));
                         locs.splice(0..0, p.to_vec());
                         log.push(format!("+{}", p));
                         ob
@@ -355,9 +396,9 @@ impl Emu {
                 },
             };
             ob = next;
-            ret = Ok((next, psi))
+            ret = Ok((next, psi, attr.clone()))
         };
-        if let Ok((next, _psi)) = ret {
+        if let Ok((next, _psi, _attr)) = ret.clone() {
             if self.object(next).is_empty() {
                 return Err(format!(
                     "Object ν{} is found by β{}.{}, but it's empty",
@@ -366,13 +407,18 @@ impl Emu {
             }
         }
         trace!(
-            "find(β{}/ν{}, {}) -> (ν{}, β{}) : {}",
+            "find(β{}/ν{}, {}) -> (ν{}, β{}) : {} {}",
             bk,
             self.basket(bk).ob,
             locator,
             ret.clone().unwrap().0,
             ret.clone().unwrap().1,
-            join!(log)
+            join!(log),
+            if let Some((bk, loc)) = ret.clone().unwrap().2 {
+                format!("[β{}.{}]", bk, loc)
+            } else {
+                "".to_string()
+            }
         );
         ret
     }
@@ -432,7 +478,7 @@ impl Emu {
                 );
             }
             perf.cycles += 1;
-            if let Some(Kid::Dataized(d)) = self.basket(ROOT_BK).kids.get(&Loc::Phi) {
+            if let Some(Kid::Dtzd(d)) = self.basket(ROOT_BK).kids.get(&Loc::Phi) {
                 debug!(
                     "dataize() -> 0x{:04X} in {:?}\n{}\n{}",
                     *d,
@@ -458,8 +504,13 @@ impl Emu {
         if !self.opts.contains(&Opt::DontDelete) {
             self.cycle_one(perf, |s, p, bk| s.delete(p, bk));
         }
-        self.cycle_one(perf, |s, p, bk| s.propagate(p, bk));
-        self.cycle_one(perf, |s, p, bk| s.new_all(p, bk));
+        self.cycle_one(perf, |s, p, bk| {
+            for loc in s.locs(bk) {
+                s.propagate(p, bk, loc.clone());
+                s.find(p, bk, loc.clone());
+                s.new(p, bk, loc);
+            }
+        });
     }
 
     fn cycle_one(&mut self, perf: &mut Perf, f: fn(&mut Emu, &mut Perf, Bk)) {
@@ -469,12 +520,6 @@ impl Emu {
                 continue;
             }
             f(self, perf, bk);
-        }
-    }
-
-    fn new_all(&mut self, perf: &mut Perf, bk: Bk) {
-        for loc in self.locs(bk) {
-            self.new(perf, bk, loc.clone());
         }
     }
 
@@ -901,9 +946,9 @@ pub fn recursive_fibonacci() {
             ν2 ↦ ⟦ φ ↦ ν3(ξ), 𝛼0 ↦ ν1 ⟧
             ν3 ↦ ⟦ φ ↦ ν13 ⟧
             ν5 ↦ ⟦ Δ ↦ 0x0002 ⟧
-            ν6 ↦ ⟦! λ ↦ int-sub, ρ ↦ ξ.ξ.𝛼0, 𝛼0 ↦ ν5 ⟧
+            ν6 ↦ ⟦ λ ↦ int-sub, ρ ↦ ξ.ξ.𝛼0, 𝛼0 ↦ ν5 ⟧
             ν7 ↦ ⟦ Δ ↦ 0x0001 ⟧
-            ν8 ↦ ⟦! λ ↦ int-sub, ρ ↦ ξ.ξ.𝛼0, 𝛼0 ↦ ν7 ⟧
+            ν8 ↦ ⟦ λ ↦ int-sub, ρ ↦ ξ.ξ.𝛼0, 𝛼0 ↦ ν7 ⟧
             ν9 ↦ ⟦ φ ↦ ν3(ξ), 𝛼0 ↦ ν8 ⟧
             ν10 ↦ ⟦ φ ↦ ν3(ξ), 𝛼0 ↦ ν6 ⟧
             ν11 ↦ ⟦ λ ↦ int-add, ρ ↦ ν9, 𝛼0 ↦ ν10 ⟧
@@ -915,12 +960,12 @@ pub fn recursive_fibonacci() {
         .as_str(),
     )
     .unwrap();
-    // emu.opt(Opt::LogSnapshots);
     let dtz = emu.dataize();
     assert_eq!(fibo(input), dtz.0, "Wrong number calculated");
     let perf = dtz.1;
-    assert!(
-        perf.total_atoms() < fibo_ops(input),
+    assert_eq!(
+        perf.total_atoms(),
+        fibo_ops(input),
         "Too many atomic operations"
     );
 }
