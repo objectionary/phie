@@ -43,6 +43,7 @@ const MAX_BASKETS: usize = 128;
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Opt {
     DontDelete,
+    LogSnapshots,
     StopWhenTooManyCycles,
     StopWhenStuck,
 }
@@ -411,9 +412,17 @@ impl Emu {
         let mut perf = Perf::new();
         let time = Instant::now();
         loop {
-            let start = perf.total_hits();
+            let before = perf.total_hits();
             self.cycle(&mut perf);
-            if self.opts.contains(&Opt::StopWhenStuck) && start == perf.total_hits() {
+            if self.opts.contains(&Opt::LogSnapshots) {
+                debug!(
+                    "dataize() +{} hits in cycle #{}:\n{}",
+                    perf.total_hits() - before,
+                    cycles,
+                    self
+                );
+            }
+            if self.opts.contains(&Opt::StopWhenStuck) && before == perf.total_hits() {
                 panic!(
                     "We are stuck, no hits after {}, in the recent cycle #{}:\n{}",
                     perf.total_hits(),
@@ -850,6 +859,7 @@ pub fn recursive_fibonacci() {
     )
     .unwrap();
     emu.opt(Opt::DontDelete);
+    emu.opt(Opt::LogSnapshots);
     let dtz = emu.dataize();
     assert_eq!(fibo(input), dtz.0);
     let perf = dtz.1;
