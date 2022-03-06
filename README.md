@@ -41,7 +41,8 @@ pub fn main() {
         ν3 ↦ ⟦ φ ↦ ν2(ξ), 𝛼0 ↦ ν1, 𝛼1 ↦ ν1 ⟧
         ν5 ↦ ⟦ φ ↦ ν3(ξ) ⟧
     ".parse().unwrap();
-    print!("The result is: {}", emu.cycle());
+    let dtz = emu.dataize();
+    print!("The result is: {}", dtz.0);
 }
 ```
 
