@@ -36,7 +36,7 @@ use std::time::Instant;
 pub const ROOT_BK: Bk = 0;
 pub const ROOT_OB: Ob = 0;
 
-const MAX_CYCLES: usize = 1000;
+const MAX_CYCLES: usize = 65536;
 const MAX_OBJECTS: usize = 32;
 const MAX_BASKETS: usize = 256;
 
@@ -253,10 +253,11 @@ impl Emu {
         if let Some(Kid::Rqtd) = self.basket(bk).kids.get(&loc) {
             let ob = self.basket(bk).ob;
             let obj = self.object(ob);
-            if let Some((locator, _)) = obj.attrs.get(&loc) {
-                let (_tob, _psi, attr) = self
+            if let Some((locator, advice)) = obj.attrs.get(&loc) {
+                let (tob, psi, attr) = self
                     .search(bk, locator)
                     .expect(&format!("Can't find {} from β{}/ν{}", locator, bk, ob));
+                let tpsi = if *advice { bk } else { psi };
                 if let Some((pbk, ploc)) = attr {
                     let bsk = self.basket(pbk);
                     if let Some(Kid::Empt) = bsk.kids.get(&ploc) {
@@ -265,7 +266,7 @@ impl Emu {
                             .insert(ploc.clone(), Kid::Wait(bk, loc.clone()));
                         let _ = &self.baskets[bk as usize]
                             .kids
-                            .insert(loc.clone(), Kid::Need);
+                            .insert(loc.clone(), Kid::Need(tob, tpsi));
                     } else {
                         let _ = &self.baskets[bk as usize]
                             .kids
@@ -274,7 +275,7 @@ impl Emu {
                 } else {
                     let _ = &self.baskets[bk as usize]
                         .kids
-                        .insert(loc.clone(), Kid::Need);
+                        .insert(loc.clone(), Kid::Need(tob, tpsi));
                 }
                 perf.hit(Transition::FND);
             }
@@ -284,41 +285,34 @@ impl Emu {
 
     /// Make new basket for this attribute.
     pub fn new(&mut self, perf: &mut Perf, bk: Bk, loc: Loc) {
-        if let Some(Kid::Need) = self.basket(bk).kids.get(&loc) {
+        if let Some(Kid::Need(tob, psi)) = self.basket(bk).kids.get(&loc) {
             let ob = self.basket(bk).ob;
-            let obj = self.object(ob);
-            if let Some((locator, advice)) = obj.attrs.get(&loc) {
-                let (tob, psi, _attr) = self
-                    .search(bk, locator)
-                    .expect(&format!("Can't find {} from β{}/ν{}", locator, bk, ob));
-                let tpsi = if *advice { bk } else { psi };
-                let nbk = if let Some(ebk) = self.stashed(tob, tpsi) {
-                    trace!("new(β{}/ν{}, {}) -> link to stashed β{}", bk, ob, loc, ebk);
-                    ebk
-                } else {
-                    let id = self
-                        .baskets
-                        .iter()
-                        .find_position(|b| b.is_empty())
-                        .expect(
-                            format!("No more empty baskets left in the pool of {}", MAX_BASKETS)
-                                .as_str(),
-                        )
-                        .0 as Bk;
-                    let mut bsk = Basket::start(tob, tpsi);
-                    for k in self.object(tob).attrs.keys() {
-                        bsk.kids.insert(k.clone(), Kid::Empt);
-                    }
-                    bsk.kids.insert(Loc::Phi, Kid::Rqtd);
-                    self.baskets[id as usize] = bsk;
-                    trace!("new(β{}/ν{}, {}) -> β{} created", bk, ob, loc, id);
-                    id
-                };
-                perf.hit(Transition::NEW);
-                let _ = &self.baskets[bk as usize]
-                    .kids
-                    .insert(loc.clone(), Kid::Wait(nbk, Loc::Phi));
-            }
+            let nbk = if let Some(ebk) = self.stashed(*tob, *psi) {
+                trace!("new(β{}/ν{}, {}) -> link to stashed β{}", bk, ob, loc, ebk);
+                ebk
+            } else {
+                let id = self
+                    .baskets
+                    .iter()
+                    .find_position(|b| b.is_empty())
+                    .expect(
+                        format!("No more empty baskets left in the pool of {}", MAX_BASKETS)
+                            .as_str(),
+                    )
+                    .0 as Bk;
+                let mut bsk = Basket::start(*tob, *psi);
+                for k in self.object(*tob).attrs.keys() {
+                    bsk.kids.insert(k.clone(), Kid::Empt);
+                }
+                bsk.kids.insert(Loc::Phi, Kid::Rqtd);
+                self.baskets[id as usize] = bsk;
+                trace!("new(β{}/ν{}, {}) -> β{} created", bk, ob, loc, id);
+                id
+            };
+            perf.hit(Transition::NEW);
+            let _ = &self.baskets[bk as usize]
+                .kids
+                .insert(loc.clone(), Kid::Wait(nbk, Loc::Phi));
         }
         perf.tick(Transition::NEW);
     }
@@ -334,7 +328,7 @@ impl Emu {
                 trace!("read(β{}, {}): was empty, requested", bk, loc);
                 None
             }
-            Some(Kid::Need) | Some(Kid::Wait(_, _)) | Some(Kid::Rqtd) => None,
+            Some(Kid::Need(_, _)) | Some(Kid::Wait(_, _)) | Some(Kid::Rqtd) => None,
             Some(Kid::Dtzd(d)) => Some(*d),
         }
     }

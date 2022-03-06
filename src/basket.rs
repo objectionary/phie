@@ -30,7 +30,7 @@ pub type Bk = isize;
 pub enum Kid {
     Empt,
     Rqtd,
-    Need,
+    Need(Ob, Bk),
     Wait(Bk, Loc),
     Dtzd(Data),
 }
@@ -96,7 +96,7 @@ impl fmt::Display for Kid {
         f.write_str(&match self {
             Kid::Empt => "→∅".to_string(),
             Kid::Rqtd => "→?".to_string(),
-            Kid::Need => "→!".to_string(),
+            Kid::Need(ob, bk) => format!("→ν{}:β{}", ob, bk),
             Kid::Wait(bk, loc) => format!("⇉β{}.{}", bk, loc),
             Kid::Dtzd(d) => format!("⇶0x{:04X}", d),
         })
