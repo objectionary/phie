@@ -144,6 +144,24 @@ impl Emu {
         self
     }
 
+    /// Read data if available.
+    pub fn read(&mut self, bk: Bk, loc: Loc) -> Option<Data> {
+        match self.basket(bk).kids.get(&loc) {
+            None => panic!("Can't find {} in β{}:\n{}", loc, bk, self),
+            Some(Kid::Empt) => {
+                let _ = &self.baskets[bk as usize]
+                    .kids
+                    .insert(loc.clone(), Kid::Rqtd);
+                trace!("read(β{}, {}): was empty, requested", bk, loc);
+                None
+            }
+            Some(Kid::Need(_, _)) | Some(Kid::Wait(_, _)) | Some(Kid::Rqtd) => None,
+            Some(Kid::Dtzd(d)) => Some(*d),
+        }
+    }
+}
+
+impl Emu {
     /// Copy data from object to basket.
     pub fn copy(&mut self, perf: &mut Perf, bk: Bk) {
         let bsk = self.basket(bk);
@@ -315,22 +333,6 @@ impl Emu {
                 .insert(loc.clone(), Kid::Wait(nbk, Loc::Phi));
         }
         perf.tick(Transition::NEW);
-    }
-
-    /// Read data if available.
-    pub fn read(&mut self, bk: Bk, loc: Loc) -> Option<Data> {
-        match self.basket(bk).kids.get(&loc) {
-            None => panic!("Can't find {} in β{}:\n{}", loc, bk, self),
-            Some(Kid::Empt) => {
-                let _ = &self.baskets[bk as usize]
-                    .kids
-                    .insert(loc.clone(), Kid::Rqtd);
-                trace!("read(β{}, {}): was empty, requested", bk, loc);
-                None
-            }
-            Some(Kid::Need(_, _)) | Some(Kid::Wait(_, _)) | Some(Kid::Rqtd) => None,
-            Some(Kid::Dtzd(d)) => Some(*d),
-        }
     }
 
     /// Suppose, the incoming locator is `^.0.@.2`. We have to find the right
