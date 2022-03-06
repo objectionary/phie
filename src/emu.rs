@@ -18,6 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+mod dataization;
 mod tests;
 mod transitions;
 
@@ -25,19 +26,16 @@ use crate::basket::{Basket, Bk, Kid};
 use crate::data::Data;
 use crate::loc::Loc;
 use crate::object::{Ob, Object};
-use crate::perf::Perf;
 use arr_macro::arr;
-use log::{debug, trace};
+use log::trace;
 use regex::Regex;
 use std::collections::HashSet;
 use std::fmt;
 use std::str::FromStr;
-use std::time::Instant;
 
 pub const ROOT_BK: Bk = 0;
 pub const ROOT_OB: Ob = 0;
 
-const MAX_CYCLES: usize = 65536;
 const MAX_OBJECTS: usize = 32;
 const MAX_BASKETS: usize = 256;
 
@@ -153,87 +151,5 @@ impl Emu {
             Some(Kid::Need(_, _)) | Some(Kid::Wait(_, _)) | Some(Kid::Rqtd) => None,
             Some(Kid::Dtzd(d)) => Some(*d),
         }
-    }
-}
-
-impl Emu {
-    /// Dataize the first object.
-    pub fn dataize(&mut self) -> (Data, Perf) {
-        let mut cycles = 0;
-        let mut perf = Perf::new();
-        let time = Instant::now();
-        loop {
-            let before = perf.total_hits();
-            self.cycle(&mut perf);
-            perf.peak(self.baskets.iter().filter(|bsk| !bsk.is_empty()).count());
-            if self.opts.contains(&Opt::LogSnapshots) {
-                debug!(
-                    "dataize() +{} hits in cycle #{}:\n{}",
-                    perf.total_hits() - before,
-                    cycles,
-                    self
-                );
-            }
-            if self.opts.contains(&Opt::StopWhenStuck) && before == perf.total_hits() {
-                panic!(
-                    "We are stuck, no hits after {}, in the recent cycle #{}:\n{}",
-                    perf.total_hits(),
-                    cycles,
-                    self
-                );
-            }
-            perf.cycles += 1;
-            if let Some(Kid::Dtzd(d)) = self.basket(ROOT_BK).kids.get(&Loc::Phi) {
-                debug!(
-                    "dataize() -> 0x{:04X} in {:?}\n{}\n{}",
-                    *d,
-                    time.elapsed(),
-                    perf,
-                    self
-                );
-                return (*d, perf);
-            }
-            cycles += 1;
-            if self.opts.contains(&Opt::StopWhenTooManyCycles) && cycles > MAX_CYCLES {
-                panic!(
-                    "Too many cycles ({}), most probably endless recursion:\n{}",
-                    cycles, self
-                );
-            }
-        }
-    }
-
-    fn cycle(&mut self, perf: &mut Perf) {
-        self.cycle_one(perf, |s, p, bk| s.copy(p, bk));
-        self.cycle_one(perf, |s, p, bk| s.delegate(p, bk));
-        if !self.opts.contains(&Opt::DontDelete) {
-            self.cycle_one(perf, |s, p, bk| s.delete(p, bk));
-        }
-        self.cycle_one(perf, |s, p, bk| {
-            for loc in s.locs(bk) {
-                s.propagate(p, bk, loc.clone());
-                s.find(p, bk, loc.clone());
-                s.new(p, bk, loc);
-            }
-        });
-    }
-
-    fn cycle_one(&mut self, perf: &mut Perf, f: fn(&mut Emu, &mut Perf, Bk)) {
-        for i in 0..self.baskets.len() {
-            let bk = i as Bk;
-            if self.basket(bk).is_empty() {
-                continue;
-            }
-            f(self, perf, bk);
-        }
-    }
-
-    /// Take all locs from the given basket.
-    fn locs(&self, bk: Bk) -> Vec<Loc> {
-        let mut keys = vec![];
-        for (k, _) in &self.basket(bk).kids {
-            keys.push(k.clone());
-        }
-        keys
     }
 }
