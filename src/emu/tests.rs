@@ -19,7 +19,10 @@
 // SOFTWARE.
 
 #[cfg(test)]
-use crate::emu::{Emu, Opt, Transition};
+use crate::emu::{Emu, Opt};
+
+#[cfg(test)]
+use crate::perf::Transition;
 
 #[cfg(test)]
 use crate::loc::Loc;
