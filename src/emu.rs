@@ -455,6 +455,7 @@ impl Emu {
         loop {
             let before = perf.total_hits();
             self.cycle(&mut perf);
+            perf.peak(self.baskets.iter().filter(|bsk| !bsk.is_empty()).count());
             if self.opts.contains(&Opt::LogSnapshots) {
                 debug!(
                     "dataize() +{} hits in cycle #{}:\n{}",

@@ -34,6 +34,7 @@ pub enum Transition {
 
 pub struct Perf {
     pub cycles: usize,
+    pub peak: usize,
     pub atoms: HashMap<String, usize>,
     pub hits: HashMap<Transition, usize>,
     pub ticks: HashMap<Transition, usize>,
@@ -46,6 +47,7 @@ impl Perf {
             ticks: HashMap::new(),
             hits: HashMap::new(),
             cycles: 0,
+            peak: 0,
         }
     }
 
@@ -59,6 +61,12 @@ impl Perf {
 
     pub fn atom(&mut self, a: String) {
         *self.atoms.entry(a).or_insert(0) += 1;
+    }
+
+    pub fn peak(&mut self, s: usize) {
+        if self.peak < s {
+            self.peak = s
+        }
     }
 
     pub fn total_hits(&self) -> usize {
@@ -91,6 +99,7 @@ impl fmt::Display for Perf {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut lines = vec![];
         lines.push(format!("Cycles: {}", self.cycles));
+        lines.push(format!("Peak: {}", self.peak));
         print!(lines, "Atoms", self.atoms, self.total_atoms());
         print!(lines, "Ticks", self.ticks, self.total_ticks());
         print!(lines, "Hits", self.hits, self.total_hits());
