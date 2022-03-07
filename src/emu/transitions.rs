@@ -81,34 +81,35 @@ impl Emu {
 
     /// Delete the basket if it's already finished.
     pub fn delete(&mut self, perf: &mut Perf, bk: Bk) {
-        if bk != ROOT_BK {
-            if let Some(Kid::Dtzd(_)) = self.basket(bk).kids.get(&Loc::Phi) {
-                let mut waiting = false;
-                for i in 0..self.baskets.len() {
-                    let bsk = self.basket(i as Bk);
-                    if bsk.is_empty() {
-                        continue;
-                    }
-                    perf.tick(Transition::DEL);
-                    for k in bsk.kids.keys() {
-                        if let Some(Kid::Wait(b, _)) = &bsk.kids.get(k) {
-                            if *b == bk {
-                                waiting = true
-                            }
+        if bk == ROOT_BK {
+            return;
+        }
+        if let Some(Kid::Dtzd(_)) = self.basket(bk).kids.get(&Loc::Phi) {
+            let mut waiting = false;
+            for i in 0..self.baskets.len() {
+                let bsk = self.basket(i as Bk);
+                if bsk.is_empty() {
+                    continue;
+                }
+                perf.tick(Transition::DEL);
+                for k in bsk.kids.keys() {
+                    if let Some(Kid::Wait(b, _)) = &bsk.kids.get(k) {
+                        if *b == bk {
+                            waiting = true
                         }
                     }
                 }
-                if !waiting {
-                    let obj = self.object(self.basket(bk).ob);
-                    if !obj.constant {
-                        self.baskets[bk as usize] = Basket::empty();
-                        trace!("delete(β{})", bk);
-                        perf.hit(Transition::DEL);
-                    }
+            }
+            if !waiting {
+                let obj = self.object(self.basket(bk).ob);
+                if !obj.constant {
+                    self.baskets[bk as usize] = Basket::empty();
+                    trace!("delete(β{})", bk);
+                    perf.hit(Transition::DEL);
                 }
             }
-            perf.tick(Transition::DEL);
         }
+        perf.tick(Transition::DEL);
     }
 
     /// Give control to the atom of the basket.

@@ -36,8 +36,8 @@ use std::str::FromStr;
 pub const ROOT_BK: Bk = 0;
 pub const ROOT_OB: Ob = 0;
 
-const MAX_OBJECTS: usize = 32;
-const MAX_BASKETS: usize = 256;
+const MAX_OBJECTS: usize = 16;
+const MAX_BASKETS: usize = 128;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Opt {
@@ -112,8 +112,8 @@ impl Emu {
     /// additional objects.
     pub fn empty() -> Emu {
         let mut emu = Emu {
-            objects: arr![Object::open(); 32],
-            baskets: arr![Basket::empty(); 256],
+            objects: arr![Object::open(); 16],
+            baskets: arr![Basket::empty(); 128],
             opts: HashSet::new(),
         };
         let mut basket = Basket::start(0, 0);
