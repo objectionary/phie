@@ -22,8 +22,11 @@ use crate::data::Data;
 use crate::loc::Loc;
 use crate::object::Ob;
 use itertools::Itertools;
+use regex::Regex;
+use rstest::rstest;
 use std::collections::HashMap;
 use std::fmt;
+use std::str::FromStr;
 
 pub type Bk = isize;
 
@@ -103,6 +106,63 @@ impl fmt::Display for Kid {
     }
 }
 
+impl FromStr for Basket {
+    type Err = String;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let re = Regex::new("\\[(.*)]").unwrap();
+        let mut bsk = Basket::empty();
+        let parts: Vec<&str> = re
+            .captures(s)
+            .expect(format!("Can't parse the basket: '{}'", s).as_str())
+            .get(1)
+            .expect(format!("Can't find the matcher inside '{}'", s).as_str())
+            .as_str()
+            .trim()
+            .split(",")
+            .map(|t| t.trim())
+            .collect();
+        let ob: String = parts.get(0).unwrap().chars().skip(1).collect();
+        bsk.ob = ob.parse().expect("Can't parse the v part");
+        let psi: String = parts.get(1).unwrap().chars().skip(3).collect();
+        bsk.psi = psi.parse().expect("Can't parse the psi part");
+        let pre = Regex::new("(.*)(⇶0x|⇉β|→ν|→∅|→\\?)(.*)").unwrap();
+        for p in parts.iter().skip(2) {
+            let caps = pre.captures(p).unwrap();
+            let kid = match caps.get(2).unwrap().as_str() {
+                "→∅" => Kid::Empt,
+                "⇶0x" => {
+                    Kid::Dtzd(Data::from_str_radix(caps.get(3).unwrap().as_str(), 16).unwrap())
+                }
+                "⇉β" => {
+                    let (b, a) = caps
+                        .get(3)
+                        .unwrap()
+                        .as_str()
+                        .split(".")
+                        .collect_tuple()
+                        .unwrap();
+                    Kid::Wait(b.parse().unwrap(), Loc::from_str(a).unwrap())
+                }
+                "→ν" => {
+                    let (o, p) = caps
+                        .get(3)
+                        .unwrap()
+                        .as_str()
+                        .split(".")
+                        .collect_tuple()
+                        .unwrap();
+                    Kid::Need(o.parse().unwrap(), p.parse().unwrap())
+                }
+                "→?" => Kid::Rqtd,
+                _ => panic!("Oops"),
+            };
+            bsk.kids
+                .insert(Loc::from_str(caps.get(1).unwrap().as_str()).unwrap(), kid);
+        }
+        Ok(bsk)
+    }
+}
+
 #[test]
 fn makes_simple_basket() {
     let mut basket = Basket::start(0, 0);
@@ -118,4 +178,18 @@ fn prints_itself() {
     basket.dataize(Loc::Delta, 42);
     basket.wait(Loc::Rho, 42, Loc::Phi);
     assert_eq!("[ν5, ξ:β7, Δ⇶0x002A, ρ⇉β42.φ]", basket.to_string());
+}
+
+#[rstest]
+#[case("[ν5, ξ:β7, Δ⇶0x002A, ρ⇉β42.φ]")]
+fn parses_text(#[case] txt: &str) {
+    let basket = Basket::from_str(txt).unwrap();
+    assert_eq!(txt, basket.to_string());
+}
+
+#[test]
+fn parses() {
+    let txt = "[ν5, ξ:β7, Δ⇶0x002A, ρ⇉β42.φ]";
+    let basket = Basket::from_str(txt).unwrap();
+    assert_eq!(txt, basket.to_string());
 }

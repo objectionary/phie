@@ -20,6 +20,7 @@
 
 mod dataization;
 mod tests;
+mod tests_transitions;
 mod transitions;
 
 use crate::basket::{Basket, Bk, Kid};
@@ -134,6 +135,17 @@ impl Emu {
             ob
         );
         self.objects[ob] = obj;
+        self
+    }
+
+    /// Inject a basket
+    pub fn inject(&mut self, bk: Bk, bsk: Basket) -> &mut Emu {
+        assert!(
+            self.baskets[bk as usize].is_empty(),
+            "The basket β{} already occupied",
+            bk
+        );
+        self.baskets[bk as usize] = bsk;
         self
     }
 
