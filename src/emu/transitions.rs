@@ -84,30 +84,38 @@ impl Emu {
         if bk == ROOT_BK {
             return;
         }
-        if let Some(Kid::Dtzd(_)) = self.basket(bk).kids.get(&Loc::Phi) {
-            let mut waiting = false;
-            for i in 0..self.baskets.len() {
-                let bsk = self.basket(i as Bk);
-                if bsk.is_empty() {
-                    continue;
-                }
-                perf.tick(Transition::DEL);
-                for k in bsk.kids.keys() {
-                    if let Some(Kid::Wait(b, _)) = &bsk.kids.get(k) {
-                        if *b == bk {
-                            waiting = true
+        let bsk = self.basket(bk);
+        let obj = self.object(bsk.ob);
+        if obj.constant {
+            return;
+        }
+        let mut ready = true;
+        for kid in bsk.kids.values() {
+            if !matches!(kid, Kid::Empt) && !matches!(kid, Kid::Dtzd(_)) {
+                ready = false;
+                break;
+            }
+            if matches!(kid, Kid::Dtzd(_)) {
+                for i in 0..self.baskets.len() {
+                    let wbsk = self.basket(i as Bk);
+                    if wbsk.is_empty() {
+                        continue;
+                    }
+                    perf.tick(Transition::DEL);
+                    for v in wbsk.kids.values() {
+                        if let Kid::Wait(b, _) = v {
+                            if *b == bk {
+                                ready = false
+                            }
                         }
                     }
                 }
             }
-            if !waiting {
-                let obj = self.object(self.basket(bk).ob);
-                if !obj.constant {
-                    self.baskets[bk as usize] = Basket::empty();
-                    trace!("delete(β{})", bk);
-                    perf.hit(Transition::DEL);
-                }
-            }
+        }
+        if ready {
+            self.baskets[bk as usize] = Basket::empty();
+            trace!("delete(β{})", bk);
+            perf.hit(Transition::DEL);
         }
         perf.tick(Transition::DEL);
     }
