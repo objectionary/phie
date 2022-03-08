@@ -31,7 +31,7 @@ use crate::emu::Emu;
 use crate::perf::Perf;
 
 #[test]
-pub fn simple_dataization_cycle() {
+pub fn deletes_one_basket() {
     let mut emu = Emu::empty();
     let bk = 1;
     emu.inject(bk, Basket::from_str("[ν1, ξ:β1, φ⇶0x002A]").unwrap());

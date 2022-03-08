@@ -40,9 +40,7 @@ impl Emu {
         if let Some(Kid::Rqtd) = bsk.kids.get(&Loc::Phi) {
             let obj = self.object(bsk.ob);
             if let Some(d) = obj.delta {
-                let _ = &self.baskets[bk as usize]
-                    .kids
-                    .insert(Loc::Phi, Kid::Dtzd(d));
+                let _ = &self.baskets[bk as usize].put(Loc::Phi, Kid::Dtzd(d));
                 trace!("copy(β{}) -> 0x{:04X}", bk, d);
                 perf.hit(Transition::CPY);
             }
@@ -70,9 +68,7 @@ impl Emu {
             }
         }
         for (b, l, d) in changes.iter() {
-            let _ = &self.baskets[*b as usize]
-                .kids
-                .insert(l.clone(), Kid::Dtzd(*d));
+            let _ = &self.baskets[*b as usize].put(l.clone(), Kid::Dtzd(*d));
             trace!("propagate(β{}, {}) : 0x{:04X} to β{}.{}", bk, loc, *d, b, l);
             perf.hit(Transition::PPG);
         }
@@ -135,9 +131,7 @@ impl Emu {
                     let name = n.clone();
                     if let Some(d) = func(self, bk) {
                         perf.atom(name);
-                        let _ = &self.baskets[bk as usize]
-                            .kids
-                            .insert(Loc::Phi, Kid::Dtzd(d));
+                        let _ = &self.baskets[bk as usize].put(Loc::Phi, Kid::Dtzd(d));
                         trace!("delegate(β{}) -> 0x{:04X}", bk, d);
                         perf.hit(Transition::DLG);
                     }
@@ -161,20 +155,14 @@ impl Emu {
                     let bsk = self.basket(pbk);
                     if let Some(Kid::Empt) = bsk.kids.get(&ploc) {
                         let _ = &self.baskets[pbk as usize]
-                            .kids
-                            .insert(ploc.clone(), Kid::Wait(bk, loc.clone()));
-                        let _ = &self.baskets[bk as usize]
-                            .kids
-                            .insert(loc.clone(), Kid::Need(tob, tpsi));
+                            .put(ploc.clone(), Kid::Wait(bk, loc.clone()));
+                        let _ = &self.baskets[bk as usize].put(loc.clone(), Kid::Need(tob, tpsi));
                     } else {
                         let _ = &self.baskets[bk as usize]
-                            .kids
-                            .insert(loc.clone(), Kid::Wait(pbk, ploc.clone()));
+                            .put(loc.clone(), Kid::Wait(pbk, ploc.clone()));
                     }
                 } else {
-                    let _ = &self.baskets[bk as usize]
-                        .kids
-                        .insert(loc.clone(), Kid::Need(tob, tpsi));
+                    let _ = &self.baskets[bk as usize].put(loc.clone(), Kid::Need(tob, tpsi));
                 }
                 perf.hit(Transition::FND);
             }
@@ -201,17 +189,15 @@ impl Emu {
                     .0 as Bk;
                 let mut bsk = Basket::start(*tob, *psi);
                 for k in self.object(*tob).attrs.keys() {
-                    bsk.kids.insert(k.clone(), Kid::Empt);
+                    bsk.put(k.clone(), Kid::Empt);
                 }
-                bsk.kids.insert(Loc::Phi, Kid::Rqtd);
+                bsk.put(Loc::Phi, Kid::Rqtd);
                 self.baskets[id as usize] = bsk;
                 trace!("new(β{}/ν{}, {}) -> β{} created", bk, ob, loc, id);
                 id
             };
             perf.hit(Transition::NEW);
-            let _ = &self.baskets[bk as usize]
-                .kids
-                .insert(loc.clone(), Kid::Wait(nbk, Loc::Phi));
+            let _ = &self.baskets[bk as usize].put(loc.clone(), Kid::Wait(nbk, Loc::Phi));
         }
         perf.tick(Transition::NEW);
     }
