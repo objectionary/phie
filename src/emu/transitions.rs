@@ -129,11 +129,11 @@ impl Emu {
                 let obj = self.object(bsk.ob);
                 if let Some((n, func)) = &obj.lambda {
                     let name = n.clone();
+                    perf.hit(Transition::DLG);
                     if let Some(d) = func(self, bk) {
                         perf.atom(name);
                         let _ = &self.baskets[bk as usize].put(Loc::Phi, Kid::Dtzd(d));
                         trace!("delegate(β{}) -> 0x{:04X}", bk, d);
-                        perf.hit(Transition::DLG);
                     }
                 }
             }
