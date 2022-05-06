@@ -127,25 +127,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "phie"
-version = "0.0.0"
-dependencies = [
- "arr_macro",
- "assert_cmd",
- "ctor",
- "env_logger",
- "hex",
- "itertools",
- "lazy_static",
- "log",
- "regex",
- "rstest",
- "simple_logger",
- "strum",
- "strum_macros",
-]
-
-[[package]]
 name = "heck"
 version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -224,6 +205,25 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "97ba99ba6393e2c3734791401b66902d981cb03bf190af674ca69949b6d5fb15"
 dependencies = [
  "libc",
+]
+
+[[package]]
+name = "phie"
+version = "0.1.0"
+dependencies = [
+ "arr_macro",
+ "assert_cmd",
+ "ctor",
+ "env_logger",
+ "hex",
+ "itertools",
+ "lazy_static",
+ "log",
+ "regex",
+ "rstest",
+ "simple_logger",
+ "strum",
+ "strum_macros",
 ]
 
 [[package]]
