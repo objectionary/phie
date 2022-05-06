@@ -1,12 +1,12 @@
 [package]
-name = "eoc"
+name = "phie"
 version = "0.0.0"
 edition = "2021"
-repository = "https://github.com/yegor256/eoc"
-description = "EO-to-binaries experimental compiler"
+repository = "https://github.com/objectionary/phie"
+description = "Experimental emulator of a processor that understands 𝜑-calculus expressions"
 readme = "README.md"
 license-file = "LICENSE.txt"
-homepage = "https://github.com/yegor256/eoc"
+homepage = "https://github.com/objectionary/phie"
 keywords = ["eolang", "compiler", "emulator", "oop"]
 categories = ["command-line-utilities"]
 

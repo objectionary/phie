@@ -127,7 +127,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "eoc"
+name = "phie"
 version = "0.0.0"
 dependencies = [
  "arr_macro",

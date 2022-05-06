@@ -3,14 +3,16 @@
 [![EO principles respected here](https://www.elegantobjects.org/badge.svg)](https://www.elegantobjects.org)
 [![We recommend IntelliJ IDEA](https://www.elegantobjects.org/intellij-idea.svg)](https://www.jetbrains.com/idea/)
 
-[![make](https://github.com/yegor256/eoc/actions/workflows/cargo.yml/badge.svg)](https://github.com/yegor256/eoc/actions/workflows/cargo.yml)
-[![crates.io](https://img.shields.io/crates/v/eoc.svg)](https://crates.io/crates/eoc)
-[![PDD status](http://www.0pdd.com/svg?name=yegor256/eoc)](http://www.0pdd.com/p?name=yegor256/eoc)
-[![Hits-of-Code](https://hitsofcode.com/github/yegor256/eoc)](https://hitsofcode.com/view/github/yegor256/eoc)
-![Lines of code](https://img.shields.io/tokei/lines/github/yegor256/eoc)
-[![License](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/yegor256/eoc/blob/master/LICENSE.txt)
+[![make](https://github.com/yegor256/phie/actions/workflows/cargo.yml/badge.svg)](https://github.com/yegor256/phie/actions/workflows/cargo.yml)
+[![crates.io](https://img.shields.io/crates/v/phie.svg)](https://crates.io/crates/phie)
+[![PDD status](http://www.0pdd.com/svg?name=yegor256/phie)](http://www.0pdd.com/p?name=yegor256/phie)
+[![Hits-of-Code](https://hitsofcode.com/github/yegor256/phie)](https://hitsofcode.com/view/github/yegor256/phie)
+![Lines of code](https://img.shields.io/tokei/lines/github/yegor256/phie)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/yegor256/phie/blob/master/LICENSE.txt)
 
-It's an experimental compiler of [EO](https://www.eolang.org) to binaries.
+It's an experimental emulator of a processor that understands
+[𝜑-calculus](https://arxiv.org/abs/2111.13384) expressions, 
+which is the formalism behind [EO](https://www.eolang.org) programming language.
 
 To build it, install [Rust](https://www.rust-lang.org/tools/install) and then:
 
@@ -28,11 +30,10 @@ This will calculate the 7th Fibonacci number 40 times.
 Don't try to play with much larger numbers, this binary code is very slow. It's just an experiment.
 
 To compile your own program instead of this primitive recursive Fibonacci calculator, you have to 
-convert EO code into [𝜑-calculus](https://arxiv.org/abs/2111.13384) terms and then
-pass them to `Emu` struct like this:
+convert EO code into 𝜑-calculus expressions and then pass them to `Emu` struct like this:
 
 ```rust
-use eoc::emu::Emu;
+use phie::emu::Emu;
 pub fn main() {
     let emu: Emu = "
         ν0 ↦ ⟦ φ ↦ ν3 ⟧

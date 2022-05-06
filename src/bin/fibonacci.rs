@@ -18,10 +18,10 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-extern crate eoc;
+extern crate phie;
 
-use eoc::data::Data;
-use eoc::emu::{Emu, Opt};
+use phie::data::Data;
+use phie::emu::{Emu, Opt};
 use std::env;
 
 pub fn fibo(x: Data) -> Data {

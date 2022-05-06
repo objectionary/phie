@@ -80,11 +80,11 @@ impl Object {
     /// first child.
     ///
     /// ```
-    /// use eoc::loc::Loc;
-    /// use eoc::locator::Locator;
-    /// use eoc::object::Object;
+    /// use phie::loc::Loc;
+    /// use phie::locator::Locator;
+    /// use phie::object::Object;
     /// use std::str::FromStr;
-    /// use eoc::ph;
+    /// use phie::ph;
     /// let mut obj = Object::open();
     /// obj.push(Loc::Phi, ph!("v13"), false);
     /// obj.push(Loc::Attr(0), ph!("$.1"), false);
@@ -98,11 +98,11 @@ impl Object {
     /// You can do the same, but with "fluent interface" of the `Object`.
     ///
     /// ```
-    /// use eoc::loc::Loc;
-    /// use eoc::locator::Locator;
-    /// use eoc::object::Object;
+    /// use phie::loc::Loc;
+    /// use phie::locator::Locator;
+    /// use phie::object::Object;
     /// use std::str::FromStr;
-    /// use eoc::ph;
+    /// use phie::ph;
     /// let obj = Object::open()
     ///   .with(Loc::Phi, ph!("v13"), false)
     ///   .with(Loc::Attr(0), ph!("$.1"), false);
