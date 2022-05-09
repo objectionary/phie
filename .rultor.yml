@@ -1,5 +1,5 @@
 assets:
-  credentials: yegor256/home#assets/phie/credentials
+  credentials: objectionary/secrets#crates-credentials
 install: |
   curl https://sh.rustup.rs -sSf | bash -s -- -y
   export PATH=$HOME/.cargo/bin:$PATH
@@ -18,5 +18,5 @@ release:
     sed -i -e "s/^version = \"0.0.0\"/version = \"${tag}\"/" Cargo.toml
     cargo test --color=never
     git commit -am "${tag}"
-    mkdir -p ~/.cargo && cp ../credentials ~/.cargo
+    mkdir -p ~/.cargo && cp ../crates-credentials ~/.cargo
     cargo publish --color=never
