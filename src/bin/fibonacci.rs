@@ -45,6 +45,7 @@ pub fn fibo(x: Data) -> Data {
     )
     .parse()
     .unwrap();
+    emu.opt(Opt::LogSnapshots);
     emu.opt(Opt::StopWhenTooManyCycles);
     emu.opt(Opt::StopWhenStuck);
     emu.dataize().0
