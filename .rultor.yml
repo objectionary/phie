@@ -1,5 +1,5 @@
 assets:
-  credentials: objectionary/secrets#crates-credentials
+  credentials: yegor256/objectionary-secrets#crates-credentials
 install: |
   curl https://sh.rustup.rs -sSf | bash -s -- -y
   export PATH=$HOME/.cargo/bin:$PATH
