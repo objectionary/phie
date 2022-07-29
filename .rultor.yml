@@ -1,3 +1,7 @@
+architect:
+  - yegor256
+docker:
+  image: yegor256/rultor-image:1.9.1
 assets:
   credentials: yegor256/objectionary-secrets#crates-credentials
 install: |
@@ -9,10 +13,6 @@ install: |
 merge:
   script: |
     cargo test --color=never
-deploy:
-  script: |
-    echo "Nowhere to deploy"
-    exit 1
 release:
   script: |-
     sed -i -e "s/^version = \"0.0.0\"/version = \"${tag}\"/" Cargo.toml

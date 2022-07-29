@@ -3,7 +3,7 @@
 [![EO principles respected here](https://www.elegantobjects.org/badge.svg)](https://www.elegantobjects.org)
 [![We recommend IntelliJ IDEA](https://www.elegantobjects.org/intellij-idea.svg)](https://www.jetbrains.com/idea/)
 
-[![make](https://github.com/objectionary/phie/actions/workflows/cargo.yml/badge.svg)](https://github.com/objectionary/phie/actions/workflows/cargo.yml)
+[![cargo](https://github.com/objectionary/phie/actions/workflows/cargo.yml/badge.svg)](https://github.com/objectionary/phie/actions/workflows/cargo.yml)
 [![crates.io](https://img.shields.io/crates/v/phie.svg)](https://crates.io/crates/phie)
 [![PDD status](http://www.0pdd.com/svg?name=objectionary/phie)](http://www.0pdd.com/p?name=objectionary/phie)
 [![Hits-of-Code](https://hitsofcode.com/github/objectionary/phie)](https://hitsofcode.com/view/github/objectionary/phie)
