@@ -40,6 +40,12 @@ pub struct Perf {
     pub ticks: HashMap<Transition, usize>,
 }
 
+impl Default for Perf {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Perf {
     pub fn new() -> Perf {
         Perf {

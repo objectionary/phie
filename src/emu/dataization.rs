@@ -103,7 +103,7 @@ impl Emu {
     /// Take all locs from the given basket.
     fn locs(&self, bk: Bk) -> Vec<Loc> {
         let mut keys = vec![];
-        for (k, _) in &self.basket(bk).kids {
+        for k in self.basket(bk).kids.keys() {
             keys.push(k.clone());
         }
         keys
