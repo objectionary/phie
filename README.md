@@ -67,9 +67,9 @@ But in a more "functional" way:
 
 More tests are in `src/emu.rs` file.
 
-Run and fix Clippy lints before committing changes:
+Run and fix [Clippy](https://github.com/rust-lang/rust-clippy) lints issues before committing changes:
 
-1. Install Rustup. If Rustup was already installed, update to ensure have the latest Rustup and compiler.
+1. Install [Rustup](https://rustup.rs/). If Rustup was already installed, update to ensure have the latest Rustup and compiler.
 
 ```bash
 $ rustup update
@@ -85,4 +85,11 @@ $ rustup component add clippy
 
 ```bash
 $ cargo clippy
+```
+
+4. Automatically applying Clippy suggestions (Not all issues will be fixed automatically. 
+Also, Clippy has some bugs with false-positive cases for some lints, so better to check automaticall fixes as well).
+
+```bash
+$ cargo clippy --fix
 ```
