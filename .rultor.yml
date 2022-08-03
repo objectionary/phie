@@ -16,5 +16,5 @@ release:
     sed -i -e "s/^version = \"0.0.0\"/version = \"${tag}\"/" Cargo.toml
     cargo test --color=never
     git commit -am "${tag}"
-    mkdir -p ~/.cargo && cp ../crates-credentials ~/.cargo
+    mkdir -p ~/.cargo && cp ../credentials ~/.cargo
     cargo publish --color=never
