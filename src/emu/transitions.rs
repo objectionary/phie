@@ -168,6 +168,7 @@ impl Emu {
     }
 
     /// Make new basket for this attribute.
+    #[allow(clippy::new_ret_no_self)]
     pub fn new(&mut self, perf: &mut Perf, bk: Bk, loc: Loc) {
         if let Some(Kid::Need(tob, psi)) = self.basket(bk).kids.get(&loc) {
             let ob = self.basket(bk).ob;
@@ -199,6 +200,7 @@ impl Emu {
     /// Suppose, the incoming locator is `^.0.@.2`. We have to find the right
     /// object in the catalog of them and return the position of the found one
     /// together with the suggested \psi.
+    #[allow(clippy::type_complexity)]
     fn search(&self, bk: Bk, locator: &Locator) -> Result<(Ob, Bk, Option<(Bk, Loc)>), String> {
         let mut bsk = self.basket(bk);
         let mut attr = None;
