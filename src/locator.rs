@@ -22,6 +22,7 @@ use crate::loc::Loc;
 use lazy_static::lazy_static;
 use rstest::rstest;
 use std::fmt;
+use std::fmt::Write as _;
 use std::str::FromStr;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -86,9 +87,9 @@ impl FromStr for Locator {
             let loc = (check.check)(&p);
             if loc.is_some() {
                 let mut msg: String = String::new();
-                msg.push_str(&format!("The {}th loc '{}' is wrong; ", pos, loc.unwrap()));
+                let _ = write!(msg, "The {}th loc '{}' is wrong; ", pos, loc.unwrap());
                 msg.push_str(check.msg);
-                msg.push_str(&format!("; in '{}'", s));
+                let _ = write!(msg, "; in '{}'", s);
                 return Err(msg);
             }
         }
