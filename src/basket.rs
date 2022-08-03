@@ -105,12 +105,12 @@ impl FromStr for Basket {
         let mut bsk = Basket::empty();
         let parts: Vec<&str> = re
             .captures(s)
-            .expect(format!("Can't parse the basket: '{}'", s).as_str())
+            .unwrap_or_else(|| panic!("Can't parse the basket: '{}'", s))
             .get(1)
-            .expect(format!("Can't find the matcher inside '{}'", s).as_str())
+            .unwrap_or_else(|| panic!("Can't find the matcher inside '{}'", s))
             .as_str()
             .trim()
-            .split(",")
+            .split(',')
             .map(|t| t.trim())
             .collect();
         let ob: String = parts.get(0).unwrap().chars().skip(1).collect();
@@ -126,7 +126,7 @@ impl FromStr for Basket {
                     let data = caps.get(3).unwrap().as_str();
                     Kid::Dtzd(
                         Data::from_str_radix(data, 16)
-                            .expect(format!("Can't parse data '{}'", data).as_str()),
+                            .unwrap_or_else(|_| panic!("Can't parse data '{}'", data)),
                     )
                 }
                 "⇉β" => {
@@ -134,7 +134,7 @@ impl FromStr for Basket {
                         .get(3)
                         .unwrap()
                         .as_str()
-                        .split(".")
+                        .split('.')
                         .collect_tuple()
                         .unwrap();
                     Kid::Wait(b.parse().unwrap(), Loc::from_str(a).unwrap())
@@ -142,9 +142,9 @@ impl FromStr for Basket {
                 "→(ν" => {
                     let part = caps.get(3).unwrap().as_str();
                     let (o, p) = part
-                        .split(";")
+                        .split(';')
                         .collect_tuple()
-                        .expect(format!("Can't parse the needed pair '{}'", part).as_str());
+                        .unwrap_or_else(|| panic!("Can't parse the needed pair '{}'", part));
                     let psi: String = p.chars().skip(1).collect();
                     Kid::Need(o.parse().unwrap(), psi.parse().unwrap())
                 }

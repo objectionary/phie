@@ -130,7 +130,7 @@ pub fn parses_and_prints(#[case] locator: String) {
 #[test]
 pub fn parses_and_prints_one() {
     let locator = "v5.&.0.^.^.@.$.81";
-    let p1 = Locator::from_str(&locator).unwrap();
+    let p1 = Locator::from_str(locator).unwrap();
     let p2 = Locator::from_str(&p1.to_string()).unwrap();
     assert_eq!(p1, p2)
 }

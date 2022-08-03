@@ -100,7 +100,7 @@ impl fmt::Display for Loc {
 #[case("σ")]
 #[case("ρ")]
 pub fn parses_and_prints(#[case] txt: &str) {
-    let loc1 = Loc::from_str(&txt).unwrap();
+    let loc1 = Loc::from_str(txt).unwrap();
     let loc2 = Loc::from_str(&loc1.to_string()).unwrap();
     assert_eq!(loc1, loc2)
 }

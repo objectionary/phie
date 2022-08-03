@@ -119,11 +119,9 @@ impl Emu {
     pub fn delegate(&mut self, perf: &mut Perf, bk: Bk) {
         let bsk = self.basket(bk);
         if let Some(Kid::Rqtd) = bsk.kids.get(&Loc::Phi) {
-            if bsk
+            if !bsk
                 .kids
-                .values()
-                .find(|k| matches!(k, Kid::Wait(_, _)))
-                .is_none()
+                .values().any(|k| matches!(&k, Kid::Wait(_, _)))
             {
                 let obj = self.object(bsk.ob);
                 if let Some((n, func)) = &obj.lambda {
@@ -148,7 +146,7 @@ impl Emu {
             if let Some((locator, advice)) = obj.attrs.get(&loc) {
                 let (tob, psi, attr) = self
                     .search(bk, locator)
-                    .expect(&format!("Can't find {} from β{}/ν{}", locator, bk, ob));
+                    .unwrap_or_else(|_| panic!("Can't find {} from β{}/ν{}", locator, bk, ob));
                 let tpsi = if *advice { bk } else { psi };
                 if let Some((pbk, ploc)) = attr {
                     let bsk = self.basket(pbk);
@@ -181,10 +179,7 @@ impl Emu {
                     .baskets
                     .iter()
                     .find_position(|b| b.is_empty())
-                    .expect(
-                        format!("No more empty baskets left in the pool of {}", MAX_BASKETS)
-                            .as_str(),
-                    )
+                    .unwrap_or_else(|| panic!("No more empty baskets left in the pool of {}", MAX_BASKETS))
                     .0 as Bk;
                 let mut bsk = Basket::start(*tob, *psi);
                 for k in self.object(*tob).attrs.keys() {
@@ -298,7 +293,7 @@ impl Emu {
             if !obj.constant {
                 return false;
             }
-            return bsk.psi == psi;
+            bsk.psi == psi
         }) {
             return Some(pos as Bk);
         }

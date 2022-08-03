@@ -84,7 +84,7 @@ impl FromStr for Emu {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut emu = Emu::empty();
         let re_line = Regex::new("ν(\\d+) ↦ (⟦.*⟧)").unwrap();
-        for line in s.trim().split("\n").map(|t| t.trim()) {
+        for line in s.trim().split('\n').map(|t| t.trim()) {
             let caps = re_line.captures(line).unwrap();
             let v: Ob = caps.get(1).unwrap().as_str().parse().unwrap();
             emu.put(v, Object::from_str(caps.get(2).unwrap().as_str()).unwrap());

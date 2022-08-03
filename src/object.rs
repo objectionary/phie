@@ -123,7 +123,7 @@ impl Object {
         let mut obj = Object::open();
         obj.lambda = self.lambda.clone();
         obj.constant = self.constant;
-        obj.delta = self.delta.clone();
+        obj.delta = self.delta;
         obj.attrs.extend(self.attrs.clone().into_iter());
         obj
     }
@@ -170,11 +170,11 @@ impl FromStr for Object {
             .unwrap()
             .as_str()
             .trim()
-            .split(",")
+            .split(',')
             .map(|t| t.trim())
         {
             let (i, p) = pair
-                .split("↦")
+                .split('↦')
                 .map(|t| t.trim())
                 .collect_tuple()
                 .ok_or(format!("Can't split '{}' in two parts at '{}'", pair, s))?;
@@ -195,7 +195,7 @@ impl FromStr for Object {
                 'Δ' => {
                     let hex: String = p.chars().skip(2).collect();
                     let data: Data = Data::from_str_radix(&hex, 16)
-                        .expect(&format!("Can't parse hex '{}' in '{}'", hex, s));
+                        .unwrap_or_else(|_| panic!("Can't parse hex '{}' in '{}'", hex, s));
                     obj = Object::dataic(data);
                 }
                 _ => {

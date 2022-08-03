@@ -70,15 +70,15 @@ impl Perf {
     }
 
     pub fn total_hits(&self) -> usize {
-        self.hits.values().fold(0, |sum, x| sum + x)
+        self.hits.values().sum()
     }
 
     pub fn total_ticks(&self) -> usize {
-        self.ticks.values().fold(0, |sum, x| sum + x)
+        self.ticks.values().sum()
     }
 
     pub fn total_atoms(&self) -> usize {
-        self.atoms.values().fold(0, |sum, x| sum + x)
+        self.atoms.values().sum()
     }
 }
 
