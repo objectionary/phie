@@ -66,3 +66,23 @@ But in a more "functional" way:
 ```
 
 More tests are in `src/emu.rs` file.
+
+Run and fix Clippy lints before committing changes:
+
+1. Install Rustup. If Rustup was already installed, update to ensure have the latest Rustup and compiler.
+
+```bash
+$ rustup update
+```
+
+2. Install Clippy.
+
+```bash
+$ rustup component add clippy
+```
+
+3. Run Clippy.
+
+```bash
+$ cargo clippy
+```
