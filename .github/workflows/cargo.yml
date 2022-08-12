@@ -16,3 +16,4 @@ jobs:
       - run: cargo test
       - run: target/debug/fibonacci 7 10
       - run: cargo fmt --check
+      - run: cargo clippy
