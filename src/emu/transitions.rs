@@ -119,10 +119,7 @@ impl Emu {
     pub fn delegate(&mut self, perf: &mut Perf, bk: Bk) {
         let bsk = self.basket(bk);
         if let Some(Kid::Rqtd) = bsk.kids.get(&Loc::Phi) {
-            if !bsk
-                .kids
-                .values().any(|k| matches!(&k, Kid::Wait(_, _)))
-            {
+            if !bsk.kids.values().any(|k| matches!(&k, Kid::Wait(_, _))) {
                 let obj = self.object(bsk.ob);
                 if let Some((n, func)) = &obj.lambda {
                     let name = n.clone();
@@ -180,7 +177,9 @@ impl Emu {
                     .baskets
                     .iter()
                     .find_position(|b| b.is_empty())
-                    .unwrap_or_else(|| panic!("No more empty baskets left in the pool of {}", MAX_BASKETS))
+                    .unwrap_or_else(|| {
+                        panic!("No more empty baskets left in the pool of {}", MAX_BASKETS)
+                    })
                     .0 as Bk;
                 let mut bsk = Basket::start(*tob, *psi);
                 for k in self.object(*tob).attrs.keys() {
