@@ -250,7 +250,7 @@ fn prints_and_parses_simple_object() {
     obj.push(Loc::Attr(1), "v4".parse().unwrap(), false);
     obj.push(Loc::Rho, "$.0.@".parse().unwrap(), false);
     let text = obj.to_string();
-    assert_eq!("⟦! ρ↦ξ.𝛼0.φ, 𝛼1↦ν4⟧", text);
+    assert_eq!("⟦! ρ↦ξ.𝛼0.𝜑, 𝛼1↦ν4⟧", text);
     let obj2 = Object::from_str(&text).unwrap();
     assert_eq!(obj2.to_string(), text);
 }

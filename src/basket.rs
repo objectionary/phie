@@ -174,21 +174,21 @@ fn prints_itself() {
     basket.put(Loc::Rho, Kid::Wait(42, Loc::Phi));
     basket.put(Loc::Attr(1), Kid::Need(7, 12));
     assert_eq!(
-        "[ν5, ξ:β7, Δ⇶0x002A, ρ⇉β42.φ, 𝛼1→(ν7;β12)]",
+        "[ν5, ξ:β7, Δ⇶0x002A, ρ⇉β42.𝜑, 𝛼1→(ν7;β12)]",
         basket.to_string()
     );
 }
 
 #[test]
 fn parses_itself() {
-    let txt = "[ν5, ξ:β18, Δ⇶0x1F21, ρ⇉β4.φ, φ→∅, 𝛼12→?, 𝛼1→?, 𝛼3→(ν5;β5)]";
+    let txt = "[ν5, ξ:β18, Δ⇶0x1F21, ρ⇉β4.𝜑, 𝛼12→?, 𝛼1→?, 𝛼3→(ν5;β5), 𝜑→∅]";
     let basket = Basket::from_str(txt).unwrap();
     assert_eq!(txt, basket.to_string());
 }
 
 #[rstest]
-#[case("[ν5, ξ:β7, Δ⇶0x002A, ρ⇉β42.φ]")]
-#[case("[ν5, ξ:β18, Δ⇶0x1F21, ρ⇉β4.φ, φ→∅, 𝛼12→?, 𝛼1→?, 𝛼3→(ν5;β5)]")]
+#[case("[ν5, ξ:β7, Δ⇶0x002A, ρ⇉β42.𝜑]")]
+#[case("[ν5, ξ:β18, Δ⇶0x1F21, ρ⇉β4.𝜑, 𝛼12→?, 𝛼1→?, 𝛼3→(ν5;β5), 𝜑→∅]")]
 fn parses_text(#[case] txt: &str) {
     let basket = Basket::from_str(txt).unwrap();
     assert_eq!(txt, basket.to_string());

@@ -71,7 +71,7 @@ impl FromStr for Locator {
                 },
                 Check {
                     check: |p: &Locator| p.locs[1..].iter().find(|i| matches!(i, Loc::Root)),
-                    msg: "Φ can only start a locator"
+                    msg: "𝜑 can only start a locator"
                 },
                 Check {
                     check: |p: &Locator| p.locs[0..1].iter().find(|i| matches!(i, Loc::Attr(_))),
@@ -110,15 +110,15 @@ impl fmt::Display for Locator {
 }
 
 #[rstest]
-#[case("R")]
+#[case("Q")]
 #[case("&")]
 #[case("$")]
 #[case("^")]
 #[case("@")]
 #[case("v78")]
 #[case("v5.&.0.^.@.$.81")]
-#[case("R.0.&.3.^")]
-#[case("Φ.𝛼0.σ.𝛼3.ρ")]
+#[case("Q.0.&.3.^")]
+#[case("𝜑.𝛼0.σ.𝛼3.ρ")]
 #[case("$.0")]
 #[case("$.0")]
 pub fn parses_and_prints(#[case] locator: String) {
@@ -137,7 +137,7 @@ pub fn parses_and_prints_one() {
 
 #[rstest]
 #[case("v5.0.v3")]
-#[case("R.R")]
+#[case("Q.Q")]
 #[case("5")]
 #[case("invalid syntax")]
 #[case("$  .  5")]

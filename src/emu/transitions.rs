@@ -69,7 +69,6 @@ impl Emu {
         }
         for (b, l, d) in changes.iter() {
             let _ = &self.baskets[*b as usize].put(l.clone(), Kid::Dtzd(*d));
-            trace!("propagate(β{}, {}) : 0x{:04X} to β{}.{}", bk, loc, *d, b, l);
             perf.hit(Transition::PPG);
         }
         perf.tick(Transition::PPG);
@@ -223,7 +222,7 @@ impl Emu {
                 Loc::Root => ROOT_OB,
                 Loc::Xi => {
                     if bsk.psi == ROOT_BK {
-                        return Err(format!("Object Φ doesn't have ξ: {}", join!(log)));
+                        return Err(format!("Object 𝜑 doesn't have ξ: {}", join!(log)));
                     }
                     psi = bsk.psi;
                     attr = Some((psi, Loc::Root));
@@ -236,7 +235,7 @@ impl Emu {
                     None => match self.object(ob).attrs.get(&Loc::Phi) {
                         None => {
                             return Err(format!(
-                                "Can't find {} in ν{} and there is no φ: {}",
+                                "Can't find {} in ν{} and there is no 𝜑: {}",
                                 loc,
                                 ob,
                                 join!(log)

@@ -36,11 +36,11 @@ convert EO code into 𝜑-calculus expressions and then pass them to `Emu` struc
 use phie::emu::Emu;
 pub fn main() {
     let emu: Emu = "
-        ν0 ↦ ⟦ φ ↦ ν3 ⟧
+        ν0 ↦ ⟦ 𝜑 ↦ ν3 ⟧
         ν1 ↦ ⟦ Δ ↦ 0x002A ⟧
         ν2 ↦ ⟦ λ ↦ int-add, ρ ↦ ξ.𝛼0, 𝛼0 ↦ ξ.𝛼1 ⟧
-        ν3 ↦ ⟦ φ ↦ ν2(ξ), 𝛼0 ↦ ν1, 𝛼1 ↦ ν1 ⟧
-        ν5 ↦ ⟦ φ ↦ ν3(ξ) ⟧
+        ν3 ↦ ⟦ 𝜑 ↦ ν2(ξ), 𝛼0 ↦ ν1, 𝛼1 ↦ ν1 ⟧
+        ν5 ↦ ⟦ 𝜑 ↦ ν3(ξ) ⟧
     ".parse().unwrap();
     let dtz = emu.dataize();
     print!("The result is: {}", dtz.0);

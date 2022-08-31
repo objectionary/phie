@@ -34,7 +34,7 @@ use crate::perf::Perf;
 pub fn deletes_one_basket() {
     let mut emu = Emu::empty();
     let bk = 1;
-    emu.inject(bk, Basket::from_str("[ν1, ξ:β1, φ⇶0x002A]").unwrap());
+    emu.inject(bk, Basket::from_str("[ν1, ξ:β1, 𝜑⇶0x002A]").unwrap());
     let mut perf = Perf::new();
     emu.delete(&mut perf, bk);
     assert!(emu.basket(bk).is_empty())

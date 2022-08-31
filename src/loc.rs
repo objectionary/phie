@@ -55,12 +55,12 @@ impl FromStr for Loc {
             ))
         } else {
             match s {
-                "Φ" | "R" => Ok(Loc::Root),
+                "Φ" | "Q" => Ok(Loc::Root),
                 "𝜓" | "P" => Ok(Loc::Psi),
                 "Δ" | "D" => Ok(Loc::Delta),
                 "ρ" | "^" => Ok(Loc::Rho),
                 "ξ" | "$" => Ok(Loc::Xi),
-                "φ" | "@" => Ok(Loc::Phi),
+                "𝜑" | "@" => Ok(Loc::Phi),
                 "σ" | "&" => Ok(Loc::Sigma),
                 _ => Err(format!("Unknown loc: '{}'", s)),
             }
@@ -75,7 +75,7 @@ impl fmt::Display for Loc {
             Loc::Rho => "ρ".to_owned(),
             Loc::Delta => "Δ".to_owned(),
             Loc::Psi => "𝜓".to_owned(),
-            Loc::Phi => "φ".to_owned(),
+            Loc::Phi => "𝜑".to_owned(),
             Loc::Xi => "ξ".to_owned(),
             Loc::Sigma => "σ".to_owned(),
             Loc::Attr(i) => format!("𝛼{}", i),
@@ -85,7 +85,7 @@ impl fmt::Display for Loc {
 }
 
 #[rstest]
-#[case("R")]
+#[case("Q")]
 #[case("&")]
 #[case("$")]
 #[case("^")]
@@ -95,7 +95,7 @@ impl fmt::Display for Loc {
 #[case("ξ")]
 #[case("Δ")]
 #[case("v78")]
-#[case("Φ")]
+#[case("𝜑")]
 #[case("𝛼0")]
 #[case("σ")]
 #[case("ρ")]
