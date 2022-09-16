@@ -256,9 +256,9 @@ fn prints_and_parses_simple_object() {
 }
 
 #[rstest]
-#[case("ν7 ↦ ⟦! λ ↦ int-sub, ρ ↦ ξ.ξ.𝛼0, 𝛼0 ↦ ν8 ⟧")]
-#[case("ν7 ↦ ⟦ Δ ↦ 0x0001 ⟧")]
-#[case("ν11 ↦ ⟦ λ ↦ int-add, ρ ↦ ν9, 𝛼0 ↦ ν10 ⟧")]
+#[case("ν7(𝜋) ↦ ⟦! λ ↦ int-sub, ρ ↦ ξ.ξ.𝛼0, 𝛼0 ↦ ν8 ⟧")]
+#[case("ν7(𝜋) ↦ ⟦ Δ ↦ 0x0001 ⟧")]
+#[case("ν11(𝜋) ↦ ⟦ λ ↦ int-add, ρ ↦ ν9, 𝛼0 ↦ ν10 ⟧")]
 fn prints_and_parses_some_object(#[case] text: String) {
     let obj1 = Object::from_str(&text).unwrap();
     let text2 = obj1.to_string();
