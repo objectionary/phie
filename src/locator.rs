@@ -26,7 +26,7 @@ use std::str::FromStr;
 
 /// Locator is a chain of attributes connected with dots,
 /// for example `𝜋.𝜋.𝛼0` is a locator.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Locator {
     locs: Vec<Loc>,
 }
@@ -89,25 +89,13 @@ impl FromStr for Locator {
         lazy_static! {
             static ref CHECKS: [CheckFn; 4] = [
                 |p: &Locator| -> Option<String> {
-                    if let Some(v) = p.locs[1..].iter().find(|i| matches!(i, Loc::Obj(_))) {
-                        Some(format!("{} can only stay at the first position", v))
-                    } else {
-                        None
-                    }
+                    p.locs[1..].iter().find(|i| matches!(i, Loc::Obj(_))).map(|v| format!("{} can only stay at the first position", v))
                 },
                 |p: &Locator| {
-                    if let Some(v) = p.locs[1..].iter().find(|i| matches!(i, Loc::Root)) {
-                        Some(format!("{} can only start a locator", v))
-                    } else {
-                        None
-                    }
+                    p.locs[1..].iter().find(|i| matches!(i, Loc::Root)).map(|v| format!("{} can only start a locator", v))
                 },
                 |p: &Locator| {
-                    if let Some(v) = p.locs[0..1].iter().find(|i| matches!(i, Loc::Attr(_))) {
-                        Some(format!("{} can't start a locator", v))
-                    } else {
-                        None
-                    }
+                    p.locs[0..1].iter().find(|i| matches!(i, Loc::Attr(_))).map(|v| format!("{} can't start a locator", v))
                 },
                 |p: &Locator| {
                     if matches!(p.locs[0], Loc::Obj(_)) && p.locs.len() > 1 {

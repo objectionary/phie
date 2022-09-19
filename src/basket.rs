@@ -113,7 +113,7 @@ impl FromStr for Basket {
             .split(',')
             .map(|t| t.trim())
             .collect();
-        let ob: String = parts.get(0).unwrap().chars().skip(1).collect();
+        let ob: String = parts.first().unwrap().chars().skip(1).collect();
         bsk.ob = ob.parse().expect("Can't parse the v part");
         let psi: String = parts.get(1).unwrap().chars().skip(3).collect();
         bsk.psi = psi.parse().expect("Can't parse the psi part");
