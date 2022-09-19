@@ -89,17 +89,29 @@ impl FromStr for Locator {
         lazy_static! {
             static ref CHECKS: [CheckFn; 4] = [
                 |p: &Locator| -> Option<String> {
-                    p.locs[1..].iter().find(|i| matches!(i, Loc::Obj(_))).map(|v| format!("{} can only stay at the first position", v))
+                    p.locs[1..]
+                        .iter()
+                        .find(|i| matches!(i, Loc::Obj(_)))
+                        .map(|v| format!("{} can only stay at the first position", v))
                 },
                 |p: &Locator| {
-                    p.locs[1..].iter().find(|i| matches!(i, Loc::Root)).map(|v| format!("{} can only start a locator", v))
+                    p.locs[1..]
+                        .iter()
+                        .find(|i| matches!(i, Loc::Root))
+                        .map(|v| format!("{} can only start a locator", v))
                 },
                 |p: &Locator| {
-                    p.locs[0..1].iter().find(|i| matches!(i, Loc::Attr(_))).map(|v| format!("{} can't start a locator", v))
+                    p.locs[0..1]
+                        .iter()
+                        .find(|i| matches!(i, Loc::Attr(_)))
+                        .map(|v| format!("{} can't start a locator", v))
                 },
                 |p: &Locator| {
                     if matches!(p.locs[0], Loc::Obj(_)) && p.locs.len() > 1 {
-                        Some(format!("{} can only be the first and only locator", p.locs[0]))
+                        Some(format!(
+                            "{} can only be the first and only locator",
+                            p.locs[0]
+                        ))
                     } else {
                         None
                     }

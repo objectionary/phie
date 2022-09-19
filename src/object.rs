@@ -209,7 +209,9 @@ impl FromStr for Object {
                     let xi_suffix = "(ξ)";
                     let xi = tail.ends_with(xi_suffix);
                     let locator = if xi {
-                        tail.chars().take(tail.len() - xi_suffix.len() - 1).collect()
+                        tail.chars()
+                            .take(tail.len() - xi_suffix.len() - 1)
+                            .collect()
                     } else {
                         tail.to_string()
                     };
