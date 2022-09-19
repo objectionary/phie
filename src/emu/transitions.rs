@@ -216,14 +216,14 @@ impl Emu {
             log.push(loc.to_string());
             let next = match loc {
                 Loc::Root => ROOT_OB,
-                Loc::Xi => {
+                Loc::Pi => {
                     if bsk.psi == ROOT_BK {
-                        return Err(format!("Object 𝜑 doesn't have ξ: {}", join!(log)));
+                        return Err(format!("Object Φ doesn't have 𝜋: {}", join!(log)));
                     }
                     psi = bsk.psi;
                     attr = Some((psi, Loc::Root));
                     bsk = self.basket(psi);
-                    log.push(format!("ξ=β{}/ν{}", psi, bsk.ob));
+                    log.push(format!("𝜋=β{}/ν{}", psi, bsk.ob));
                     bsk.ob
                 }
                 Loc::Obj(i) => i as Ob,

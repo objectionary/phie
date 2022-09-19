@@ -86,8 +86,8 @@ impl Object {
     /// use std::str::FromStr;
     /// use phie::ph;
     /// let mut obj = Object::open();
-    /// obj.push(Loc::Phi, ph!("v13"), false);
-    /// obj.push(Loc::Attr(0), ph!("$.1"), false);
+    /// obj.push(Loc::Phi, ph!("ν13"), false);
+    /// obj.push(Loc::Attr(0), ph!("ρ.1"), false);
     /// ```
     ///
     pub fn push(&mut self, loc: Loc, p: Locator, xi: bool) -> &mut Object {
@@ -104,8 +104,8 @@ impl Object {
     /// use std::str::FromStr;
     /// use phie::ph;
     /// let obj = Object::open()
-    ///   .with(Loc::Phi, ph!("v13"), false)
-    ///   .with(Loc::Attr(0), ph!("$.1"), false);
+    ///   .with(Loc::Phi, ph!("ν13"), false)
+    ///   .with(Loc::Attr(0), ph!("ρ.1"), false);
     /// ```
     pub fn with(&self, loc: Loc, p: Locator, xi: bool) -> Object {
         let mut obj = self.copy();
@@ -144,6 +144,8 @@ impl fmt::Display for Object {
                 format!("{}↦{}", attr, locator)
                     + &(if *xi {
                         "(ξ)".to_string()
+                    } else if matches!(locator.loc(0).unwrap(), Loc::Obj(_)) {
+                        "(𝜋)".to_string()
                     } else {
                         "".to_string()
                     }),
@@ -199,12 +201,17 @@ impl FromStr for Object {
                     obj = Object::dataic(data);
                 }
                 _ => {
-                    let xi_suffix = "(ξ)";
-                    let xi = p.ends_with(xi_suffix);
-                    let locator = if xi {
-                        p.chars().take(p.len() - xi_suffix.len() - 1).collect()
+                    let tail = if p.ends_with("(𝜋)") {
+                        p.chars().take(p.len() - "(𝜋)".len() - 1).collect()
                     } else {
                         p.to_string()
+                    };
+                    let xi_suffix = "(ξ)";
+                    let xi = tail.ends_with(xi_suffix);
+                    let locator = if xi {
+                        tail.chars().take(tail.len() - xi_suffix.len() - 1).collect()
+                    } else {
+                        tail.to_string()
                     };
                     obj.push(
                         Loc::from_str(i).unwrap(),
@@ -227,17 +234,17 @@ use crate::ph;
 #[test]
 fn makes_simple_object() {
     let mut obj = Object::open();
-    obj.push(Loc::Attr(1), "v4".parse().unwrap(), false);
-    obj.push(Loc::Rho, "$.0.@".parse().unwrap(), false);
+    obj.push(Loc::Attr(1), "ν4".parse().unwrap(), false);
+    obj.push(Loc::Rho, "P.0.@".parse().unwrap(), false);
     assert_eq!(obj.attrs.len(), 2)
 }
 
 #[test]
 fn extends_by_making_new_object() {
     let obj = Object::open()
-        .with(Loc::Attr(1), ph!("v14.^"), false)
-        .with(Loc::Phi, ph!("v7.@"), false)
-        .with(Loc::Rho, ph!("$.^.0.0.^.@"), false);
+        .with(Loc::Attr(1), ph!("ν14"), false)
+        .with(Loc::Phi, ph!("^.@"), false)
+        .with(Loc::Rho, ph!("P.^.0.0.^.@"), false);
     assert_eq!(obj.attrs.len(), 3);
     assert!(obj.delta.is_none());
     assert!(obj.lambda.is_none());
@@ -247,18 +254,18 @@ fn extends_by_making_new_object() {
 fn prints_and_parses_simple_object() {
     let mut obj = Object::open();
     obj.constant = true;
-    obj.push(Loc::Attr(1), "v4".parse().unwrap(), false);
-    obj.push(Loc::Rho, "$.0.@".parse().unwrap(), false);
+    obj.push(Loc::Attr(1), "ν4".parse().unwrap(), false);
+    obj.push(Loc::Rho, "P.0.@".parse().unwrap(), false);
     let text = obj.to_string();
-    assert_eq!("⟦! ρ↦ξ.𝛼0.𝜑, 𝛼1↦ν4⟧", text);
+    assert_eq!("⟦! ρ↦𝜋.𝛼0.𝜑, 𝛼1↦ν4(𝜋)⟧", text);
     let obj2 = Object::from_str(&text).unwrap();
     assert_eq!(obj2.to_string(), text);
 }
 
 #[rstest]
-#[case("ν7(𝜋) ↦ ⟦! λ ↦ int-sub, ρ ↦ ξ.ξ.𝛼0, 𝛼0 ↦ ν8 ⟧")]
+#[case("ν7(𝜋) ↦ ⟦! λ ↦ int-sub, ρ ↦ 𝜋.𝜋.𝛼0, 𝛼0 ↦ ν8(𝜋) ⟧")]
 #[case("ν7(𝜋) ↦ ⟦ Δ ↦ 0x0001 ⟧")]
-#[case("ν11(𝜋) ↦ ⟦ λ ↦ int-add, ρ ↦ ν9, 𝛼0 ↦ ν10 ⟧")]
+#[case("ν11(𝜋) ↦ ⟦ λ ↦ int-add, ρ ↦ ν9(𝜋), 𝛼0 ↦ ν10(𝜋) ⟧")]
 fn prints_and_parses_some_object(#[case] text: String) {
     let obj1 = Object::from_str(&text).unwrap();
     let text2 = obj1.to_string();

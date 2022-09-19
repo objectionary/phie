@@ -30,8 +30,7 @@ pub enum Loc {
     Root,
     Rho,
     Phi,
-    Xi,
-    Psi,
+    Pi,
     Delta,
     Sigma,
     Attr(i8),
@@ -43,7 +42,7 @@ impl FromStr for Loc {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         lazy_static! {
             static ref RE_ARG: Regex = Regex::new("^𝛼?(\\d+)$").unwrap();
-            static ref RE_OBJ: Regex = Regex::new("^[v|ν](\\d+)$").unwrap();
+            static ref RE_OBJ: Regex = Regex::new("^ν(\\d+)$").unwrap();
         }
         if let Some(caps) = RE_ARG.captures(s) {
             Ok(Loc::Attr(
@@ -56,10 +55,9 @@ impl FromStr for Loc {
         } else {
             match s {
                 "Φ" | "Q" => Ok(Loc::Root),
-                "𝜓" | "P" => Ok(Loc::Psi),
                 "Δ" | "D" => Ok(Loc::Delta),
+                "𝜋" | "P" => Ok(Loc::Pi),
                 "ρ" | "^" => Ok(Loc::Rho),
-                "ξ" | "$" => Ok(Loc::Xi),
                 "𝜑" | "@" => Ok(Loc::Phi),
                 "σ" | "&" => Ok(Loc::Sigma),
                 _ => Err(format!("Unknown loc: '{}'", s)),
@@ -74,9 +72,8 @@ impl fmt::Display for Loc {
             Loc::Root => "Φ".to_owned(),
             Loc::Rho => "ρ".to_owned(),
             Loc::Delta => "Δ".to_owned(),
-            Loc::Psi => "𝜓".to_owned(),
             Loc::Phi => "𝜑".to_owned(),
-            Loc::Xi => "ξ".to_owned(),
+            Loc::Pi => "𝜋".to_owned(),
             Loc::Sigma => "σ".to_owned(),
             Loc::Attr(i) => format!("𝛼{}", i),
             Loc::Obj(i) => format!("ν{}", i),
@@ -87,15 +84,13 @@ impl fmt::Display for Loc {
 #[rstest]
 #[case("Q")]
 #[case("&")]
-#[case("$")]
 #[case("^")]
 #[case("@")]
 #[case("D")]
-#[case("P")]
-#[case("ξ")]
 #[case("Δ")]
-#[case("v78")]
+#[case("ν78")]
 #[case("𝜑")]
+#[case("𝜋")]
 #[case("𝛼0")]
 #[case("σ")]
 #[case("ρ")]
