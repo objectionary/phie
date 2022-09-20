@@ -67,29 +67,22 @@ But in a more "functional" way:
 
 More tests are in `src/emu.rs` file.
 
-Run and fix [Clippy](https://github.com/rust-lang/rust-clippy) lints issues before committing changes:
+## How to Contribute
 
-1. Install [Rustup](https://rustup.rs/). If Rustup was already installed, update to ensure have the latest Rustup and compiler.
-
-```bash
-$ rustup update
-```
-
-2. Install Clippy.
+First, install [Rust](https://www.rust-lang.org/tools/install) and then:
 
 ```bash
-$ rustup component add clippy
+$ cargo test -vv --release
 ```
 
-3. Run Clippy.
+If everything goes well, an executable binary will be in `target/release/phie`:
 
 ```bash
-$ cargo clippy
+$ target/release/phie --help
 ```
 
-4. Automatically applying Clippy suggestions (Not all issues will be fixed automatically. 
-Also, Clippy has some bugs with false-positive cases for some lints, so better to check automaticall fixes as well).
-
-```bash
-$ cargo clippy --fix
-```
+Then, fork repository, make changes, send us a [pull request](https://www.yegor256.com/2014/04/15/github-guidelines.html).
+We will review your changes and apply them to the `master` branch shortly,
+provided they don't violate our quality standards. To avoid frustration,
+before sending us your pull request please run `cargo test` again. Also, 
+run `cargo fmt` and `cargo clippy`.
