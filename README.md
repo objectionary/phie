@@ -11,7 +11,7 @@
 ![Lines of code](https://img.shields.io/tokei/lines/github/objectionary/phie)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/objectionary/phie/blob/master/LICENSE.txt)
 
-It's an experimental emulator of a processor that understands
+It's an experimental emulator of a machine that understands
 [𝜑-calculus](https://arxiv.org/abs/2111.13384) expressions, 
 which is the formalism behind [EO](https://www.eolang.org) programming language.
 
