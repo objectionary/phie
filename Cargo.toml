@@ -11,7 +11,7 @@ keywords = ["eolang", "compiler", "emulator", "oop"]
 categories = ["command-line-utilities"]
 
 [dependencies]
-regex = "1.6.0"
+regex = "1.7.0"
 lazy_static = "1.4.0"
 env_logger = "0.9.1"
 hex = "0.4.3"
