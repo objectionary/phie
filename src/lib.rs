@@ -28,6 +28,7 @@ pub mod loc;
 pub mod locator;
 pub mod object;
 pub mod perf;
+pub mod xmir;
 
 #[cfg(test)]
 use simple_logger::SimpleLogger;
