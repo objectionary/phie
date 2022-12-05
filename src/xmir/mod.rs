@@ -40,19 +40,11 @@ pub struct Oabs {
     pub abs: Option<String>,
     pub line: u32,
     pub pos: u32,
-    pub name: String,
-    pub base: Option<String>,
-    #[serde(rename = "o")]
-    pub os: Vec<O>,
-}
-
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
-pub struct O {
-    pub line: u32,
-    pub pos: u32,
-    pub name: String,
+    pub atom: Option<String>,
+    pub name: Option<String>,
     pub base: Option<String>,
     pub data: Option<String>,
+    pub o: Option<Vec<Oabs>>,
 }
 
 pub fn xmir_from_file(path: &str) -> XMIR {
