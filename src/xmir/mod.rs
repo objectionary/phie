@@ -26,19 +26,36 @@ use std::io::Read;
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct XMIR {
     #[serde(rename = "$value")]
-    pub objects: Vec<Oabs>,
+    pub objects: Vec<Obj>,
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "kebab-case")]
 pub enum Obj {
+    O(O),
     Oabs(Oabs),
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct Oabs {
     #[serde(rename = "$abstract")]
+    pub abs: Option<String>,
+    pub line: u32,
+    pub pos: u32,
     #[serde(default)]
-    pub abs: String,
+    pub atom: String,
+    #[serde(default)]
+    pub name: String,
+    #[serde(default)]
+    pub base: String,
+    #[serde(default)]
+    pub data: String,
+    #[serde(default)]
+    pub o: Vec<Oabs>,
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
+pub struct O {
     pub line: u32,
     pub pos: u32,
     #[serde(default)]
