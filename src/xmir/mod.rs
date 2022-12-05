@@ -44,7 +44,7 @@ pub struct Oabs {
     pub name: Option<String>,
     pub base: Option<String>,
     pub data: Option<String>,
-    pub o: Option<Vec<Oabs>>,
+    pub o: Option<Vec<Box<Oabs>>>,
 }
 
 pub fn xmir_from_file(path: &str) -> XMIR {
