@@ -43,7 +43,7 @@ pub struct Oabs {
     pub name: String,
     pub base: Option<String>,
     #[serde(rename = "o")]
-    pub os: Vec<O>
+    pub os: Vec<O>,
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
@@ -54,7 +54,7 @@ pub struct O {
     pub base: Option<String>,
 }
 
-pub fn xmir_from_file(path: &str) -> XMIR{
+pub fn xmir_from_file(path: &str) -> XMIR {
     let mut sxmir: String = "".to_string();
     File::open(path)
         .unwrap()
