@@ -37,14 +37,20 @@ pub enum Obj {
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct Oabs {
     #[serde(rename = "$abstract")]
-    pub abs: Option<String>,
+    #[serde(default)]
+    pub abs: String,
     pub line: u32,
     pub pos: u32,
-    pub atom: Option<String>,
-    pub name: Option<String>,
-    pub base: Option<String>,
-    pub data: Option<String>,
-    pub o: Option<Vec<Box<Oabs>>>,
+    #[serde(default)]
+    pub atom: String,
+    #[serde(default)]
+    pub name: String,
+    #[serde(default)]
+    pub base: String,
+    #[serde(default)]
+    pub data: String,
+    #[serde(default)]
+    pub o: Vec<Oabs>,
 }
 
 pub fn xmir_from_file(path: &str) -> XMIR {
