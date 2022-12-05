@@ -54,7 +54,7 @@ pub struct O {
     pub base: Option<String>,
 }
 
-pub fn take_xmir(path: &str) -> XMIR{
+pub fn xmir_from_file(path: &str) -> XMIR{
     let mut sxmir: String = "".to_string();
     File::open(path)
         .unwrap()
@@ -62,6 +62,6 @@ pub fn take_xmir(path: &str) -> XMIR{
         .unwrap();
     println!("STR_XMIR: {}\n", sxmir);
     let xmir: XMIR = from_str(sxmir.as_str()).unwrap();
-    println!("XMIR: {:#?}\n", xmir);
+    println!("{:#?}\n", xmir);
     xmir
 }

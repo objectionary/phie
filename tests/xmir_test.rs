@@ -1,5 +1,5 @@
 use anyhow::Result;
-use phie::xmir::{take_xmir, XMIR};
+use phie::xmir::{xmir_from_file, XMIR};
 use std::fs::File;
 use std::io::Write;
 use tempfile::TempDir;
@@ -9,7 +9,7 @@ fn read_xmir_success() -> Result<()> {
     let tmp = TempDir::new()?;
     let name = "test.xmir";
     create_test_xmir(&tmp, &name).unwrap();
-    let xmr = take_xmir(tmp.path().join(name).to_str().unwrap());
+    let xmr = xmir_from_file(tmp.path().join(name).to_str().unwrap());
     assert_eq!(xmr.objects[0].os[2].name, "@");
     Ok(())
 }
