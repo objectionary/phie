@@ -15,7 +15,10 @@ fn read_xmir_success() -> Result<()> {
         None => Err("Unexpected"),
     }
     .unwrap();
-    assert_eq!("malloc", res[1].name.as_ref().unwrap());
+    assert_eq!(
+        "address",
+        res[3].o.as_ref().unwrap()[0].name.as_ref().unwrap()
+    );
     Ok(())
 }
 
