@@ -18,23 +18,50 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#![deny(warnings)]
+use serde::{Deserialize, Serialize};
+use serde_xml_rs::from_str;
+use std::fs::File;
+use std::io::Read;
 
-pub mod atom;
-pub mod basket;
-pub mod data;
-pub mod emu;
-pub mod loc;
-pub mod locator;
-pub mod object;
-pub mod perf;
-pub mod xmir;
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
+pub struct XMIR {
+    #[serde(rename = "$value")]
+    pub objects: Vec<Oabs>,
+}
 
-#[cfg(test)]
-use simple_logger::SimpleLogger;
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
+pub enum Obj {
+    Oabs(Oabs),
+}
 
-#[cfg(test)]
-#[ctor::ctor]
-fn init() {
-    SimpleLogger::new().init().unwrap();
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
+pub struct Oabs {
+    #[serde(rename = "$abstract")]
+    pub abs: Option<String>,
+    pub line: u32,
+    pub pos: u32,
+    pub name: String,
+    pub base: Option<String>,
+    #[serde(rename = "o")]
+    pub os: Vec<O>
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
+pub struct O {
+    pub line: u32,
+    pub pos: u32,
+    pub name: String,
+    pub base: Option<String>,
+}
+
+pub fn take_xmir(path: &str) -> XMIR{
+    let mut sxmir: String = "".to_string();
+    File::open(path)
+        .unwrap()
+        .read_to_string(&mut sxmir)
+        .unwrap();
+    println!("STR_XMIR: {}\n", sxmir);
+    let xmir: XMIR = from_str(sxmir.as_str()).unwrap();
+    println!("XMIR: {:#?}\n", xmir);
+    xmir
 }
