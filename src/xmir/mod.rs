@@ -52,6 +52,7 @@ pub struct O {
     pub pos: u32,
     pub name: String,
     pub base: Option<String>,
+    pub data: Option<String>,
 }
 
 pub fn xmir_from_file(path: &str) -> XMIR {
