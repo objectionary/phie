@@ -24,6 +24,6 @@ ctor = "0.1.26"
 rstest = "0.16.0"
 
 [dev-dependencies]
-assert_cmd = "2.0.8"
+assert_cmd = "2.0.10"
 simple_logger = "4.1.0"
 clippy = "0.0.302"
