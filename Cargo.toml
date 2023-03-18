@@ -25,5 +25,5 @@ rstest = "0.16.0"
 
 [dev-dependencies]
 assert_cmd = "2.0.8"
-simple_logger = "4.0.0"
+simple_logger = "4.1.0"
 clippy = "0.0.302"
