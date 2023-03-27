@@ -69,7 +69,7 @@ impl fmt::Display for Emu {
                 self.baskets
                     .iter()
                     .enumerate()
-                    .filter(|(_, d)| !d.is_empty() && d.ob as usize == ob)
+                    .filter(|(_, d)| !d.is_empty() && d.ob == ob)
                     .map(|(i, d)| format!("\n\t➞ β{} {}", i, d))
                     .collect::<Vec<String>>()
                     .join("")
