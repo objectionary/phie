@@ -56,14 +56,11 @@ pub fn main() {
     let args: Vec<String> = env::args().collect();
     let input = args[1].parse().unwrap();
     let cycles = args[2].parse().unwrap();
-    let mut total = 0;
     let mut f = 0;
     for _ in 0..cycles {
         f = fibo(input);
-        total += f;
     }
     println!("{}-th Fibonacci number is {}", input, f);
-    println!("Total is {}", total);
 }
 
 #[cfg(test)]
