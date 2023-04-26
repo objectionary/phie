@@ -185,6 +185,7 @@ impl FromStr for Object {
                     obj = Object::atomic(
                         p.to_string(),
                         match p {
+                            "int-div" => int_div,
                             "int-sub" => int_sub,
                             "int-add" => int_add,
                             "int-neg" => int_neg,
