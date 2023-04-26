@@ -27,5 +27,5 @@ fn calculates_fibo() {
         .arg("3")
         .assert()
         .success()
-        .stdout("5-th Fibonacci number is 8\nTotal is 24\n");
+        .stdout("5-th Fibonacci number is 8\nSum of results is 24\n");
 }
