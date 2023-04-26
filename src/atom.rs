@@ -94,6 +94,19 @@ pub fn int_add_works() {
 }
 
 #[test]
+pub fn int_times_works() {
+    assert_dataized_eq!(
+        77,
+        "
+        ν0(𝜋) ↦ ⟦ 𝜑 ↦ ν2 ⟧
+        ν1(𝜋) ↦ ⟦ Δ ↦ 0x0007 ⟧
+        ν2(𝜋) ↦ ⟦ λ ↦ int-times, ρ ↦ ν1, 𝛼0 ↦ ν3 ⟧
+        ν3(𝜋) ↦ ⟦ Δ ↦ 0x000B ⟧
+    "
+    );
+}
+
+#[test]
 pub fn int_sub_works() {
     assert_dataized_eq!(
         40,
