@@ -37,6 +37,10 @@ pub fn int_sub(emu: &mut Emu, bk: Bk) -> Option<Data> {
     Some(emu.read(bk, Loc::Rho)? - emu.read(bk, Loc::Attr(0))?)
 }
 
+pub fn int_div(emu: &mut Emu, bk: Bk) -> Option<Data> {
+    Some(emu.read(bk, Loc::Rho)? / emu.read(bk, Loc::Attr(0))?)
+}
+
 pub fn int_less(emu: &mut Emu, bk: Bk) -> Option<Data> {
     Some((emu.read(bk, Loc::Rho)? < emu.read(bk, Loc::Attr(0))?) as Data)
 }
@@ -97,6 +101,19 @@ pub fn int_sub_works() {
         ν0(𝜋) ↦ ⟦ 𝜑 ↦ ν2 ⟧
         ν1(𝜋) ↦ ⟦ Δ ↦ 0x002A ⟧
         ν2(𝜋) ↦ ⟦ λ ↦ int-sub, ρ ↦ ν1, 𝛼0 ↦ ν3 ⟧
+        ν3(𝜋) ↦ ⟦ Δ ↦ 0x0002 ⟧
+    "
+    );
+}
+
+#[test]
+pub fn int_div_works() {
+    assert_dataized_eq!(
+        21,
+        "
+        ν0(𝜋) ↦ ⟦ 𝜑 ↦ ν2 ⟧
+        ν1(𝜋) ↦ ⟦ Δ ↦ 0x002A ⟧
+        ν2(𝜋) ↦ ⟦ λ ↦ int-div, ρ ↦ ν1, 𝛼0 ↦ ν3 ⟧
         ν3(𝜋) ↦ ⟦ Δ ↦ 0x0002 ⟧
     "
     );
