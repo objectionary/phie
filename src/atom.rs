@@ -107,6 +107,19 @@ pub fn int_sub_works() {
 }
 
 #[test]
+pub fn int_div_works() {
+    assert_dataized_eq!(
+        21,
+        "
+        ν0(𝜋) ↦ ⟦ 𝜑 ↦ ν2 ⟧
+        ν1(𝜋) ↦ ⟦ Δ ↦ 0x002A ⟧
+        ν2(𝜋) ↦ ⟦ λ ↦ int-div, ρ ↦ ν1, 𝛼0 ↦ ν3 ⟧
+        ν3(𝜋) ↦ ⟦ Δ ↦ 0x0002 ⟧
+    "
+    );
+}
+
+#[test]
 pub fn int_less_works() {
     assert_dataized_eq!(
         0,
