@@ -36,7 +36,7 @@ convert EO code into 𝜑-calculus expressions and then pass them to `Emu` struc
 ```rust
 use phie::emu::Emu;
 pub fn main() {
-    let emu: Emu = "
+    let mut emu: Emu = "
         ν0(𝜋) ↦ ⟦ 𝜑 ↦ ν3(𝜋) ⟧
         ν1(𝜋) ↦ ⟦ Δ ↦ 0x002A ⟧
         ν2(𝜋) ↦ ⟦ λ ↦ int-add, ρ ↦ 𝜋.𝛼0, 𝛼0 ↦ 𝜋.𝛼1 ⟧
