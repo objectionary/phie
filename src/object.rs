@@ -186,6 +186,7 @@ impl FromStr for Object {
                         p.to_string(),
                         match p {
                             "int-times" => int_times,
+                            "int-div" => int_div,
                             "int-sub" => int_sub,
                             "int-add" => int_add,
                             "int-neg" => int_neg,
