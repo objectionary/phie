@@ -70,11 +70,12 @@ pub fn main() {
     run_emulator(filename);
 }
 
-#[cfg(test)]
-use simple_logger::SimpleLogger;
+#[test]
+fn executes_file_example() {
+    run_emulator("tests/resources/written_text_example");
+}
 
 #[test]
-fn executes_file() {
-    SimpleLogger::new().init().unwrap();
-    run_emulator("tests/resources/written_text_example");
+fn executes_fibonacci_file() {
+    run_emulator("tests/resources/written_fibonacci_test");
 }
