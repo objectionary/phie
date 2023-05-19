@@ -23,7 +23,7 @@ extern crate phie;
 use phie::data::Data;
 use phie::emu::{Emu, Opt};
 use std::env;
-use std::{fs, io::Error};
+use std::{fs, io::{self, BufRead, Error}};
 
 pub fn emulate(phi_code: &str) -> Data {
     let mut emu: Emu = phi_code
@@ -35,9 +35,18 @@ pub fn emulate(phi_code: &str) -> Data {
     emu.dataize().0
 }
 
-fn read_file_to_string(file_name: &str) -> Result<String, Error> {
-    let contents = fs::read_to_string(file_name)?;
-    Ok(contents)
+fn read_file_with_number(file_name: &str) -> Result<(i32, Vec<String>), Error> {
+    let file = fs::File::open(file_name)?;
+    let reader = io::BufReader::new(file);
+
+    let lines: Vec<String> = reader.lines().map(|line| line.unwrap()).collect();
+
+    let correct = match lines.first() {
+        Some(line) => line.parse::<i32>().unwrap(),
+        None => return Err(Error::new(io::ErrorKind::InvalidData, "Empty file")),
+    };
+
+    Ok((correct, lines[1..].to_vec()))
 }
 
 pub fn main() {
@@ -45,14 +54,16 @@ pub fn main() {
     let args: Vec<String> = env::args().collect();
     let filename: &str = &args[1];
 
-    let phi_code = read_file_to_string(filename).unwrap();
-    let result = emulate(&phi_code);
-
-    println!("Result: {}", result);
+    match read_file_with_number(filename) {
+        Ok((correct, lines)) => {
+            let phi_code = lines.join("\n");
+            let result = emulate(&phi_code);
+            assert_eq!(i32::from(result), correct);
+        }
+        Err(error) => {
+            println!("Error reading {}: {}", filename, error);
+        }
+    }
 }
 
-#[test]
-fn calculates_fibonacci() {
-    SimpleLogger::new().init().unwrap();
-    assert_eq!(21, fibo(7))
-}
+
