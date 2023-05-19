@@ -23,12 +23,13 @@ extern crate phie;
 use phie::data::Data;
 use phie::emu::{Emu, Opt};
 use std::env;
-use std::{fs, io::{self, BufRead, Error}};
+use std::{
+    fs,
+    io::{self, BufRead, Error},
+};
 
 pub fn emulate(phi_code: &str) -> Data {
-    let mut emu: Emu = phi_code
-        .parse()
-        .unwrap();
+    let mut emu: Emu = phi_code.parse().unwrap();
     emu.opt(Opt::LogSnapshots);
     emu.opt(Opt::StopWhenTooManyCycles);
     emu.opt(Opt::StopWhenStuck);
