@@ -79,3 +79,8 @@ fn executes_file_example() {
 fn executes_fibonacci_file() {
     run_emulator("tests/resources/written_fibonacci_test");
 }
+
+#[test]
+fn executes_sum_file() {
+    run_emulator("tests/resources/written_sum_test");
+}
