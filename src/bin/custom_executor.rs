@@ -49,11 +49,7 @@ fn read_file_with_number(file_name: &str) -> Result<(i32, Vec<String>), Error> {
     Ok((correct, lines[1..].to_vec()))
 }
 
-pub fn main() {
-    env_logger::init();
-    let args: Vec<String> = env::args().collect();
-    let filename: &str = &args[1];
-
+pub fn run_emulator(filename: &str) {
     match read_file_with_number(filename) {
         Ok((correct, lines)) => {
             let phi_code = lines.join("\n");
@@ -66,4 +62,18 @@ pub fn main() {
     }
 }
 
+pub fn main() {
+    env_logger::init();
+    let args: Vec<String> = env::args().collect();
+    let filename: &str = &args[1];
+    run_emulator(filename);
+}
 
+#[cfg(test)]
+use simple_logger::SimpleLogger;
+
+#[test]
+fn executes_file() {
+    SimpleLogger::new().init().unwrap();
+    run_emulator("tests/resources/written_text_example");
+}
