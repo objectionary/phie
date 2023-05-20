@@ -23,64 +23,47 @@ extern crate phie;
 use phie::data::Data;
 use phie::emu::{Emu, Opt};
 use std::env;
-use std::{
-    fs,
-    io::{self, BufRead, Error},
-};
+use std::fs;
+use std::str::FromStr;
 
-pub fn emulate(phi_code: &str) -> Data {
-    let mut emu: Emu = phi_code.parse().unwrap();
+fn emulate(phi_code: &str) -> Data {
+    let mut emu: Emu = Emu::from_str(phi_code).unwrap();
     emu.opt(Opt::LogSnapshots);
     emu.opt(Opt::StopWhenTooManyCycles);
     emu.opt(Opt::StopWhenStuck);
     emu.dataize().0
 }
 
-fn read_file_with_number(file_name: &str) -> Result<(i32, Vec<String>), Error> {
-    let file = fs::File::open(file_name)?;
-    let reader = io::BufReader::new(file);
-
-    let lines: Vec<String> = reader.lines().map(|line| line.unwrap()).collect();
-
-    let correct = match lines.first() {
-        Some(line) => line.parse::<i32>().unwrap(),
-        None => return Err(Error::new(io::ErrorKind::InvalidData, "Empty file")),
-    };
-
-    Ok((correct, lines[1..].to_vec()))
-}
-
-pub fn run_emulator(filename: &str) {
-    match read_file_with_number(filename) {
-        Ok((correct, lines)) => {
-            let phi_code = lines.join("\n");
-            let result = emulate(&phi_code);
-            assert_eq!(i32::from(result), correct);
-        }
-        Err(error) => {
-            println!("Error reading {}: {}", filename, error);
-        }
-    }
+pub fn run_emulator(filename: &str) -> i16 {
+    let binding = fs::read_to_string(filename).unwrap();
+    let phi_code :&str = binding.as_str();
+    emulate(&phi_code)
 }
 
 pub fn main() {
     env_logger::init();
     let args: Vec<String> = env::args().collect();
     let filename: &str = &args[1];
-    run_emulator(filename);
+    let result :i16 = run_emulator(filename);
+    if args.len() >= 3 {
+        let correct = args[2].parse::<i16>().unwrap();
+        assert_eq!(result, correct);
+    } else {
+        println!("Executor result: {}", result);
+    }
 }
 
 #[test]
 fn executes_file_example() {
-    run_emulator("tests/resources/written_text_example");
+    assert_eq!(84, run_emulator("tests/resources/written_test_example"));
 }
 
 #[test]
 fn executes_fibonacci_file() {
-    run_emulator("tests/resources/written_fibonacci_test");
+    assert_eq!(21, run_emulator("tests/resources/written_fibonacci_test"));
 }
 
 #[test]
 fn executes_sum_file() {
-    run_emulator("tests/resources/written_sum_test");
+    assert_eq!(84, run_emulator("tests/resources/written_sum_test"));
 }
