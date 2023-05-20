@@ -36,7 +36,7 @@ fn emulate(phi_code: &str) -> Data {
 
 pub fn run_emulator(filename: &str) -> i16 {
     let binding = fs::read_to_string(filename).unwrap();
-    let phi_code :&str = binding.as_str();
+    let phi_code: &str = binding.as_str();
     emulate(&phi_code)
 }
 
@@ -44,7 +44,7 @@ pub fn main() {
     env_logger::init();
     let args: Vec<String> = env::args().collect();
     let filename: &str = &args[1];
-    let result :i16 = run_emulator(filename);
+    let result: i16 = run_emulator(filename);
     if args.len() >= 3 {
         let correct = args[2].parse::<i16>().unwrap();
         assert_eq!(result, correct);
