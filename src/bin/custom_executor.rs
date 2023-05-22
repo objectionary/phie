@@ -48,9 +48,8 @@ pub fn main() {
     if args.len() >= 3 {
         let correct = args[2].parse::<i16>().unwrap();
         assert_eq!(result, correct);
-    } else {
-        println!("Executor result: {}", result);
     }
+    println!("Executor result: {}", result);
 }
 
 #[test]
