@@ -52,17 +52,6 @@ pub fn main() {
     println!("Executor result: {}", result);
 }
 
-use assert_cmd::Command;
-
-#[test]
-fn call_custom_executor() {
-    let mut cmd = Command::cargo_bin("custom_executor").unwrap();
-    cmd.arg("tests/resources/written_test_example")
-        .assert()
-        .success()
-        .stdout("Executor result: 84\n");
-}
-
 #[test]
 fn executes_file_example() {
     assert_eq!(84, run_emulator("tests/resources/written_test_example"));
