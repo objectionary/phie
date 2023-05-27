@@ -43,6 +43,7 @@ pub fn run_emulator(filename: &str) -> i16 {
 pub fn main() {
     env_logger::init();
     let args: Vec<String> = env::args().collect();
+    assert!(args.len() >= 2);
     let filename: &str = &args[1];
     let result: i16 = run_emulator(filename);
     if args.len() >= 3 {
@@ -50,6 +51,27 @@ pub fn main() {
         assert_eq!(result, correct);
     }
     println!("Executor result: {}", result);
+}
+
+#[test]
+fn executes_example() {
+    use gag::BufferRedirect;
+    use std::io::Read;
+
+    let mut buf = BufferRedirect::stdout().unwrap();
+
+    let args: Vec<String> = vec![
+        String::from("arg1"),
+        String::from("arg1"),
+    ];
+    env::args().collect::<Vec<String>>().extend(args.clone());
+    main();
+
+    let mut output = String::new();
+    buf.read_to_string(&mut output).unwrap();
+    drop(buf);
+
+    assert_eq!(&output[..], "Executor result: 84\n");
 }
 
 #[test]
