@@ -54,8 +54,15 @@ pub fn execute_program(args: &[String]) -> i16 {
 pub fn main() {
     env_logger::init();
     let args: Vec<String> = env::args().collect();
+    assert!(args.len() >= 2);
     let result = execute_program(&args);
     println!("Executor result: {}", result);
+}
+
+#[test]
+#[should_panic]
+fn test_main() {
+    main();
 }
 
 #[test]
