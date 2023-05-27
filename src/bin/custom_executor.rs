@@ -59,6 +59,24 @@ pub fn main() {
 }
 
 #[test]
+fn test_execute_program_with_valid_args() {
+    let args = vec![
+        "program_name".to_string(),
+        "tests/resources/written_test_example".to_string(),
+        "84".to_string(),
+    ];
+    let result = execute_program(&args);
+    assert_eq!(result, 84);
+}
+
+#[test]
+#[should_panic]
+fn test_execute_program_with_invalid_args() {
+    let args = vec!["program_name".to_string()];
+    execute_program(&args);
+}
+
+#[test]
 fn executes_file_example() {
     assert_eq!(84, run_emulator("tests/resources/written_test_example"));
 }
