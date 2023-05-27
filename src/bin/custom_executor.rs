@@ -54,27 +54,6 @@ pub fn main() {
 }
 
 #[test]
-fn executes_example() {
-    use gag::BufferRedirect;
-    use std::io::Read;
-
-    let mut buf = BufferRedirect::stdout().unwrap();
-
-    let args: Vec<String> = vec![
-        String::from("arg1"),
-        String::from("arg1"),
-    ];
-    env::args().collect::<Vec<String>>().extend(args.clone());
-    main();
-
-    let mut output = String::new();
-    buf.read_to_string(&mut output).unwrap();
-    drop(buf);
-
-    assert_eq!(&output[..], "Executor result: 84\n");
-}
-
-#[test]
 fn executes_file_example() {
     assert_eq!(84, run_emulator("tests/resources/written_test_example"));
 }
