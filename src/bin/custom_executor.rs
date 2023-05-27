@@ -40,10 +40,7 @@ pub fn run_emulator(filename: &str) -> i16 {
     emulate(&phi_code)
 }
 
-// codecov ignore
-pub fn main() {
-    env_logger::init();
-    let args: Vec<String> = env::args().collect();
+pub fn execute_program(args: &[String]) -> i16 {
     assert!(args.len() >= 2);
     let filename: &str = &args[1];
     let result: i16 = run_emulator(filename);
@@ -51,9 +48,15 @@ pub fn main() {
         let correct = args[2].parse::<i16>().unwrap();
         assert_eq!(result, correct);
     }
+    result
+}
+
+pub fn main() {
+    env_logger::init();
+    let args: Vec<String> = env::args().collect();
+    let result = execute_program(&args);
     println!("Executor result: {}", result);
 }
-// codecov stop-ignore
 
 #[test]
 fn executes_file_example() {
