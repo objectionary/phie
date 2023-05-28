@@ -102,7 +102,6 @@ pub fn summarizes_two_numbers() {
 //       int-neg    v4
 //         42       v9
 //       42         v9
-//       42         v9
 #[test]
 pub fn preserves_calculation_results() {
     let mut emu = Emu::from_str(
