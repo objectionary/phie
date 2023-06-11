@@ -19,7 +19,7 @@ strum = "0.24.1"
 strum_macros = "0.24.3"
 itertools = "0.10.5"
 arr_macro = "0.2.1"
-log = "0.4.18"
+log = "0.4.19"
 ctor = "0.2.2"
 rstest = "0.17.0"
 
