@@ -24,5 +24,5 @@ ctor = "0.2.4"
 rstest = "0.18.1"
 
 [dev-dependencies]
-assert_cmd = "2.0.11"
+assert_cmd = "2.0.14"
 simple_logger = "4.2.0"
