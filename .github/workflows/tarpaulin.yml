@@ -1,6 +1,6 @@
 ---
 name: tarpaulin
-on:
+'on':
   push:
   pull_request:
 jobs:
