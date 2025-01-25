@@ -8,7 +8,6 @@
 [![PDD status](http://www.0pdd.com/svg?name=objectionary/phie)](http://www.0pdd.com/p?name=objectionary/phie)
 [![codecov](https://codecov.io/gh/objectionary/phie/branch/master/graph/badge.svg)](https://codecov.io/gh/objectionary/phie)
 [![Hits-of-Code](https://hitsofcode.com/github/objectionary/phie)](https://hitsofcode.com/view/github/objectionary/phie)
-![Lines of code](https://img.shields.io/tokei/lines/github/objectionary/phie)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/objectionary/phie/blob/master/LICENSE.txt)
 
 It's an experimental emulator of a machine that understands
