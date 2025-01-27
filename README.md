@@ -11,7 +11,7 @@
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/objectionary/phie/blob/master/LICENSE.txt)
 
 It's an experimental emulator of a machine that understands
-[𝜑-calculus](https://arxiv.org/abs/2111.13384) expressions, 
+[𝜑-calculus](https://arxiv.org/abs/2111.13384) expressions,
 which is the formalism behind [EO](https://www.eolang.org) programming language.
 
 To build it, install [Rust](https://www.rust-lang.org/tools/install) and then:
@@ -29,7 +29,7 @@ $ target/release/fibonacci 7 40
 This will calculate the 7th Fibonacci number 40 times.
 Don't try to play with much larger numbers, this binary code is very slow. It's just an experiment.
 
-To compile your own program instead of this primitive recursive Fibonacci calculator, you have to 
+To compile your own program instead of this primitive recursive Fibonacci calculator, you have to
 convert EO code into 𝜑-calculus expressions and then pass them to `Emu` struct like this:
 
 ```rust
@@ -83,5 +83,5 @@ $ target/release/phie --help
 Then, fork repository, make changes, send us a [pull request](https://www.yegor256.com/2014/04/15/github-guidelines.html).
 We will review your changes and apply them to the `master` branch shortly,
 provided they don't violate our quality standards. To avoid frustration,
-before sending us your pull request please run `cargo test` again. Also, 
+before sending us your pull request please run `cargo test` again. Also,
 run `cargo fmt` and `cargo clippy`.
