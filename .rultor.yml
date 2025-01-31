@@ -12,6 +12,7 @@ merge:
     cargo --color=never fmt --check
     cargo clippy
 release:
+  pre: false
   script: |-
     [[ "${tag}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || exit -1
 
