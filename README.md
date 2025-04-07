@@ -5,7 +5,7 @@
 
 [![cargo](https://github.com/objectionary/phie/actions/workflows/cargo.yml/badge.svg)](https://github.com/objectionary/phie/actions/workflows/cargo.yml)
 [![crates.io](https://img.shields.io/crates/v/phie.svg)](https://crates.io/crates/phie)
-[![PDD status](http://www.0pdd.com/svg?name=objectionary/phie)](http://www.0pdd.com/p?name=objectionary/phie)
+[![PDD status](https://www.0pdd.com/svg?name=objectionary/phie)](https://www.0pdd.com/p?name=objectionary/phie)
 [![codecov](https://codecov.io/gh/objectionary/phie/branch/master/graph/badge.svg)](https://codecov.io/gh/objectionary/phie)
 [![Hits-of-Code](https://hitsofcode.com/github/objectionary/phie)](https://hitsofcode.com/view/github/objectionary/phie)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/objectionary/phie/blob/master/LICENSE.txt)
