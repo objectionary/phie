@@ -5,7 +5,6 @@ version = 1
 [[annotations]]
 path = [
     ".DS_Store",
-    "tests/resources/**",
     ".gitattributes",
     ".gitignore",
     "**.json",
@@ -28,6 +27,7 @@ path = [
     "Cargo.toml",
     "README.md",
     "renovate.json",
+    "tests/resources/**",
 ]
 precedence = "override"
 SPDX-FileCopyrightText = "Copyright (c) 2025 Yegor Bugayenko"
