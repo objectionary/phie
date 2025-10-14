@@ -103,8 +103,10 @@ fn test_emulate_basic() {
 
 #[test]
 fn test_execute_program_single_arg() {
-    let args =
-        vec!["program_name".to_string(), "tests/resources/written_test_example".to_string()];
+    let args = vec![
+        "program_name".to_string(),
+        "tests/resources/written_test_example".to_string(),
+    ];
     let result = execute_program(&args);
     assert_eq!(result, 84);
 }

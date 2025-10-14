@@ -450,5 +450,9 @@ pub fn recursive_fibonacci() {
     .unwrap();
     let (result, perf) = emu.dataize();
     assert_eq!(fibo(input), result, "Wrong number calculated");
-    assert_eq!(perf.total_atoms(), fibo_ops(input), "Too many atomic operations");
+    assert_eq!(
+        perf.total_atoms(),
+        fibo_ops(input),
+        "Too many atomic operations"
+    );
 }
