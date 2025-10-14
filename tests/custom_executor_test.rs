@@ -11,3 +11,11 @@ fn call_custom_executor() {
         .success()
         .stdout("Executor result: 84\n");
 }
+
+#[test]
+fn fails_with_no_args() {
+    let mut cmd = Command::cargo_bin("custom_executor").unwrap();
+    cmd.assert()
+        .failure()
+        .stderr(predicates::str::contains("Usage:"));
+}
