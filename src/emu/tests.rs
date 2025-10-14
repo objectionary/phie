@@ -456,3 +456,19 @@ pub fn recursive_fibonacci() {
         "Too many atomic operations"
     );
 }
+
+#[test]
+fn fails_on_invalid_emu_line() {
+    let result = Emu::from_str("invalid emu format");
+    assert!(result.is_err());
+    let err = result.err().unwrap();
+    assert!(err.contains("Can't parse emu line"));
+}
+
+#[test]
+fn fails_on_invalid_object_in_line() {
+    let result = Emu::from_str("ν0(𝜋) ↦ ⟦ invalid ⟧");
+    assert!(result.is_err());
+    let err = result.err().unwrap();
+    assert!(err.contains("Can't parse object in line"));
+}

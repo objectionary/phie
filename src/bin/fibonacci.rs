@@ -197,3 +197,19 @@ fn test_run_with_invalid_input() {
     assert!(result.is_err());
     assert!(result.unwrap_err().contains("Invalid input argument"));
 }
+
+#[test]
+fn test_parse_with_empty_args() {
+    let args: Vec<String> = vec![];
+    let result = parse_fibonacci_args(&args);
+    assert!(result.is_err());
+    assert!(result.unwrap_err().contains("Usage"));
+}
+
+#[test]
+fn test_run_with_empty_args() {
+    let args: Vec<String> = vec![];
+    let result = run(&args);
+    assert!(result.is_err());
+    assert!(result.unwrap_err().contains("Usage"));
+}

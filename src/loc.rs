@@ -92,3 +92,27 @@ pub fn parses_and_prints(#[case] txt: &str) {
     let loc2 = Loc::from_str(&loc1.to_string()).unwrap();
     assert_eq!(loc1, loc2)
 }
+
+#[test]
+fn fails_on_unknown_loc() {
+    let result = Loc::from_str("unknown");
+    assert!(result.is_err());
+    let err = result.err().unwrap();
+    assert!(err.contains("Unknown loc"));
+}
+
+#[test]
+fn fails_on_invalid_attr_number() {
+    let result = Loc::from_str("𝛼999999999999");
+    assert!(result.is_err());
+    let err = result.err().unwrap();
+    assert!(err.contains("Failed to parse attr number"));
+}
+
+#[test]
+fn fails_on_invalid_obj_number() {
+    let result = Loc::from_str("ν99999999999999999999999999");
+    assert!(result.is_err());
+    let err = result.err().unwrap();
+    assert!(err.contains("Failed to parse obj number"));
+}

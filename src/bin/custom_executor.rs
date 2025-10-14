@@ -10,38 +10,40 @@ use std::env;
 use std::fs;
 use std::str::FromStr;
 
-fn emulate(phi_code: &str) -> Data {
-    let mut emu: Emu = Emu::from_str(phi_code).unwrap_or_else(|e| {
-        eprintln!("Failed to parse phi code: {}", e);
-        std::process::exit(1);
-    });
+fn emulate(phi_code: &str) -> Result<Data, String> {
+    let mut emu: Emu =
+        Emu::from_str(phi_code).map_err(|e| format!("Failed to parse phi code: {}", e))?;
     emu.opt(Opt::LogSnapshots);
     emu.opt(Opt::StopWhenTooManyCycles);
     emu.opt(Opt::StopWhenStuck);
-    emu.dataize().0
+    Ok(emu.dataize().0)
 }
 
-pub fn run_emulator(filename: &str) -> i16 {
-    let binding = fs::read_to_string(filename).unwrap_or_else(|e| {
-        eprintln!("Failed to read file '{}': {}", filename, e);
-        std::process::exit(1);
-    });
+pub fn run_emulator(filename: &str) -> Result<i16, String> {
+    let binding = fs::read_to_string(filename)
+        .map_err(|e| format!("Failed to read file '{}': {}", filename, e))?;
     let phi_code: &str = binding.as_str();
     emulate(phi_code)
 }
 
-pub fn execute_program(args: &[String]) -> i16 {
-    assert!(args.len() >= 2);
-    let filename: &str = &args[1];
-    let result: i16 = run_emulator(filename);
-    if args.len() >= 3 {
-        let correct = args[2].parse::<i16>().unwrap_or_else(|e| {
-            eprintln!("Invalid expected value argument '{}': {}", args[2], e);
-            std::process::exit(1);
-        });
-        assert_eq!(result, correct);
+pub fn execute_program(args: &[String]) -> Result<i16, String> {
+    if args.len() < 2 {
+        return Err("Insufficient arguments".to_string());
     }
-    result
+    let filename: &str = &args[1];
+    let result: i16 = run_emulator(filename)?;
+    if args.len() >= 3 {
+        let correct = args[2]
+            .parse::<i16>()
+            .map_err(|e| format!("Invalid expected value argument '{}': {}", args[2], e))?;
+        if result != correct {
+            return Err(format!(
+                "Result {} does not match expected {}",
+                result, correct
+            ));
+        }
+    }
+    Ok(result)
 }
 
 pub fn validate_and_execute(args: &[String]) -> Result<i16, String> {
@@ -51,7 +53,7 @@ pub fn validate_and_execute(args: &[String]) -> Result<i16, String> {
             args.first().unwrap_or(&"custom_executor".to_string())
         ));
     }
-    Ok(execute_program(args))
+    execute_program(args)
 }
 
 pub fn run(args: &[String]) -> Result<String, String> {
@@ -79,29 +81,39 @@ fn test_execute_program_with_valid_args() {
         "84".to_string(),
     ];
     let result = execute_program(&args);
-    assert_eq!(result, 84);
+    assert!(result.is_ok());
+    assert_eq!(result.unwrap(), 84);
 }
 
 #[test]
-#[should_panic]
 fn test_execute_program_with_invalid_args() {
     let args = vec!["program_name".to_string()];
-    execute_program(&args);
+    let result = execute_program(&args);
+    assert!(result.is_err());
 }
 
 #[test]
 fn executes_file_example() {
-    assert_eq!(84, run_emulator("tests/resources/written_test_example"));
+    assert_eq!(
+        84,
+        run_emulator("tests/resources/written_test_example").unwrap()
+    );
 }
 
 #[test]
 fn executes_fibonacci_file() {
-    assert_eq!(21, run_emulator("tests/resources/written_fibonacci_test"));
+    assert_eq!(
+        21,
+        run_emulator("tests/resources/written_fibonacci_test").unwrap()
+    );
 }
 
 #[test]
 fn executes_sum_file() {
-    assert_eq!(84, run_emulator("tests/resources/written_sum_test"));
+    assert_eq!(
+        84,
+        run_emulator("tests/resources/written_sum_test").unwrap()
+    );
 }
 
 #[test]
@@ -110,7 +122,7 @@ fn test_emulate_basic() {
         ν0(𝜋) ↦ ⟦ 𝜑 ↦ ν1(𝜋) ⟧
         ν1(𝜋) ↦ ⟦ Δ ↦ 0x002A ⟧
     ";
-    assert_eq!(42, emulate(phi_code));
+    assert_eq!(42, emulate(phi_code).unwrap());
 }
 
 #[test]
@@ -120,19 +132,20 @@ fn test_execute_program_single_arg() {
         "tests/resources/written_test_example".to_string(),
     ];
     let result = execute_program(&args);
-    assert_eq!(result, 84);
+    assert!(result.is_ok());
+    assert_eq!(result.unwrap(), 84);
 }
 
 #[test]
 fn test_run_emulator_sum() {
     let result = run_emulator("tests/resources/written_sum_test");
-    assert_eq!(result, 84);
+    assert_eq!(result.unwrap(), 84);
 }
 
 #[test]
 fn test_emulate_simple_data() {
     let phi_code = "ν0(𝜋) ↦ ⟦ Δ ↦ 0x0001 ⟧";
-    assert_eq!(1, emulate(phi_code));
+    assert_eq!(1, emulate(phi_code).unwrap());
 }
 
 #[test]
@@ -143,13 +156,13 @@ fn test_emulate_with_lambda() {
         ν2(𝜋) ↦ ⟦ Δ ↦ 0x0005 ⟧
         ν3(𝜋) ↦ ⟦ Δ ↦ 0x0003 ⟧
     ";
-    assert_eq!(8, emulate(phi_code));
+    assert_eq!(8, emulate(phi_code).unwrap());
 }
 
 #[test]
 fn test_run_emulator_fibonacci() {
     let result = run_emulator("tests/resources/written_fibonacci_test");
-    assert_eq!(21, result);
+    assert_eq!(21, result.unwrap());
 }
 
 #[test]
@@ -217,4 +230,46 @@ fn test_run_with_single_arg() {
     let result = run(&args);
     assert!(result.is_err());
     assert!(result.unwrap_err().contains("Usage"));
+}
+
+#[test]
+fn test_emulate_with_invalid_phi_code() {
+    let result = emulate("invalid phi code");
+    assert!(result.is_err());
+    let err = result.err().unwrap();
+    assert!(err.contains("Failed to parse phi code"));
+}
+
+#[test]
+fn test_run_emulator_with_nonexistent_file() {
+    let result = run_emulator("nonexistent_file.txt");
+    assert!(result.is_err());
+    let err = result.err().unwrap();
+    assert!(err.contains("Failed to read file"));
+}
+
+#[test]
+fn test_execute_program_with_invalid_expected_value() {
+    let args = vec![
+        "program".to_string(),
+        "tests/resources/written_test_example".to_string(),
+        "not_a_number".to_string(),
+    ];
+    let result = execute_program(&args);
+    assert!(result.is_err());
+    let err = result.err().unwrap();
+    assert!(err.contains("Invalid expected value argument"));
+}
+
+#[test]
+fn test_execute_program_with_wrong_expected_value() {
+    let args = vec![
+        "program".to_string(),
+        "tests/resources/written_test_example".to_string(),
+        "999".to_string(),
+    ];
+    let result = execute_program(&args);
+    assert!(result.is_err());
+    let err = result.err().unwrap();
+    assert!(err.contains("does not match expected"));
 }
