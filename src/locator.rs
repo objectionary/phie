@@ -68,8 +68,7 @@ type CheckFn = fn(&Locator) -> Option<String>;
 impl FromStr for Locator {
     type Err = String;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let locs_result: Result<Vec<Loc>, String> =
-            s.split('.').map(Loc::from_str).collect();
+        let locs_result: Result<Vec<Loc>, String> = s.split('.').map(Loc::from_str).collect();
         let p = Locator { locs: locs_result? };
 
         let checks: [CheckFn; 4] = [
