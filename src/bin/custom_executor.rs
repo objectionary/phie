@@ -54,6 +54,7 @@ pub fn main() {
 
 #[test]
 #[should_panic]
+#[cfg(not(tarpaulin))]
 fn test_main() {
     main();
 }
