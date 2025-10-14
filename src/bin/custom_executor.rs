@@ -110,3 +110,15 @@ fn test_execute_program_single_arg() {
     let result = execute_program(&args);
     assert_eq!(result, 84);
 }
+
+#[test]
+fn test_run_emulator_sum() {
+    let result = run_emulator("tests/resources/written_sum_test");
+    assert_eq!(result, 84);
+}
+
+#[test]
+fn test_emulate_simple_data() {
+    let phi_code = "ν0(𝜋) ↦ ⟦ Δ ↦ 0x0001 ⟧";
+    assert_eq!(1, emulate(phi_code));
+}

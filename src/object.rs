@@ -278,3 +278,48 @@ fn fails_on_unknown_lambda() {
         err
     );
 }
+
+#[test]
+fn fails_on_invalid_format() {
+    let text = "invalid object format";
+    let result = Object::from_str(text);
+    assert!(result.is_err());
+    let err = result.err().unwrap();
+    assert!(err.contains("Can't parse object format"));
+}
+
+#[test]
+fn fails_on_invalid_hex() {
+    let text = "⟦ Δ ↦ 0xZZZZ ⟧";
+    let result = Object::from_str(text);
+    assert!(result.is_err());
+    let err = result.err().unwrap();
+    assert!(err.contains("Can't parse hex"));
+}
+
+#[test]
+fn fails_on_malformed_attribute() {
+    let text = "⟦ malformed ⟧";
+    let result = Object::from_str(text);
+    assert!(result.is_err());
+    let err = result.err().unwrap();
+    assert!(err.contains("Can't split"));
+}
+
+#[test]
+fn parses_object_with_xi() {
+    let text = "⟦ 𝜑 ↦ ν2(ξ) ⟧";
+    let obj = Object::from_str(&text).unwrap();
+    assert_eq!(obj.attrs.len(), 1);
+    let (_, xi) = obj.attrs.get(&Loc::Phi).unwrap();
+    assert!(*xi);
+}
+
+#[test]
+fn parses_object_without_xi() {
+    let text = "⟦ ρ ↦ 𝜋 ⟧";
+    let obj = Object::from_str(&text).unwrap();
+    assert_eq!(obj.attrs.len(), 1);
+    let (_, xi) = obj.attrs.get(&Loc::Rho).unwrap();
+    assert!(!*xi);
+}

@@ -111,3 +111,40 @@ pub fn sorts_them() {
     perf.hit(Transition::NEW);
     assert!(perf.to_string().contains("DEL: 1\n\tNEW: 1\n\tPPG: 1"));
 }
+
+#[test]
+pub fn counts_ticks() {
+    let mut perf = Perf::new();
+    perf.tick(Transition::CPY);
+    perf.tick(Transition::CPY);
+    perf.tick(Transition::DLG);
+    assert_eq!(perf.total_ticks(), 3);
+    assert!(perf.to_string().contains("Ticks:"));
+}
+
+#[test]
+pub fn counts_atoms() {
+    let mut perf = Perf::new();
+    perf.atom("int-add".to_string());
+    perf.atom("int-add".to_string());
+    perf.atom("int-sub".to_string());
+    assert_eq!(perf.total_atoms(), 3);
+    assert!(perf.to_string().contains("Atoms:"));
+}
+
+#[test]
+pub fn tracks_peak() {
+    let mut perf = Perf::new();
+    perf.peak(5);
+    perf.peak(10);
+    perf.peak(7);
+    assert_eq!(perf.peak, 10);
+}
+
+#[test]
+pub fn uses_default() {
+    let perf = Perf::default();
+    assert_eq!(perf.cycles, 0);
+    assert_eq!(perf.peak, 0);
+    assert_eq!(perf.total_hits(), 0);
+}
