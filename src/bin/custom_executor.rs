@@ -1,3 +1,4 @@
+// SPDX-FileCopyrightText: Copyright (c) 2022 Yegor Bugayenko
 // SPDX-FileCopyrightText: Copyright (c) 2023 Eugene Darashkevich
 // SPDX-License-Identifier: MIT
 
