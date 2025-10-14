@@ -54,17 +54,21 @@ pub fn validate_and_execute(args: &[String]) -> Result<i16, String> {
     Ok(execute_program(args))
 }
 
+pub fn run(args: &[String]) -> Result<String, String> {
+    let result = validate_and_execute(args)?;
+    Ok(format!("Executor result: {}", result))
+}
+
 pub fn main() {
     env_logger::init();
     let args: Vec<String> = env::args().collect();
-    let result = match validate_and_execute(&args) {
-        Ok(r) => r,
+    match run(&args) {
+        Ok(output) => println!("{}", output),
         Err(e) => {
             eprintln!("{}", e);
             std::process::exit(1);
         }
-    };
-    println!("Executor result: {}", result);
+    }
 }
 
 #[test]
@@ -183,6 +187,34 @@ fn fails_validation_with_insufficient_args() {
 fn validates_with_empty_args() {
     let args: Vec<String> = vec![];
     let result = validate_and_execute(&args);
+    assert!(result.is_err());
+    assert!(result.unwrap_err().contains("Usage"));
+}
+
+#[test]
+fn test_run_success() {
+    let args = vec![
+        "custom_executor".to_string(),
+        "tests/resources/written_test_example".to_string(),
+    ];
+    let result = run(&args);
+    assert!(result.is_ok());
+    let output = result.unwrap();
+    assert!(output.contains("Executor result: 84"));
+}
+
+#[test]
+fn test_run_with_no_args() {
+    let args: Vec<String> = vec![];
+    let result = run(&args);
+    assert!(result.is_err());
+    assert!(result.unwrap_err().contains("Usage"));
+}
+
+#[test]
+fn test_run_with_single_arg() {
+    let args = vec!["custom_executor".to_string()];
+    let result = run(&args);
     assert!(result.is_err());
     assert!(result.unwrap_err().contains("Usage"));
 }

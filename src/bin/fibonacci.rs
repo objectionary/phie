@@ -60,19 +60,25 @@ pub fn run_fibonacci_cycles(input: Data, cycles: i32) -> (Data, Data) {
     (f, total)
 }
 
+pub fn run(args: &[String]) -> Result<String, String> {
+    let (input, cycles) = parse_fibonacci_args(args)?;
+    let (f, total) = run_fibonacci_cycles(input, cycles);
+    Ok(format!(
+        "{}-th Fibonacci number is {}\nSum of results is {}",
+        input, f, total
+    ))
+}
+
 pub fn main() {
     env_logger::init();
     let args: Vec<String> = env::args().collect();
-    let (input, cycles) = match parse_fibonacci_args(&args) {
-        Ok(result) => result,
+    match run(&args) {
+        Ok(output) => println!("{}", output),
         Err(e) => {
             eprintln!("{}", e);
             std::process::exit(1);
         }
-    };
-    let (f, total) = run_fibonacci_cycles(input, cycles);
-    println!("{}-th Fibonacci number is {}", input, f);
-    println!("Sum of results is {}", total);
+    }
 }
 
 #[cfg(test)]
@@ -160,4 +166,34 @@ fn runs_fibonacci_zero_cycles() {
     let (f, total) = run_fibonacci_cycles(7, 0);
     assert_eq!(f, 0);
     assert_eq!(total, 0);
+}
+
+#[test]
+fn test_run_success() {
+    let args = vec!["fibonacci".to_string(), "5".to_string(), "3".to_string()];
+    let result = run(&args);
+    assert!(result.is_ok());
+    let output = result.unwrap();
+    assert!(output.contains("5-th Fibonacci number is 8"));
+    assert!(output.contains("Sum of results is 24"));
+}
+
+#[test]
+fn test_run_with_insufficient_args() {
+    let args = vec!["fibonacci".to_string(), "5".to_string()];
+    let result = run(&args);
+    assert!(result.is_err());
+    assert!(result.unwrap_err().contains("Usage"));
+}
+
+#[test]
+fn test_run_with_invalid_input() {
+    let args = vec![
+        "fibonacci".to_string(),
+        "invalid".to_string(),
+        "3".to_string(),
+    ];
+    let result = run(&args);
+    assert!(result.is_err());
+    assert!(result.unwrap_err().contains("Invalid input argument"));
 }
