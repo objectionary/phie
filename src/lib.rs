@@ -18,5 +18,7 @@ use simple_logger::SimpleLogger;
 #[cfg(test)]
 #[ctor::ctor]
 fn init() {
-    SimpleLogger::new().init().expect("Failed to initialize logger in tests");
+    SimpleLogger::new()
+        .init()
+        .expect("Failed to initialize logger in tests");
 }
