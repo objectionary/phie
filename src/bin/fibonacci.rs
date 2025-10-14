@@ -78,4 +78,10 @@ fn calculates_fibonacci_for_multiple_inputs() {
     assert_eq!(13, fibo(6));
     assert_eq!(34, fibo(8));
     assert_eq!(55, fibo(9));
+    assert_eq!(89, fibo(10));
+}
+
+#[test]
+fn calculates_fibonacci_five() {
+    assert_eq!(8, fibo(5));
 }

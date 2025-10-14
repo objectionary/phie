@@ -122,3 +122,20 @@ fn test_emulate_simple_data() {
     let phi_code = "ν0(𝜋) ↦ ⟦ Δ ↦ 0x0001 ⟧";
     assert_eq!(1, emulate(phi_code));
 }
+
+#[test]
+fn test_emulate_with_lambda() {
+    let phi_code = "
+        ν0(𝜋) ↦ ⟦ 𝜑 ↦ ν1(𝜋) ⟧
+        ν1(𝜋) ↦ ⟦ λ ↦ int-add, ρ ↦ ν2(𝜋), 𝛼0 ↦ ν3(𝜋) ⟧
+        ν2(𝜋) ↦ ⟦ Δ ↦ 0x0005 ⟧
+        ν3(𝜋) ↦ ⟦ Δ ↦ 0x0003 ⟧
+    ";
+    assert_eq!(8, emulate(phi_code));
+}
+
+#[test]
+fn test_run_emulator_fibonacci() {
+    let result = run_emulator("tests/resources/written_fibonacci_test");
+    assert_eq!(21, result);
+}

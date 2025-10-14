@@ -176,3 +176,23 @@ pub fn fetches_loc_from_locator(
 ) {
     assert_eq!(*ph!(&locator).loc(idx).unwrap(), expected);
 }
+
+#[test]
+fn returns_none_for_out_of_bounds() {
+    let locator = ph!("P.0");
+    assert!(locator.loc(10).is_none());
+}
+
+#[test]
+fn converts_to_vec() {
+    let locator = ph!("P.0.@");
+    let vec = locator.to_vec();
+    assert_eq!(vec.len(), 3);
+    assert_eq!(vec[0], Loc::Pi);
+}
+
+#[test]
+fn creates_from_loc() {
+    let locator = Locator::from_loc(Loc::Phi);
+    assert_eq!(locator.to_vec().len(), 1);
+}

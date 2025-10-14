@@ -193,6 +193,14 @@ fn makes_simple_basket() {
 }
 
 #[test]
+fn checks_if_empty() {
+    let empty = Basket::empty();
+    assert!(empty.is_empty());
+    let not_empty = Basket::start(0, 0);
+    assert!(!not_empty.is_empty());
+}
+
+#[test]
 fn prints_itself() {
     let mut basket = Basket::start(5, 7);
     basket.put(Loc::Delta, Kid::Dtzd(42));
