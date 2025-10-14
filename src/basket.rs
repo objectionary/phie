@@ -219,6 +219,34 @@ fn parses_itself() {
     assert_eq!(txt, basket.to_string());
 }
 
+#[test]
+fn fails_on_invalid_basket_format() {
+    let result = Basket::from_str("invalid");
+    assert!(result.is_err());
+    let err = result.err().unwrap();
+    assert!(err.contains("Can't parse the basket"));
+}
+
+#[test]
+fn fails_on_invalid_data_hex() {
+    let result = Basket::from_str("[ν5, ξ:β7, Δ⇶0xZZZZ]");
+    assert!(result.is_err());
+    let err = result.err().unwrap();
+    assert!(err.contains("Can't parse data"));
+}
+
+#[test]
+fn fails_on_invalid_wait_format() {
+    let result = Basket::from_str("[ν5, ξ:β7, ρ⇉βinvalid]");
+    assert!(result.is_err());
+}
+
+#[test]
+fn fails_on_invalid_need_format() {
+    let result = Basket::from_str("[ν5, ξ:β7, 𝛼1→(νinvalid)]");
+    assert!(result.is_err());
+}
+
 #[rstest]
 #[case("[ν5, ξ:β7, Δ⇶0x002A, ρ⇉β42.𝜑]")]
 #[case("[ν5, ξ:β18, Δ⇶0x1F21, ρ⇉β4.𝜑, 𝛼12→?, 𝛼1→?, 𝛼3→(ν5;β5), 𝜑→∅]")]
