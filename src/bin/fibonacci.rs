@@ -34,30 +34,43 @@ pub fn fibo(x: Data) -> Data {
     emu.dataize().0
 }
 
-pub fn main() {
-    env_logger::init();
-    let args: Vec<String> = env::args().collect();
+pub fn parse_fibonacci_args(args: &[String]) -> Result<(Data, i32), String> {
     if args.len() < 3 {
-        eprintln!(
+        return Err(format!(
             "Usage: {} <input> <cycles>",
             args.first().unwrap_or(&"fibonacci".to_string())
-        );
-        std::process::exit(1);
+        ));
     }
-    let input = args[1].parse().unwrap_or_else(|e| {
-        eprintln!("Invalid input argument '{}': {}", args[1], e);
-        std::process::exit(1);
-    });
-    let cycles = args[2].parse().unwrap_or_else(|e| {
-        eprintln!("Invalid cycles argument '{}': {}", args[2], e);
-        std::process::exit(1);
-    });
+    let input = args[1].parse().map_err(|e| {
+        format!("Invalid input argument '{}': {}", args[1], e)
+    })?;
+    let cycles = args[2].parse().map_err(|e| {
+        format!("Invalid cycles argument '{}': {}", args[2], e)
+    })?;
+    Ok((input, cycles))
+}
+
+pub fn run_fibonacci_cycles(input: Data, cycles: i32) -> (Data, Data) {
     let mut total = 0;
     let mut f = 0;
     for _ in 0..cycles {
         f = fibo(input);
         total += f;
     }
+    (f, total)
+}
+
+pub fn main() {
+    env_logger::init();
+    let args: Vec<String> = env::args().collect();
+    let (input, cycles) = match parse_fibonacci_args(&args) {
+        Ok(result) => result,
+        Err(e) => {
+            eprintln!("{}", e);
+            std::process::exit(1);
+        }
+    };
+    let (f, total) = run_fibonacci_cycles(input, cycles);
     println!("{}-th Fibonacci number is {}", input, f);
     println!("Sum of results is {}", total);
 }
@@ -84,4 +97,71 @@ fn calculates_fibonacci_for_multiple_inputs() {
 #[test]
 fn calculates_fibonacci_five() {
     assert_eq!(8, fibo(5));
+}
+
+#[test]
+fn parses_valid_fibonacci_args() {
+    let args = vec![
+        "fibonacci".to_string(),
+        "7".to_string(),
+        "3".to_string(),
+    ];
+    let result = parse_fibonacci_args(&args);
+    assert!(result.is_ok());
+    let (input, cycles) = result.unwrap();
+    assert_eq!(input, 7);
+    assert_eq!(cycles, 3);
+}
+
+#[test]
+fn fails_to_parse_insufficient_args() {
+    let args = vec!["fibonacci".to_string(), "7".to_string()];
+    let result = parse_fibonacci_args(&args);
+    assert!(result.is_err());
+    assert!(result.unwrap_err().contains("Usage"));
+}
+
+#[test]
+fn fails_to_parse_invalid_input() {
+    let args = vec![
+        "fibonacci".to_string(),
+        "invalid".to_string(),
+        "3".to_string(),
+    ];
+    let result = parse_fibonacci_args(&args);
+    assert!(result.is_err());
+    assert!(result.unwrap_err().contains("Invalid input argument"));
+}
+
+#[test]
+fn fails_to_parse_invalid_cycles() {
+    let args = vec![
+        "fibonacci".to_string(),
+        "7".to_string(),
+        "invalid".to_string(),
+    ];
+    let result = parse_fibonacci_args(&args);
+    assert!(result.is_err());
+    assert!(result.unwrap_err().contains("Invalid cycles argument"));
+}
+
+#[test]
+fn runs_fibonacci_single_cycle() {
+    let (f, total) = run_fibonacci_cycles(5, 1);
+    assert_eq!(f, 8);
+    assert_eq!(total, 8);
+}
+
+#[test]
+fn runs_fibonacci_multiple_cycles() {
+    let (f, total) = run_fibonacci_cycles(7, 3);
+    assert_eq!(f, 21);
+    assert_eq!(total, 63);
+}
+
+#[test]
+fn runs_fibonacci_zero_cycles() {
+    let (f, total) = run_fibonacci_cycles(7, 0);
+    assert_eq!(f, 0);
+    assert_eq!(total, 0);
 }

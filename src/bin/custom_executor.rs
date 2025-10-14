@@ -44,19 +44,27 @@ pub fn execute_program(args: &[String]) -> i16 {
     result
 }
 
+pub fn validate_and_execute(args: &[String]) -> Result<i16, String> {
+    if args.len() < 2 {
+        return Err(format!(
+            "Usage: {} <filename> [expected_result]",
+            args.first().unwrap_or(&"custom_executor".to_string())
+        ));
+    }
+    Ok(execute_program(args))
+}
+
 pub fn main() {
     env_logger::init();
     let args: Vec<String> = env::args().collect();
-    assert!(args.len() >= 2);
-    let result = execute_program(&args);
+    let result = match validate_and_execute(&args) {
+        Ok(r) => r,
+        Err(e) => {
+            eprintln!("{}", e);
+            std::process::exit(1);
+        }
+    };
     println!("Executor result: {}", result);
-}
-
-#[test]
-#[should_panic]
-#[cfg(not(tarpaulin))]
-fn test_main() {
-    main();
 }
 
 #[test]
@@ -138,4 +146,43 @@ fn test_emulate_with_lambda() {
 fn test_run_emulator_fibonacci() {
     let result = run_emulator("tests/resources/written_fibonacci_test");
     assert_eq!(21, result);
+}
+
+#[test]
+fn validates_and_executes_with_valid_args() {
+    let args = vec![
+        "custom_executor".to_string(),
+        "tests/resources/written_test_example".to_string(),
+    ];
+    let result = validate_and_execute(&args);
+    assert!(result.is_ok());
+    assert_eq!(result.unwrap(), 84);
+}
+
+#[test]
+fn validates_and_executes_with_expected_result() {
+    let args = vec![
+        "custom_executor".to_string(),
+        "tests/resources/written_sum_test".to_string(),
+        "84".to_string(),
+    ];
+    let result = validate_and_execute(&args);
+    assert!(result.is_ok());
+    assert_eq!(result.unwrap(), 84);
+}
+
+#[test]
+fn fails_validation_with_insufficient_args() {
+    let args = vec!["custom_executor".to_string()];
+    let result = validate_and_execute(&args);
+    assert!(result.is_err());
+    assert!(result.unwrap_err().contains("Usage"));
+}
+
+#[test]
+fn validates_with_empty_args() {
+    let args: Vec<String> = vec![];
+    let result = validate_and_execute(&args);
+    assert!(result.is_err());
+    assert!(result.unwrap_err().contains("Usage"));
 }

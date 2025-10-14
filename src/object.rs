@@ -309,7 +309,7 @@ fn fails_on_malformed_attribute() {
 #[test]
 fn parses_object_with_xi() {
     let text = "⟦ 𝜑 ↦ ν2(ξ) ⟧";
-    let obj = Object::from_str(&text).unwrap();
+    let obj = Object::from_str(text).unwrap();
     assert_eq!(obj.attrs.len(), 1);
     let (_, xi) = obj.attrs.get(&Loc::Phi).unwrap();
     assert!(*xi);
@@ -318,7 +318,7 @@ fn parses_object_with_xi() {
 #[test]
 fn parses_object_without_xi() {
     let text = "⟦ ρ ↦ 𝜋 ⟧";
-    let obj = Object::from_str(&text).unwrap();
+    let obj = Object::from_str(text).unwrap();
     assert_eq!(obj.attrs.len(), 1);
     let (_, xi) = obj.attrs.get(&Loc::Rho).unwrap();
     assert!(!*xi);
