@@ -12,7 +12,7 @@ pub enum Transition {
     NEW,
     DLG,
     PPG,
-    FND,
+    FIND,
 }
 
 pub struct Perf {

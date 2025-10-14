@@ -141,10 +141,10 @@ impl Emu {
                 } else {
                     let _ = &self.baskets[bk as usize].put(loc.clone(), Kid::Need(tob, tpsi));
                 }
-                perf.hit(Transition::FND);
+                perf.hit(Transition::FIND);
             }
         }
-        perf.tick(Transition::FND);
+        perf.tick(Transition::FIND);
     }
 
     /// Make new basket for this attribute.
