@@ -38,10 +38,7 @@ pub fn main() {
     env_logger::init();
     let args: Vec<String> = env::args().collect();
     if args.len() < 3 {
-        eprintln!(
-            "Usage: {} <input> <cycles>",
-            args.first().unwrap_or(&"fibonacci".to_string())
-        );
+        eprintln!("Usage: {} <input> <cycles>", args.first().unwrap_or(&"fibonacci".to_string()));
         std::process::exit(1);
     }
     let input = args[1].parse().unwrap_or_else(|e| {
@@ -67,8 +64,12 @@ use simple_logger::SimpleLogger;
 
 #[test]
 fn calculates_fibonacci() {
-    SimpleLogger::new()
-        .init()
-        .expect("Failed to init logger in test");
+    SimpleLogger::new().init().expect("Failed to init logger in test");
     assert_eq!(21, fibo(7))
+}
+
+#[test]
+fn calculates_fibonacci_for_multiple_inputs() {
+    assert_eq!(13, fibo(6));
+    assert_eq!(34, fibo(8));
 }

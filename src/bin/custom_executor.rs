@@ -91,3 +91,20 @@ fn executes_fibonacci_file() {
 fn executes_sum_file() {
     assert_eq!(84, run_emulator("tests/resources/written_sum_test"));
 }
+
+#[test]
+fn test_emulate_basic() {
+    let phi_code = "
+        ν0(𝜋) ↦ ⟦ 𝜑 ↦ ν1(𝜋) ⟧
+        ν1(𝜋) ↦ ⟦ Δ ↦ 0x002A ⟧
+    ";
+    assert_eq!(42, emulate(phi_code));
+}
+
+#[test]
+fn test_execute_program_single_arg() {
+    let args =
+        vec!["program_name".to_string(), "tests/resources/written_test_example".to_string()];
+    let result = execute_program(&args);
+    assert_eq!(result, 84);
+}
