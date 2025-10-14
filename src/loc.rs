@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: MIT
 
 use crate::object::Ob;
-use lazy_static::lazy_static;
 use regex::Regex;
 use rstest::rstest;
 use std::fmt;
@@ -23,18 +22,29 @@ pub enum Loc {
 impl FromStr for Loc {
     type Err = String;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        lazy_static! {
-            static ref RE_ARG: Regex = Regex::new("^𝛼?(\\d+)$").unwrap();
-            static ref RE_OBJ: Regex = Regex::new("^ν(\\d+)$").unwrap();
-        }
-        if let Some(caps) = RE_ARG.captures(s) {
-            Ok(Loc::Attr(
-                caps.get(1).unwrap().as_str().parse::<i8>().unwrap(),
-            ))
-        } else if let Some(caps) = RE_OBJ.captures(s) {
-            Ok(Loc::Obj(
-                caps.get(1).unwrap().as_str().parse::<Ob>().unwrap(),
-            ))
+        let re_arg = Regex::new("^𝛼?(\\d+)$")
+            .map_err(|e| format!("Invalid RE_ARG regex pattern: {}", e))?;
+        let re_obj =
+            Regex::new("^ν(\\d+)$").map_err(|e| format!("Invalid RE_OBJ regex pattern: {}", e))?;
+
+        if let Some(caps) = re_arg.captures(s) {
+            let attr_str = caps
+                .get(1)
+                .ok_or_else(|| format!("Missing capture group in attr pattern: '{}'", s))?
+                .as_str();
+            let attr_num = attr_str
+                .parse::<i8>()
+                .map_err(|e| format!("Failed to parse attr number '{}': {}", attr_str, e))?;
+            Ok(Loc::Attr(attr_num))
+        } else if let Some(caps) = re_obj.captures(s) {
+            let obj_str = caps
+                .get(1)
+                .ok_or_else(|| format!("Missing capture group in obj pattern: '{}'", s))?
+                .as_str();
+            let obj_num = obj_str
+                .parse::<Ob>()
+                .map_err(|e| format!("Failed to parse obj number '{}': {}", obj_str, e))?;
+            Ok(Loc::Obj(obj_num))
         } else {
             match s {
                 "Φ" | "Q" => Ok(Loc::Root),

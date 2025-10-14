@@ -27,7 +27,7 @@ pub fn fibo(x: Data) -> Data {
         x
     )
     .parse()
-    .unwrap();
+    .expect("Failed to parse Fibonacci emulator");
     emu.opt(Opt::LogSnapshots);
     emu.opt(Opt::StopWhenTooManyCycles);
     emu.opt(Opt::StopWhenStuck);
@@ -37,8 +37,18 @@ pub fn fibo(x: Data) -> Data {
 pub fn main() {
     env_logger::init();
     let args: Vec<String> = env::args().collect();
-    let input = args[1].parse().unwrap();
-    let cycles = args[2].parse().unwrap();
+    if args.len() < 3 {
+        eprintln!("Usage: {} <input> <cycles>", args.first().unwrap_or(&"fibonacci".to_string()));
+        std::process::exit(1);
+    }
+    let input = args[1].parse().unwrap_or_else(|e| {
+        eprintln!("Invalid input argument '{}': {}", args[1], e);
+        std::process::exit(1);
+    });
+    let cycles = args[2].parse().unwrap_or_else(|e| {
+        eprintln!("Invalid cycles argument '{}': {}", args[2], e);
+        std::process::exit(1);
+    });
     let mut total = 0;
     let mut f = 0;
     for _ in 0..cycles {
@@ -54,6 +64,6 @@ use simple_logger::SimpleLogger;
 
 #[test]
 fn calculates_fibonacci() {
-    SimpleLogger::new().init().unwrap();
+    SimpleLogger::new().init().expect("Failed to init logger in test");
     assert_eq!(21, fibo(7))
 }

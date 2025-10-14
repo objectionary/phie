@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: MIT
 
 use crate::loc::Loc;
-use lazy_static::lazy_static;
 use rstest::rstest;
 use std::fmt;
 use std::str::FromStr;
@@ -26,7 +25,7 @@ pub struct Locator {
 #[macro_export]
 macro_rules! ph {
     ($s:expr) => {
-        Locator::from_str($s).unwrap()
+        Locator::from_str($s).expect(&format!("Failed to parse locator: {}", $s))
     };
 }
 
@@ -69,42 +68,39 @@ type CheckFn = fn(&Locator) -> Option<String>;
 impl FromStr for Locator {
     type Err = String;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        lazy_static! {
-            static ref CHECKS: [CheckFn; 4] = [
-                |p: &Locator| -> Option<String> {
-                    p.locs[1..]
-                        .iter()
-                        .find(|i| matches!(i, Loc::Obj(_)))
-                        .map(|v| format!("{} can only stay at the first position", v))
-                },
-                |p: &Locator| {
-                    p.locs[1..]
-                        .iter()
-                        .find(|i| matches!(i, Loc::Root))
-                        .map(|v| format!("{} can only start a locator", v))
-                },
-                |p: &Locator| {
-                    p.locs[0..1]
-                        .iter()
-                        .find(|i| matches!(i, Loc::Attr(_)))
-                        .map(|v| format!("{} can't start a locator", v))
-                },
-                |p: &Locator| {
-                    if matches!(p.locs[0], Loc::Obj(_)) && p.locs.len() > 1 {
-                        Some(format!(
-                            "{} can only be the first and only locator",
-                            p.locs[0]
-                        ))
-                    } else {
-                        None
-                    }
-                },
-            ];
-        }
-        let p = Locator {
-            locs: s.split('.').map(|i| Loc::from_str(i).unwrap()).collect(),
-        };
-        for check in CHECKS.iter() {
+        let locs_result: Result<Vec<Loc>, String> =
+            s.split('.').map(Loc::from_str).collect();
+        let p = Locator { locs: locs_result? };
+
+        let checks: [CheckFn; 4] = [
+            |p: &Locator| -> Option<String> {
+                p.locs[1..]
+                    .iter()
+                    .find(|i| matches!(i, Loc::Obj(_)))
+                    .map(|v| format!("{} can only stay at the first position", v))
+            },
+            |p: &Locator| {
+                p.locs[1..]
+                    .iter()
+                    .find(|i| matches!(i, Loc::Root))
+                    .map(|v| format!("{} can only start a locator", v))
+            },
+            |p: &Locator| {
+                p.locs[0..1]
+                    .iter()
+                    .find(|i| matches!(i, Loc::Attr(_)))
+                    .map(|v| format!("{} can't start a locator", v))
+            },
+            |p: &Locator| {
+                if matches!(p.locs[0], Loc::Obj(_)) && p.locs.len() > 1 {
+                    Some(format!("{} can only be the first and only locator", p.locs[0]))
+                } else {
+                    None
+                }
+            },
+        ];
+
+        for check in checks.iter() {
             if let Some(msg) = (check)(&p) {
                 return Err(format!("{} in '{}'", msg, p));
             }
@@ -115,14 +111,7 @@ impl FromStr for Locator {
 
 impl fmt::Display for Locator {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.write_str(
-            &self
-                .locs
-                .iter()
-                .map(|i| i.to_string())
-                .collect::<Vec<String>>()
-                .join("."),
-        )
+        f.write_str(&self.locs.iter().map(|i| i.to_string()).collect::<Vec<String>>().join("."))
     }
 }
 

@@ -29,19 +29,11 @@ pub struct Basket {
 
 impl Basket {
     pub fn empty() -> Basket {
-        Basket {
-            ob: 0,
-            psi: -1,
-            kids: HashMap::new(),
-        }
+        Basket { ob: 0, psi: -1, kids: HashMap::new() }
     }
 
     pub fn start(ob: Ob, psi: Bk) -> Basket {
-        Basket {
-            ob,
-            psi,
-            kids: HashMap::new(),
-        }
+        Basket { ob, psi, kids: HashMap::new() }
     }
 
     pub fn is_empty(&self) -> bool {
@@ -59,11 +51,7 @@ impl fmt::Display for Basket {
         parts.push(format!("ν{}", self.ob));
         parts.push(format!("ξ:β{}", self.psi));
         parts.extend(
-            self.kids
-                .iter()
-                .map(|(i, d)| format!("{}{}", i, d))
-                .sorted()
-                .collect::<Vec<String>>(),
+            self.kids.iter().map(|(i, d)| format!("{}{}", i, d)).sorted().collect::<Vec<String>>(),
         );
         write!(f, "[{}]", parts.iter().join(", "))
     }
@@ -84,58 +72,89 @@ impl fmt::Display for Kid {
 impl FromStr for Basket {
     type Err = String;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let re = Regex::new("\\[(.*)]").unwrap();
+        let re =
+            Regex::new("\\[(.*)]").map_err(|e| format!("Invalid basket regex pattern: {}", e))?;
         let mut bsk = Basket::empty();
-        let parts: Vec<&str> = re
-            .captures(s)
-            .unwrap_or_else(|| panic!("Can't parse the basket: '{}'", s))
-            .get(1)
-            .unwrap_or_else(|| panic!("Can't find the matcher inside '{}'", s))
-            .as_str()
-            .trim()
-            .split(',')
-            .map(|t| t.trim())
+        let caps = re.captures(s).ok_or_else(|| format!("Can't parse the basket: '{}'", s))?;
+        let inner =
+            caps.get(1).ok_or_else(|| format!("Can't find the matcher inside '{}'", s))?.as_str();
+        let parts: Vec<&str> = inner.trim().split(',').map(|t| t.trim()).collect();
+        let ob_str: String = parts
+            .first()
+            .ok_or_else(|| format!("Empty basket content in '{}'", s))?
+            .chars()
+            .skip(1)
             .collect();
-        let ob: String = parts.first().unwrap().chars().skip(1).collect();
-        bsk.ob = ob.parse().expect("Can't parse the v part");
-        let psi: String = parts.get(1).unwrap().chars().skip(3).collect();
-        bsk.psi = psi.parse().expect("Can't parse the psi part");
-        let pre = Regex::new("^(.*)(⇶0x|⇉β|→\\(ν|→∅|→\\?)(.*?)\\)?$").unwrap();
+        bsk.ob =
+            ob_str.parse().map_err(|e| format!("Can't parse the v part '{}': {}", ob_str, e))?;
+        let psi_str: String = parts
+            .get(1)
+            .ok_or_else(|| format!("Missing psi part in basket '{}'", s))?
+            .chars()
+            .skip(3)
+            .collect();
+        bsk.psi = psi_str
+            .parse()
+            .map_err(|e| format!("Can't parse the psi part '{}': {}", psi_str, e))?;
+        let pre = Regex::new("^(.*)(⇶0x|⇉β|→\\(ν|→∅|→\\?)(.*?)\\)?$")
+            .map_err(|e| format!("Invalid kid pattern regex: {}", e))?;
         for p in parts.iter().skip(2) {
-            let caps = pre.captures(p).unwrap();
-            let kid = match caps.get(2).unwrap().as_str() {
+            let caps =
+                pre.captures(p).ok_or_else(|| format!("Can't parse kid pattern in '{}'", p))?;
+            let kind_str =
+                caps.get(2).ok_or_else(|| format!("Missing kid type in '{}'", p))?.as_str();
+            let kid = match kind_str {
                 "→∅" => Kid::Empt,
                 "⇶0x" => {
-                    let data = caps.get(3).unwrap().as_str();
-                    Kid::Dtzd(
-                        Data::from_str_radix(data, 16)
-                            .unwrap_or_else(|_| panic!("Can't parse data '{}'", data)),
-                    )
+                    let data = caps
+                        .get(3)
+                        .ok_or_else(|| format!("Missing data value in '{}'", p))?
+                        .as_str();
+                    let parsed_data = Data::from_str_radix(data, 16)
+                        .map_err(|e| format!("Can't parse data '{}': {}", data, e))?;
+                    Kid::Dtzd(parsed_data)
                 }
                 "⇉β" => {
-                    let (b, a) = caps
+                    let wait_str = caps
                         .get(3)
-                        .unwrap()
-                        .as_str()
+                        .ok_or_else(|| format!("Missing wait value in '{}'", p))?
+                        .as_str();
+                    let (b, a) = wait_str
                         .split('.')
                         .collect_tuple()
-                        .unwrap();
-                    Kid::Wait(b.parse().unwrap(), Loc::from_str(a).unwrap())
+                        .ok_or_else(|| format!("Invalid wait format in '{}'", wait_str))?;
+                    let b_num = b
+                        .parse()
+                        .map_err(|e| format!("Can't parse wait number '{}': {}", b, e))?;
+                    let a_loc = Loc::from_str(a)
+                        .map_err(|e| format!("Can't parse wait loc '{}': {}", a, e))?;
+                    Kid::Wait(b_num, a_loc)
                 }
                 "→(ν" => {
-                    let part = caps.get(3).unwrap().as_str();
+                    let part = caps
+                        .get(3)
+                        .ok_or_else(|| format!("Missing need value in '{}'", p))?
+                        .as_str();
                     let (o, p) = part
                         .split(';')
                         .collect_tuple()
-                        .unwrap_or_else(|| panic!("Can't parse the needed pair '{}'", part));
-                    let psi: String = p.chars().skip(1).collect();
-                    Kid::Need(o.parse().unwrap(), psi.parse().unwrap())
+                        .ok_or_else(|| format!("Can't parse the needed pair '{}'", part))?;
+                    let psi_str: String = p.chars().skip(1).collect();
+                    let o_num =
+                        o.parse().map_err(|e| format!("Can't parse need obj '{}': {}", o, e))?;
+                    let psi_num = psi_str
+                        .parse()
+                        .map_err(|e| format!("Can't parse need psi '{}': {}", psi_str, e))?;
+                    Kid::Need(o_num, psi_num)
                 }
                 "→?" => Kid::Rqtd,
-                _ => panic!("Oops"),
+                _ => return Err(format!("Unknown kid type: '{}'", kind_str)),
             };
-            bsk.kids
-                .insert(Loc::from_str(caps.get(1).unwrap().as_str()).unwrap(), kid);
+            let loc_str =
+                caps.get(1).ok_or_else(|| format!("Missing location in '{}'", p))?.as_str();
+            let loc = Loc::from_str(loc_str)
+                .map_err(|e| format!("Can't parse location '{}': {}", loc_str, e))?;
+            bsk.kids.insert(loc, kid);
         }
         Ok(bsk)
     }
@@ -156,10 +175,7 @@ fn prints_itself() {
     basket.put(Loc::Delta, Kid::Dtzd(42));
     basket.put(Loc::Rho, Kid::Wait(42, Loc::Phi));
     basket.put(Loc::Attr(1), Kid::Need(7, 12));
-    assert_eq!(
-        "[ν5, ξ:β7, Δ⇶0x002A, ρ⇉β42.𝜑, 𝛼1→(ν7;β12)]",
-        basket.to_string()
-    );
+    assert_eq!("[ν5, ξ:β7, Δ⇶0x002A, ρ⇉β42.𝜑, 𝛼1→(ν7;β12)]", basket.to_string());
 }
 
 #[test]

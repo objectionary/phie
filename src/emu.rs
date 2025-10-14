@@ -66,11 +66,26 @@ impl FromStr for Emu {
     type Err = String;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut emu = Emu::empty();
-        let re_line = Regex::new("ν(\\d+)\\(𝜋\\) ↦ (⟦.*⟧)").unwrap();
+        let re_line = Regex::new("ν(\\d+)\\(𝜋\\) ↦ (⟦.*⟧)")
+            .map_err(|e| format!("Invalid emu line regex pattern: {}", e))?;
         for line in s.trim().split('\n').map(|t| t.trim()) {
-            let caps = re_line.captures(line).unwrap();
-            let v: Ob = caps.get(1).unwrap().as_str().parse().unwrap();
-            emu.put(v, Object::from_str(caps.get(2).unwrap().as_str()).unwrap());
+            let caps = re_line
+                .captures(line)
+                .ok_or_else(|| format!("Can't parse emu line: '{}'", line))?;
+            let v_str = caps
+                .get(1)
+                .ok_or_else(|| format!("Missing object number in line: '{}'", line))?
+                .as_str();
+            let v: Ob = v_str
+                .parse()
+                .map_err(|e| format!("Can't parse object number '{}': {}", v_str, e))?;
+            let obj_str = caps
+                .get(2)
+                .ok_or_else(|| format!("Missing object definition in line: '{}'", line))?
+                .as_str();
+            let obj = Object::from_str(obj_str)
+                .map_err(|e| format!("Can't parse object in line '{}': {}", line, e))?;
+            emu.put(v, obj);
         }
         Ok(emu)
     }
@@ -79,15 +94,10 @@ impl FromStr for Emu {
 #[macro_export]
 macro_rules! assert_dataized_eq {
     ($eq:expr, $txt:expr) => {
-        let mut emu: Emu = $txt.parse().unwrap();
+        let mut emu: Emu = $txt.parse().expect("Failed to parse Emu in test");
         emu.opt(Opt::DontDelete);
         emu.opt(Opt::StopWhenTooManyCycles);
-        assert_eq!(
-            $eq,
-            emu.dataize().0,
-            "The expected dataization result is {}",
-            $eq
-        );
+        assert_eq!($eq, emu.dataize().0, "The expected dataization result is {}", $eq);
     };
 }
 
@@ -112,22 +122,14 @@ impl Emu {
 
     /// Add an additional object
     pub fn put(&mut self, ob: Ob, obj: Object) -> &mut Emu {
-        assert!(
-            self.objects[ob].is_empty(),
-            "The object ν{} already occupied",
-            ob
-        );
+        assert!(self.objects[ob].is_empty(), "The object ν{} already occupied", ob);
         self.objects[ob] = obj;
         self
     }
 
     /// Inject a basket
     pub fn inject(&mut self, bk: Bk, bsk: Basket) -> &mut Emu {
-        assert!(
-            self.baskets[bk as usize].is_empty(),
-            "The basket β{} already occupied",
-            bk
-        );
+        assert!(self.baskets[bk as usize].is_empty(), "The basket β{} already occupied", bk);
         self.baskets[bk as usize] = bsk;
         self
     }
@@ -137,9 +139,7 @@ impl Emu {
         match self.basket(bk).kids.get(&loc) {
             None => panic!("Can't find {} in β{}:\n{}", loc, bk, self),
             Some(Kid::Empt) => {
-                let _ = &self.baskets[bk as usize]
-                    .kids
-                    .insert(loc.clone(), Kid::Rqtd);
+                let _ = &self.baskets[bk as usize].kids.insert(loc.clone(), Kid::Rqtd);
                 trace!("read(β{}, {}): was empty, requested", bk, loc);
                 None
             }

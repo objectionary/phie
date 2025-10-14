@@ -10,7 +10,10 @@ use std::fs;
 use std::str::FromStr;
 
 fn emulate(phi_code: &str) -> Data {
-    let mut emu: Emu = Emu::from_str(phi_code).unwrap();
+    let mut emu: Emu = Emu::from_str(phi_code).unwrap_or_else(|e| {
+        eprintln!("Failed to parse phi code: {}", e);
+        std::process::exit(1);
+    });
     emu.opt(Opt::LogSnapshots);
     emu.opt(Opt::StopWhenTooManyCycles);
     emu.opt(Opt::StopWhenStuck);
@@ -18,9 +21,12 @@ fn emulate(phi_code: &str) -> Data {
 }
 
 pub fn run_emulator(filename: &str) -> i16 {
-    let binding = fs::read_to_string(filename).unwrap();
+    let binding = fs::read_to_string(filename).unwrap_or_else(|e| {
+        eprintln!("Failed to read file '{}': {}", filename, e);
+        std::process::exit(1);
+    });
     let phi_code: &str = binding.as_str();
-    emulate(&phi_code)
+    emulate(phi_code)
 }
 
 pub fn execute_program(args: &[String]) -> i16 {
@@ -28,7 +34,10 @@ pub fn execute_program(args: &[String]) -> i16 {
     let filename: &str = &args[1];
     let result: i16 = run_emulator(filename);
     if args.len() >= 3 {
-        let correct = args[2].parse::<i16>().unwrap();
+        let correct = args[2].parse::<i16>().unwrap_or_else(|e| {
+            eprintln!("Invalid expected value argument '{}': {}", args[2], e);
+            std::process::exit(1);
+        });
         assert_eq!(result, correct);
     }
     result

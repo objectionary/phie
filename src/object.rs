@@ -23,30 +23,15 @@ pub struct Object {
 
 impl Object {
     pub fn open() -> Object {
-        Object {
-            delta: None,
-            lambda: None,
-            constant: false,
-            attrs: HashMap::new(),
-        }
+        Object { delta: None, lambda: None, constant: false, attrs: HashMap::new() }
     }
 
     pub fn dataic(d: Data) -> Object {
-        Object {
-            delta: Some(d),
-            lambda: None,
-            constant: true,
-            attrs: HashMap::new(),
-        }
+        Object { delta: Some(d), lambda: None, constant: true, attrs: HashMap::new() }
     }
 
     pub fn atomic(n: String, a: Atom) -> Object {
-        Object {
-            delta: None,
-            lambda: Some((n, a)),
-            constant: false,
-            attrs: HashMap::new(),
-        }
+        Object { delta: None, lambda: Some((n, a)), constant: false, attrs: HashMap::new() }
     }
 
     /// This object is an empty one, with nothing inside.
@@ -107,7 +92,7 @@ impl Object {
         obj.lambda = self.lambda.clone();
         obj.constant = self.constant;
         obj.delta = self.delta;
-        obj.attrs.extend(self.attrs.clone().into_iter());
+        obj.attrs.extend(self.attrs.clone());
         obj
     }
 }
@@ -123,66 +108,56 @@ impl fmt::Display for Object {
         }
         for i in self.attrs.iter() {
             let (attr, (locator, xi)) = i;
-            parts.push(
-                format!("{}↦{}", attr, locator)
-                    + &(if *xi {
-                        "(ξ)".to_string()
-                    } else if matches!(locator.loc(0).unwrap(), Loc::Obj(_)) {
-                        "(𝜋)".to_string()
-                    } else {
-                        "".to_string()
-                    }),
-            );
+            let suffix = if *xi {
+                "(ξ)".to_string()
+            } else if locator.loc(0).is_some_and(|loc| matches!(loc, Loc::Obj(_))) {
+                "(𝜋)".to_string()
+            } else {
+                "".to_string()
+            };
+            parts.push(format!("{}↦{}", attr, locator) + &suffix);
         }
         parts.sort();
-        write!(
-            f,
-            "⟦{}{}⟧",
-            if self.constant { "! " } else { "" },
-            parts.iter().join(", ")
-        )
+        write!(f, "⟦{}{}⟧", if self.constant { "! " } else { "" }, parts.iter().join(", "))
     }
 }
 
 impl FromStr for Object {
     type Err = String;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let re = Regex::new("⟦(!?)(.*)⟧").unwrap();
+        let re = Regex::new("⟦(!?)(.*)⟧")
+            .map_err(|e| format!("Invalid object regex pattern: {}", e))?;
         let mut obj = Object::open();
-        let caps = re.captures(s).unwrap();
-        for pair in caps
-            .get(2)
-            .unwrap()
-            .as_str()
-            .trim()
-            .split(',')
-            .map(|t| t.trim())
-        {
+        let caps =
+            re.captures(s).ok_or_else(|| format!("Can't parse object format in '{}'", s))?;
+        let inner =
+            caps.get(2).ok_or_else(|| format!("Missing object body in '{}'", s))?.as_str().trim();
+        for pair in inner.split(',').map(|t| t.trim()) {
             let (i, p) = pair
                 .split('↦')
                 .map(|t| t.trim())
                 .collect_tuple()
-                .ok_or(format!("Can't split '{}' in two parts at '{}'", pair, s))?;
-            match i.chars().take(1).last().unwrap() {
+                .ok_or_else(|| format!("Can't split '{}' in two parts at '{}'", pair, s))?;
+            let first_char =
+                i.chars().next().ok_or_else(|| format!("Empty attribute name in '{}'", pair))?;
+            match first_char {
                 'λ' => {
-                    obj = Object::atomic(
-                        p.to_string(),
-                        match p {
-                            "int-times" => int_times,
-                            "int-div" => int_div,
-                            "int-sub" => int_sub,
-                            "int-add" => int_add,
-                            "int-neg" => int_neg,
-                            "bool-if" => bool_if,
-                            "int-less" => int_less,
-                            _ => panic!("Unknown lambda '{}'", p),
-                        },
-                    );
+                    let lambda_fn = match p {
+                        "int-times" => int_times,
+                        "int-div" => int_div,
+                        "int-sub" => int_sub,
+                        "int-add" => int_add,
+                        "int-neg" => int_neg,
+                        "bool-if" => bool_if,
+                        "int-less" => int_less,
+                        _ => return Err(format!("Unknown lambda '{}' in '{}'", p, s)),
+                    };
+                    obj = Object::atomic(p.to_string(), lambda_fn);
                 }
                 'Δ' => {
                     let hex: String = p.chars().skip(2).collect();
-                    let data: Data = Data::from_str_radix(&hex, 16)
-                        .unwrap_or_else(|_| panic!("Can't parse hex '{}' in '{}'", hex, s));
+                    let data = Data::from_str_radix(&hex, 16)
+                        .map_err(|e| format!("Can't parse hex '{}' in '{}': {}", hex, s, e))?;
                     obj = Object::dataic(data);
                 }
                 _ => {
@@ -194,21 +169,23 @@ impl FromStr for Object {
                     let xi_suffix = "(ξ)";
                     let xi = tail.ends_with(xi_suffix);
                     let locator = if xi {
-                        tail.chars()
-                            .take(tail.len() - xi_suffix.len() - 1)
-                            .collect()
+                        tail.chars().take(tail.len() - xi_suffix.len() - 1).collect()
                     } else {
                         tail.to_string()
                     };
-                    obj.push(
-                        Loc::from_str(i).unwrap(),
-                        Locator::from_str(&locator).unwrap(),
-                        xi,
-                    );
+                    let loc = Loc::from_str(i)
+                        .map_err(|e| format!("Can't parse location '{}': {}", i, e))?;
+                    let locator_parsed = Locator::from_str(&locator)
+                        .map_err(|e| format!("Can't parse locator '{}': {}", locator, e))?;
+                    obj.push(loc, locator_parsed, xi);
                 }
             };
         }
-        if !caps.get(1).unwrap().as_str().is_empty() {
+        let constant_flag = caps
+            .get(1)
+            .ok_or_else(|| format!("Missing constant flag capture in '{}'", s))?
+            .as_str();
+        if !constant_flag.is_empty() {
             obj.constant = true;
         }
         Ok(obj)
