@@ -248,3 +248,38 @@ fn calculates_fibonacci_edge_cases() {
     assert_eq!(2, fibo(2));
     assert_eq!(3, fibo(3));
 }
+
+#[test]
+fn test_run_with_two_args() {
+    let args = vec!["fibonacci".to_string(), "5".to_string()];
+    let result = run(&args);
+    assert!(result.is_err());
+    assert!(result.unwrap_err().contains("Usage"));
+}
+
+#[test]
+fn runs_fibonacci_multiple_iterations() {
+    let (f, total) = run_fibonacci_cycles(6, 5);
+    assert_eq!(f, 13);
+    assert_eq!(total, 65);
+}
+
+#[test]
+fn test_parse_args_with_zero_input() {
+    let args = vec!["fibonacci".to_string(), "0".to_string(), "1".to_string()];
+    let result = parse_fibonacci_args(&args);
+    assert!(result.is_ok());
+    let (input, cycles) = result.unwrap();
+    assert_eq!(input, 0);
+    assert_eq!(cycles, 1);
+}
+
+#[test]
+fn test_run_success_with_different_values() {
+    let args = vec!["fibonacci".to_string(), "6".to_string(), "2".to_string()];
+    let result = run(&args);
+    assert!(result.is_ok());
+    let output = result.unwrap();
+    assert!(output.contains("6-th Fibonacci number is 13"));
+    assert!(output.contains("Sum of results is 26"));
+}

@@ -305,3 +305,40 @@ fn test_run_with_valid_file() {
     let output = result.unwrap();
     assert!(output.contains("Executor result: 84"));
 }
+
+#[test]
+fn test_validate_and_execute_with_one_arg() {
+    let args = vec!["custom_executor".to_string()];
+    let result = validate_and_execute(&args);
+    assert!(result.is_err());
+    assert!(result.unwrap_err().contains("custom_executor"));
+}
+
+#[test]
+fn test_execute_program_with_correct_expected() {
+    let args = vec![
+        "program".to_string(),
+        "tests/resources/written_fibonacci_test".to_string(),
+        "21".to_string(),
+    ];
+    let result = execute_program(&args);
+    assert!(result.is_ok());
+    assert_eq!(result.unwrap(), 21);
+}
+
+#[test]
+fn test_run_emulator_fibonacci_file() {
+    let result = run_emulator("tests/resources/written_fibonacci_test");
+    assert!(result.is_ok());
+    assert_eq!(result.unwrap(), 21);
+}
+
+#[test]
+fn test_emulate_negative_number() {
+    let phi_code = "
+        ν0(𝜋) ↦ ⟦ 𝜑 ↦ ν1(𝜋) ⟧
+        ν1(𝜋) ↦ ⟦ λ ↦ int-neg, ρ ↦ ν2(𝜋) ⟧
+        ν2(𝜋) ↦ ⟦ Δ ↦ 0x0005 ⟧
+    ";
+    assert_eq!(-5, emulate(phi_code).unwrap());
+}

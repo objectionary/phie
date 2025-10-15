@@ -265,6 +265,12 @@ fn fails_on_invalid_need_psi_number() {
     assert!(result.is_err());
 }
 
+#[test]
+fn fails_on_invalid_location_in_kid() {
+    let result = Basket::from_str("[ν5, ξ:β7, invalid_loc→?]");
+    assert!(result.is_err());
+}
+
 #[rstest]
 #[case("[ν5, ξ:β7, Δ⇶0x002A, ρ⇉β42.𝜑]")]
 #[case("[ν5, ξ:β18, Δ⇶0x1F21, ρ⇉β4.𝜑, 𝛼12→?, 𝛼1→?, 𝛼3→(ν5;β5), 𝜑→∅]")]
