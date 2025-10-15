@@ -223,7 +223,9 @@ fn fails_on_empty_locator() {
 fn fails_on_obj_not_at_first_position() {
     let result = Locator::from_str("P.ν5");
     assert!(result.is_err());
-    assert!(result.unwrap_err().contains("can only stay at the first position"));
+    assert!(result
+        .unwrap_err()
+        .contains("can only stay at the first position"));
 }
 
 #[test]
@@ -244,7 +246,9 @@ fn fails_on_attr_at_start() {
 fn fails_on_obj_with_multiple_locs() {
     let result = Locator::from_str("ν5.0");
     assert!(result.is_err());
-    assert!(result.unwrap_err().contains("can only be the first and only locator"));
+    assert!(result
+        .unwrap_err()
+        .contains("can only be the first and only locator"));
 }
 
 #[test]

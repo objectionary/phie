@@ -303,22 +303,14 @@ fn runs_fibonacci_with_large_cycles() {
 
 #[test]
 fn test_parse_args_with_negative_input() {
-    let args = vec![
-        "fibonacci".to_string(),
-        "-5".to_string(),
-        "1".to_string(),
-    ];
+    let args = vec!["fibonacci".to_string(), "-5".to_string(), "1".to_string()];
     let result = parse_fibonacci_args(&args);
     assert!(result.is_ok());
 }
 
 #[test]
 fn test_run_with_zero_input() {
-    let args = vec![
-        "fibonacci".to_string(),
-        "0".to_string(),
-        "1".to_string(),
-    ];
+    let args = vec!["fibonacci".to_string(), "0".to_string(), "1".to_string()];
     let result = run(&args);
     assert!(result.is_ok());
     let output = result.unwrap();
@@ -327,11 +319,7 @@ fn test_run_with_zero_input() {
 
 #[test]
 fn test_run_with_large_input() {
-    let args = vec![
-        "fibonacci".to_string(),
-        "12".to_string(),
-        "1".to_string(),
-    ];
+    let args = vec!["fibonacci".to_string(), "12".to_string(), "1".to_string()];
     let result = run(&args);
     assert!(result.is_ok());
     let output = result.unwrap();
