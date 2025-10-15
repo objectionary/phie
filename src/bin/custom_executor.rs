@@ -273,3 +273,35 @@ fn test_execute_program_with_wrong_expected_value() {
     let err = result.err().unwrap();
     assert!(err.contains("does not match expected"));
 }
+
+#[test]
+fn test_execute_program_insufficient_args() {
+    let args = vec!["program".to_string()];
+    let result = execute_program(&args);
+    assert!(result.is_err());
+    let err = result.err().unwrap();
+    assert!(err.contains("Insufficient arguments"));
+}
+
+#[test]
+fn test_emulate_with_multiple_operations() {
+    let phi_code = "
+        ν0(𝜋) ↦ ⟦ 𝜑 ↦ ν1(𝜋) ⟧
+        ν1(𝜋) ↦ ⟦ λ ↦ int-times, ρ ↦ ν2(𝜋), 𝛼0 ↦ ν3(𝜋) ⟧
+        ν2(𝜋) ↦ ⟦ Δ ↦ 0x0006 ⟧
+        ν3(𝜋) ↦ ⟦ Δ ↦ 0x0007 ⟧
+    ";
+    assert_eq!(42, emulate(phi_code).unwrap());
+}
+
+#[test]
+fn test_run_with_valid_file() {
+    let args = vec![
+        "custom_executor".to_string(),
+        "tests/resources/written_sum_test".to_string(),
+    ];
+    let result = run(&args);
+    assert!(result.is_ok());
+    let output = result.unwrap();
+    assert!(output.contains("Executor result: 84"));
+}

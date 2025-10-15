@@ -213,3 +213,38 @@ fn test_run_with_empty_args() {
     assert!(result.is_err());
     assert!(result.unwrap_err().contains("Usage"));
 }
+
+#[test]
+fn test_parse_args_with_single_arg() {
+    let args = vec!["fibonacci".to_string()];
+    let result = parse_fibonacci_args(&args);
+    assert!(result.is_err());
+    assert!(result.unwrap_err().contains("fibonacci"));
+}
+
+#[test]
+fn test_run_with_invalid_cycles_format() {
+    let args = vec![
+        "fibonacci".to_string(),
+        "5".to_string(),
+        "invalid".to_string(),
+    ];
+    let result = run(&args);
+    assert!(result.is_err());
+    assert!(result.unwrap_err().contains("Invalid cycles argument"));
+}
+
+#[test]
+fn runs_fibonacci_with_negative_cycles() {
+    let (f, total) = run_fibonacci_cycles(5, -1);
+    assert_eq!(f, 0);
+    assert_eq!(total, 0);
+}
+
+#[test]
+fn calculates_fibonacci_edge_cases() {
+    assert_eq!(1, fibo(0));
+    assert_eq!(1, fibo(1));
+    assert_eq!(2, fibo(2));
+    assert_eq!(3, fibo(3));
+}
