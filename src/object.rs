@@ -323,3 +323,21 @@ fn parses_object_without_xi() {
     let (_, xi) = obj.attrs.get(&Loc::Rho).unwrap();
     assert!(!*xi);
 }
+
+#[test]
+fn fails_on_empty_attribute_name() {
+    let text = "⟦ ↦ ν0 ⟧";
+    let result = Object::from_str(text);
+    assert!(result.is_err());
+    let err = result.err().unwrap();
+    assert!(err.contains("Empty attribute name"));
+}
+
+#[test]
+fn fails_on_invalid_loc_in_attribute() {
+    let text = "⟦ invalid_loc ↦ ν0 ⟧";
+    let result = Object::from_str(text);
+    assert!(result.is_err());
+    let err = result.err().unwrap();
+    assert!(err.contains("Can't parse location"));
+}
