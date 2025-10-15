@@ -196,3 +196,19 @@ fn creates_from_loc() {
     let locator = Locator::from_loc(Loc::Phi);
     assert_eq!(locator.to_vec().len(), 1);
 }
+
+#[test]
+fn creates_from_vec_multiple_locs() {
+    let locs = vec![Loc::Pi, Loc::Attr(0), Loc::Phi];
+    let locator = Locator::from_vec(locs);
+    assert_eq!(locator.to_vec().len(), 3);
+    assert_eq!(locator.loc(0), Some(&Loc::Pi));
+    assert_eq!(locator.loc(1), Some(&Loc::Attr(0)));
+    assert_eq!(locator.loc(2), Some(&Loc::Phi));
+}
+
+#[test]
+fn parses_locator_with_invalid_loc() {
+    let result = Locator::from_str("P.invalid.@");
+    assert!(result.is_err());
+}

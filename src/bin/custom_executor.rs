@@ -342,3 +342,25 @@ fn test_emulate_negative_number() {
     ";
     assert_eq!(-5, emulate(phi_code).unwrap());
 }
+
+#[test]
+fn test_emulate_division() {
+    let phi_code = "
+        ν0(𝜋) ↦ ⟦ 𝜑 ↦ ν1(𝜋) ⟧
+        ν1(𝜋) ↦ ⟦ λ ↦ int-div, ρ ↦ ν2(𝜋), 𝛼0 ↦ ν3(𝜋) ⟧
+        ν2(𝜋) ↦ ⟦ Δ ↦ 0x0014 ⟧
+        ν3(𝜋) ↦ ⟦ Δ ↦ 0x0004 ⟧
+    ";
+    assert_eq!(5, emulate(phi_code).unwrap());
+}
+
+#[test]
+fn test_run_with_fibonacci_file() {
+    let args = vec![
+        "custom_executor".to_string(),
+        "tests/resources/written_fibonacci_test".to_string(),
+    ];
+    let result = run(&args);
+    assert!(result.is_ok());
+    assert!(result.unwrap().contains("21"));
+}

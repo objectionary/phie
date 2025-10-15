@@ -283,3 +283,20 @@ fn test_run_success_with_different_values() {
     assert!(output.contains("6-th Fibonacci number is 13"));
     assert!(output.contains("Sum of results is 26"));
 }
+
+#[test]
+fn calculates_fibonacci_11() {
+    assert_eq!(144, fibo(11));
+}
+
+#[test]
+fn calculates_fibonacci_4() {
+    assert_eq!(5, fibo(4));
+}
+
+#[test]
+fn runs_fibonacci_with_large_cycles() {
+    let (f, total) = run_fibonacci_cycles(4, 10);
+    assert_eq!(f, 5);
+    assert_eq!(total, 50);
+}
