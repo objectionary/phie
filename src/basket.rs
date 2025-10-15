@@ -287,6 +287,30 @@ fn fails_on_invalid_psi_number() {
     assert!(err.contains("Can't parse the psi part"));
 }
 
+#[test]
+fn fails_on_missing_psi_part() {
+    let result = Basket::from_str("[ν5]");
+    assert!(result.is_err());
+    let err = result.err().unwrap();
+    assert!(err.contains("Missing psi part"));
+}
+
+#[test]
+fn fails_on_invalid_wait_number() {
+    let result = Basket::from_str("[ν5, ξ:β7, ρ⇉βnotnum.𝜑]");
+    assert!(result.is_err());
+    let err = result.err().unwrap();
+    assert!(err.contains("Can't parse wait number"));
+}
+
+#[test]
+fn fails_on_invalid_wait_loc() {
+    let result = Basket::from_str("[ν5, ξ:β7, ρ⇉β5.invalid]");
+    assert!(result.is_err());
+    let err = result.err().unwrap();
+    assert!(err.contains("Can't parse wait loc"));
+}
+
 #[rstest]
 #[case("[ν5, ξ:β7, Δ⇶0x002A, ρ⇉β42.𝜑]")]
 #[case("[ν5, ξ:β18, Δ⇶0x1F21, ρ⇉β4.𝜑, 𝛼12→?, 𝛼1→?, 𝛼3→(ν5;β5), 𝜑→∅]")]

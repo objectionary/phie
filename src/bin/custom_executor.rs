@@ -364,3 +364,50 @@ fn test_run_with_fibonacci_file() {
     assert!(result.is_ok());
     assert!(result.unwrap().contains("21"));
 }
+
+#[test]
+fn test_emulate_subtraction() {
+    let phi_code = "
+        ν0(𝜋) ↦ ⟦ 𝜑 ↦ ν1(𝜋) ⟧
+        ν1(𝜋) ↦ ⟦ λ ↦ int-sub, ρ ↦ ν2(𝜋), 𝛼0 ↦ ν3(𝜋) ⟧
+        ν2(𝜋) ↦ ⟦ Δ ↦ 0x000A ⟧
+        ν3(𝜋) ↦ ⟦ Δ ↦ 0x0003 ⟧
+    ";
+    assert_eq!(7, emulate(phi_code).unwrap());
+}
+
+#[test]
+fn test_emulate_zero_value() {
+    let phi_code = "ν0(𝜋) ↦ ⟦ Δ ↦ 0x0000 ⟧";
+    assert_eq!(0, emulate(phi_code).unwrap());
+}
+
+#[test]
+fn test_emulate_large_value() {
+    let phi_code = "ν0(𝜋) ↦ ⟦ Δ ↦ 0x00FF ⟧";
+    assert_eq!(255, emulate(phi_code).unwrap());
+}
+
+#[test]
+fn test_run_with_expected_mismatch() {
+    let args = vec![
+        "program".to_string(),
+        "tests/resources/written_test_example".to_string(),
+        "100".to_string(),
+    ];
+    let result = run(&args);
+    assert!(result.is_err());
+    let err = result.err().unwrap();
+    assert!(err.contains("does not match expected"));
+}
+
+#[test]
+fn test_validate_and_execute_sum_file() {
+    let args = vec![
+        "custom_executor".to_string(),
+        "tests/resources/written_sum_test".to_string(),
+    ];
+    let result = validate_and_execute(&args);
+    assert!(result.is_ok());
+    assert_eq!(result.unwrap(), 84);
+}

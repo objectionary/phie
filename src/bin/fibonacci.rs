@@ -300,3 +300,57 @@ fn runs_fibonacci_with_large_cycles() {
     assert_eq!(f, 5);
     assert_eq!(total, 50);
 }
+
+#[test]
+fn test_parse_args_with_negative_input() {
+    let args = vec![
+        "fibonacci".to_string(),
+        "-5".to_string(),
+        "1".to_string(),
+    ];
+    let result = parse_fibonacci_args(&args);
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_run_with_zero_input() {
+    let args = vec![
+        "fibonacci".to_string(),
+        "0".to_string(),
+        "1".to_string(),
+    ];
+    let result = run(&args);
+    assert!(result.is_ok());
+    let output = result.unwrap();
+    assert!(output.contains("0-th Fibonacci number is 1"));
+}
+
+#[test]
+fn test_run_with_large_input() {
+    let args = vec![
+        "fibonacci".to_string(),
+        "12".to_string(),
+        "1".to_string(),
+    ];
+    let result = run(&args);
+    assert!(result.is_ok());
+    let output = result.unwrap();
+    assert!(output.contains("12-th Fibonacci number is 233"));
+}
+
+#[test]
+fn runs_fibonacci_with_exactly_one_cycle() {
+    let (f, total) = run_fibonacci_cycles(10, 1);
+    assert_eq!(f, 89);
+    assert_eq!(total, 89);
+}
+
+#[test]
+fn calculates_fibonacci_12() {
+    assert_eq!(233, fibo(12));
+}
+
+#[test]
+fn calculates_fibonacci_2() {
+    assert_eq!(2, fibo(2));
+}
