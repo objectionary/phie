@@ -20,7 +20,7 @@ fn emulate(phi_code: &str) -> Data {
 pub fn run_emulator(filename: &str) -> i16 {
     let binding = fs::read_to_string(filename).unwrap();
     let phi_code: &str = binding.as_str();
-    emulate(&phi_code)
+    emulate(phi_code)
 }
 
 pub fn execute_program(args: &[String]) -> i16 {
