@@ -75,13 +75,13 @@ More tests are in `src/emu.rs` file.
 First, install [Rust](https://www.rust-lang.org/tools/install) and then:
 
 ```bash
-$ cargo test -vv --release
+cargo test -vv --release
 ```
 
 If everything goes well, an executable binary will be in `target/release/phie`:
 
 ```bash
-$ target/release/phie --help
+target/release/phie --help
 ```
 
 Then, fork repository, make changes, send us a [pull request](https://www.yegor256.com/2014/04/15/github-guidelines.html).
