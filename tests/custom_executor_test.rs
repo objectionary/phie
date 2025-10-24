@@ -15,13 +15,18 @@ fn call_custom_executor() {
 #[test]
 fn fails_with_no_args() {
     let mut cmd = Command::cargo_bin("custom_executor").unwrap();
-    cmd.assert().failure().stderr(predicates::str::contains("Usage:"));
+    cmd.assert()
+        .failure()
+        .stderr(predicates::str::contains("Usage:"));
 }
 
 #[test]
 fn call_executor_with_sum_file() {
     let mut cmd = Command::cargo_bin("custom_executor").unwrap();
-    cmd.arg("tests/resources/written_sum_test").assert().success().stdout("Executor result: 84\n");
+    cmd.arg("tests/resources/written_sum_test")
+        .assert()
+        .success()
+        .stdout("Executor result: 84\n");
 }
 
 #[test]
