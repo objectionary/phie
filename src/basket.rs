@@ -223,7 +223,7 @@ fn fails_on_invalid_need_format() {
 
 #[test]
 fn fails_on_unknown_kid_type() {
-    let result = Basket::from_str("[ν5, ξ:β7, 𝛼1→unknown]");
+    let result = Basket::from_str("[ν5, ξ:β7, 𝛼1→☠]");
     assert!(result.is_err());
 }
 
