@@ -79,8 +79,7 @@ pub fn read_phie_file(file_path: &str) -> Result<String, String> {
     if !Path::new(file_path).exists() {
         return Err(format!("File '{}' does not exist", file_path));
     }
-    fs::read_to_string(file_path)
-        .map_err(|e| format!("Failed to read file '{}': {}", file_path, e))
+    fs::read_to_string(file_path).map_err(|e| format!("Failed to read file '{}': {}", file_path, e))
 }
 
 /// Executes a phie program and returns the dataized result.
@@ -107,8 +106,9 @@ pub fn read_phie_file(file_path: &str) -> Result<String, String> {
 /// assert_eq!(result, 42);
 /// ```
 pub fn execute_phie(content: &str) -> Result<Data, String> {
-    let mut emu: Emu =
-        content.parse().map_err(|e| format!("Failed to parse phie program: {}", e))?;
+    let mut emu: Emu = content
+        .parse()
+        .map_err(|e| format!("Failed to parse phie program: {}", e))?;
     emu.opt(Opt::StopWhenTooManyCycles);
     emu.opt(Opt::StopWhenStuck);
     Ok(emu.dataize().0)
@@ -175,7 +175,11 @@ mod tests {
 
     #[test]
     fn parse_args_returns_first_file() {
-        let args = vec!["phie".to_string(), "first.phie".to_string(), "second.phie".to_string()];
+        let args = vec![
+            "phie".to_string(),
+            "first.phie".to_string(),
+            "second.phie".to_string(),
+        ];
         let result = parse_args(&args);
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), "first.phie");
