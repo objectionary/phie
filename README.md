@@ -1,4 +1,6 @@
-<img alt="logo" src="https://www.objectionary.com/cactus.svg" height="100px" />
+# phie
+
+![logo](./cactus.svg)
 
 [![EO principles respected here](https://www.elegantobjects.org/badge.svg)](https://www.elegantobjects.org)
 [![We recommend IntelliJ IDEA](https://www.elegantobjects.org/intellij-idea.svg)](https://www.jetbrains.com/idea/)
@@ -17,20 +19,22 @@ which is the formalism behind [EO](https://www.eolang.org) programming language.
 To build it, install [Rust](https://www.rust-lang.org/tools/install) and then:
 
 ```bash
-$ cargo build --release
+cargo build --release
 ```
 
 If everything goes well, an executable binary will be in `target/release/fibonacci`:
 
 ```bash
-$ target/release/fibonacci 7 40
+target/release/fibonacci 7 40
 ```
 
 This will calculate the 7th Fibonacci number 40 times.
-Don't try to play with much larger numbers, this binary code is very slow. It's just an experiment.
+Don't try to play with much larger numbers, this binary code is very slow.
+It's just an experiment.
 
-To compile your own program instead of this primitive recursive Fibonacci calculator, you have to
-convert EO code into 𝜑-calculus expressions and then pass them to `Emu` struct like this:
+To compile your own program instead of this primitive
+recursive Fibonacci calculator, you have to convert EO code
+into 𝜑-calculus expressions and then pass them to `Emu` struct like this:
 
 ```rust
 use phie::emu::Emu;
@@ -71,13 +75,13 @@ More tests are in `src/emu.rs` file.
 First, install [Rust](https://www.rust-lang.org/tools/install) and then:
 
 ```bash
-$ cargo test -vv --release
+cargo test -vv --release
 ```
 
 If everything goes well, an executable binary will be in `target/release/phie`:
 
 ```bash
-$ target/release/phie --help
+target/release/phie --help
 ```
 
 Then, fork repository, make changes, send us a [pull request](https://www.yegor256.com/2014/04/15/github-guidelines.html).

@@ -107,7 +107,7 @@ impl Object {
         obj.lambda = self.lambda.clone();
         obj.constant = self.constant;
         obj.delta = self.delta;
-        obj.attrs.extend(self.attrs.clone().into_iter());
+        obj.attrs.extend(self.attrs.clone());
         obj
     }
 }
