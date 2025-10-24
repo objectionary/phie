@@ -70,7 +70,9 @@ impl Universe {
     /// ```
     #[inline]
     pub fn new() -> Self {
-        Universe { ops: Operations::new() }
+        Universe {
+            ops: Operations::new(),
+        }
     }
 
     /// Returns the next available vertex ID.
