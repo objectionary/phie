@@ -37,7 +37,10 @@ pub fn execute_program(args: &[String]) -> Result<i16, String> {
             .parse::<i16>()
             .map_err(|e| format!("Invalid expected value argument '{}': {}", args[2], e))?;
         if result != correct {
-            return Err(format!("Result {} does not match expected {}", result, correct));
+            return Err(format!(
+                "Result {} does not match expected {}",
+                result, correct
+            ));
         }
     }
     Ok(result)
@@ -91,17 +94,26 @@ fn test_execute_program_with_invalid_args() {
 
 #[test]
 fn executes_file_example() {
-    assert_eq!(84, run_emulator("tests/resources/written_test_example").unwrap());
+    assert_eq!(
+        84,
+        run_emulator("tests/resources/written_test_example").unwrap()
+    );
 }
 
 #[test]
 fn executes_fibonacci_file() {
-    assert_eq!(21, run_emulator("tests/resources/written_fibonacci_test").unwrap());
+    assert_eq!(
+        21,
+        run_emulator("tests/resources/written_fibonacci_test").unwrap()
+    );
 }
 
 #[test]
 fn executes_sum_file() {
-    assert_eq!(84, run_emulator("tests/resources/written_sum_test").unwrap());
+    assert_eq!(
+        84,
+        run_emulator("tests/resources/written_sum_test").unwrap()
+    );
 }
 
 #[test]
