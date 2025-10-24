@@ -92,7 +92,10 @@ impl FromStr for Locator {
             },
             |p: &Locator| {
                 if matches!(p.locs[0], Loc::Obj(_)) && p.locs.len() > 1 {
-                    Some(format!("{} can only be the first and only locator", p.locs[0]))
+                    Some(format!(
+                        "{} can only be the first and only locator",
+                        p.locs[0]
+                    ))
                 } else {
                     None
                 }
