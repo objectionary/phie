@@ -14,8 +14,10 @@ jobs:
     timeout-minutes: 15
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
       - run: cargo test
       - run: target/debug/fibonacci 7 10
       - run: cargo fmt --check

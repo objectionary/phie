@@ -11,21 +11,19 @@ keywords = ["eolang", "compiler", "emulator", "oop"]
 categories = ["command-line-utilities", "development-tools", "emulators", "virtualization"]
 
 [dependencies]
-regex = "1.8.2"
-lazy_static = "1.4.0"
-env_logger = "0.10.0"
-hex = "0.4.3"
-strum = "0.24.1"
-strum_macros = "0.25.1"
-itertools = "0.11.0"
-arr_macro = "0.2.1"
-log = "0.4.19"
-ctor = "0.2.4"
-rstest = "0.18.1"
+regex = "1.12"
+lazy_static = "1.5"
+env_logger = "0.11"
+strum_macros = "0.27"
+itertools = "0.14"
+arr_macro = "0.2"
+log = "0.4"
+ctor = "0.6"
+rstest = "0.26"
 
 [dev-dependencies]
-assert_cmd = "2.0.11"
-simple_logger = "4.2.0"
+assert_cmd = "2.0"
+simple_logger = "5.1"
 predicates = "3.0"
 
 [lints.rust]

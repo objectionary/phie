@@ -1,6 +1,6 @@
 # phie
 
-![logo](https://www.objectionary.com/cactus.svg)
+![logo](./cactus.svg)
 
 [![EO principles respected here](https://www.elegantobjects.org/badge.svg)](https://www.elegantobjects.org)
 [![We recommend IntelliJ IDEA](https://www.elegantobjects.org/intellij-idea.svg)](https://www.jetbrains.com/idea/)
@@ -31,12 +31,12 @@ target/release/fibonacci 7 40
 ```
 
 This will calculate the 7th Fibonacci number 40 times.
-Don't try to play with much larger numbers, this binary code is very
-slow. It's just an experiment.
+Don't try to play with much larger numbers, this binary code is very slow.
+It's just an experiment.
 
-To compile your own program instead of this primitive recursive
-Fibonacci calculator, you have to convert EO code into 𝜑-calculus
-expressions and then pass them to `Emu` struct like this:
+To compile your own program instead of this primitive
+recursive Fibonacci calculator, you have to convert EO code
+into 𝜑-calculus expressions and then pass them to `Emu` struct like this:
 
 ```rust
 use phie::emu::Emu;
