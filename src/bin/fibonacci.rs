@@ -61,7 +61,10 @@ pub fn run_fibonacci_cycles(input: Data, cycles: i32) -> Result<(Data, Data), St
 pub fn run(args: &[String]) -> Result<String, String> {
     let (input, cycles) = parse_fibonacci_args(args)?;
     let (f, total) = run_fibonacci_cycles(input, cycles)?;
-    Ok(format!("{}-th Fibonacci number is {}\nSum of results is {}", input, f, total))
+    Ok(format!(
+        "{}-th Fibonacci number is {}\nSum of results is {}",
+        input, f, total
+    ))
 }
 
 pub fn main() {
@@ -81,7 +84,9 @@ use simple_logger::SimpleLogger;
 
 #[test]
 fn calculates_fibonacci() {
-    SimpleLogger::new().init().expect("Failed to init logger in test");
+    SimpleLogger::new()
+        .init()
+        .expect("Failed to init logger in test");
     assert_eq!(21, fibo(7).expect("Failed to calculate fibonacci"))
 }
 
@@ -118,7 +123,11 @@ fn fails_to_parse_insufficient_args() {
 
 #[test]
 fn fails_to_parse_invalid_input() {
-    let args = vec!["fibonacci".to_string(), "invalid".to_string(), "3".to_string()];
+    let args = vec![
+        "fibonacci".to_string(),
+        "invalid".to_string(),
+        "3".to_string(),
+    ];
     let result = parse_fibonacci_args(&args);
     assert!(result.is_err());
     assert!(result.unwrap_err().contains("Invalid input argument"));
@@ -126,7 +135,11 @@ fn fails_to_parse_invalid_input() {
 
 #[test]
 fn fails_to_parse_invalid_cycles() {
-    let args = vec!["fibonacci".to_string(), "7".to_string(), "invalid".to_string()];
+    let args = vec![
+        "fibonacci".to_string(),
+        "7".to_string(),
+        "invalid".to_string(),
+    ];
     let result = parse_fibonacci_args(&args);
     assert!(result.is_err());
     assert!(result.unwrap_err().contains("Invalid cycles argument"));
