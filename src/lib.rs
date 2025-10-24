@@ -5,6 +5,7 @@
 
 pub mod atom;
 pub mod basket;
+pub mod cli;
 pub mod data;
 pub mod emu;
 pub mod loc;
