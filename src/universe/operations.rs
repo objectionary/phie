@@ -101,7 +101,7 @@ impl Operations {
     pub fn add(&mut self, v: VertexId) -> Result<(), String> {
         self.sodg
             .add(v)
-            .map_err(|e| format!("Failed to add vertex: {}", e))
+            .map_err(|e| format!("Failed to add vertex: {e}"))
     }
 
     /// Stores data at a vertex.
@@ -135,7 +135,7 @@ impl Operations {
         let hex = Hex::from_vec(bytes);
         self.sodg
             .put(v, &hex)
-            .map_err(|e| format!("Failed to put data: {}", e))
+            .map_err(|e| format!("Failed to put data: {e}"))
     }
 
     /// Retrieves and dataizes a vertex value.
@@ -177,13 +177,13 @@ impl Operations {
         let hex = self
             .sodg
             .data(v)
-            .map_err(|e| format!("Failed to get data: {}", e))?;
+            .map_err(|e| format!("Failed to get data: {e}"))?;
         let bytes = hex.to_vec();
 
         if bytes.len() != 2 {
+            let len = bytes.len();
             return Err(format!(
-                "Invalid data length: expected 2 bytes, got {}",
-                bytes.len()
+                "Invalid data length: expected 2 bytes, got {len}"
             ));
         }
 
@@ -228,7 +228,7 @@ impl Operations {
     pub fn bind(&mut self, from: VertexId, to: VertexId, label: &str) -> Result<(), String> {
         self.sodg
             .bind(from, to, label)
-            .map_err(|e| format!("Failed to bind: {}", e))
+            .map_err(|e| format!("Failed to bind: {e}"))
     }
 
     /// Parses a vertex path string into a vertex ID.
@@ -263,14 +263,14 @@ impl Operations {
     /// ```
     pub fn parse_path(&self, path: &str) -> Result<VertexId, String> {
         if !path.starts_with('v') {
-            return Err(format!("Invalid path format: {}", path));
+            return Err(format!("Invalid path format: {path}"));
         }
 
         let parts: Vec<&str> = path.split('.').collect();
         let id_str = &parts[0][1..];
         id_str
             .parse::<VertexId>()
-            .map_err(|e| format!("Invalid vertex ID: {}", e))
+            .map_err(|e| format!("Invalid vertex ID: {e}"))
     }
 }
 

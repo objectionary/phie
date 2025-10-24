@@ -119,7 +119,7 @@ impl RustEngine {
     /// engine.compile("sum").unwrap();
     /// ```
     pub fn compile(&mut self, id: &str) -> Result<(), String> {
-        let atom = self.atoms.get_mut(id).ok_or_else(|| format!("Atom {} not found", id))?;
+        let atom = self.atoms.get_mut(id).ok_or_else(|| format!("Atom {id} not found"))?;
 
         atom.compile(self.build_dir.to_str().ok_or("Invalid build dir")?)?;
         Ok(())
@@ -132,12 +132,12 @@ impl RustEngine {
     /// * `id` - Atom identifier
     /// * `vertex` - Vertex ID for operations
     pub fn execute(&self, id: &str, vertex: u32) -> Result<Data, String> {
-        let atom = self.atoms.get(id).ok_or_else(|| format!("Atom {} not found", id))?;
+        let atom = self.atoms.get(id).ok_or_else(|| format!("Atom {id} not found"))?;
 
         let mut uni = self
             .universe
             .lock()
-            .map_err(|e| format!("Lock error: {}", e))?;
+            .map_err(|e| format!("Lock error: {e}"))?;
         atom.execute(&mut uni, vertex)
     }
 

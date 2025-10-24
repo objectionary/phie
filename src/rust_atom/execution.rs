@@ -72,15 +72,16 @@ pub type RustAtomFn = unsafe extern "C" fn(*mut Universe, u32) -> i16;
 /// ```
 pub fn execute(lib_path: &Path, universe: &mut Universe, vertex: u32) -> Result<Data, String> {
     if !lib_path.exists() {
-        return Err(format!("Library not found: {}", lib_path.display()));
+        let path = lib_path.display();
+        return Err(format!("Library not found: {path}"));
     }
 
     unsafe {
         let lib = libloading::Library::new(lib_path)
-            .map_err(|e| format!("Failed to load library: {}", e))?;
+            .map_err(|e| format!("Failed to load library: {e}"))?;
 
         let func: libloading::Symbol<RustAtomFn> =
-            lib.get(b"f").map_err(|e| format!("Failed to find function f: {}", e))?;
+            lib.get(b"f").map_err(|e| format!("Failed to find function f: {e}"))?;
 
         let result = func(universe as *mut Universe, vertex);
         Ok(result)

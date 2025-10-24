@@ -54,10 +54,10 @@ use std::process::Command;
 /// ```
 pub fn compile(id: &str, source: &str, build_dir: &str) -> Result<PathBuf, String> {
     let build_path = Path::new(build_dir);
-    fs::create_dir_all(build_path).map_err(|e| format!("Failed to create build dir: {}", e))?;
+    fs::create_dir_all(build_path).map_err(|e| format!("Failed to create build dir: {e}"))?;
 
     let atom_dir = build_path.join(id);
-    fs::create_dir_all(&atom_dir).map_err(|e| format!("Failed to create atom dir: {}", e))?;
+    fs::create_dir_all(&atom_dir).map_err(|e| format!("Failed to create atom dir: {e}"))?;
 
     write_cargo_toml(&atom_dir, id)?;
     write_lib_rs(&atom_dir, source)?;
@@ -66,17 +66,19 @@ pub fn compile(id: &str, source: &str, build_dir: &str) -> Result<PathBuf, Strin
         .args(["build", "--release", "--manifest-path"])
         .arg(atom_dir.join("Cargo.toml"))
         .output()
-        .map_err(|e| format!("Failed to run cargo: {}", e))?;
+        .map_err(|e| format!("Failed to run cargo: {e}"))?;
 
     if !output.status.success() {
-        return Err(format!("Compilation failed: {}", String::from_utf8_lossy(&output.stderr)));
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(format!("Compilation failed: {stderr}"));
     }
 
     let lib_name = get_library_name(id);
     let lib_path = atom_dir.join("target/release").join(&lib_name);
 
     if !lib_path.exists() {
-        return Err(format!("Library not found: {}", lib_path.display()));
+        let path = lib_path.display();
+        return Err(format!("Library not found: {path}"));
     }
 
     Ok(lib_path)
@@ -110,9 +112,9 @@ crate-type = ["cdylib"]
     );
 
     let mut file = fs::File::create(dir.join("Cargo.toml"))
-        .map_err(|e| format!("Failed to create Cargo.toml: {}", e))?;
+        .map_err(|e| format!("Failed to create Cargo.toml: {e}"))?;
     file.write_all(content.as_bytes())
-        .map_err(|e| format!("Failed to write Cargo.toml: {}", e))?;
+        .map_err(|e| format!("Failed to write Cargo.toml: {e}"))?;
     Ok(())
 }
 
@@ -130,11 +132,11 @@ crate-type = ["cdylib"]
 /// Returns an error if directory or file creation fails.
 pub fn write_lib_rs(dir: &Path, source: &str) -> Result<(), String> {
     let src_dir = dir.join("src");
-    fs::create_dir_all(&src_dir).map_err(|e| format!("Failed to create src dir: {}", e))?;
+    fs::create_dir_all(&src_dir).map_err(|e| format!("Failed to create src dir: {e}"))?;
 
     let mut file = fs::File::create(src_dir.join("lib.rs"))
-        .map_err(|e| format!("Failed to create lib.rs: {}", e))?;
-    file.write_all(source.as_bytes()).map_err(|e| format!("Failed to write lib.rs: {}", e))?;
+        .map_err(|e| format!("Failed to create lib.rs: {e}"))?;
+    file.write_all(source.as_bytes()).map_err(|e| format!("Failed to write lib.rs: {e}"))?;
     Ok(())
 }
 
@@ -152,11 +154,11 @@ pub fn write_lib_rs(dir: &Path, source: &str) -> Result<(), String> {
 /// - Windows: "{id}.dll"
 fn get_library_name(id: &str) -> String {
     if cfg!(target_os = "linux") {
-        format!("lib{}.so", id)
+        format!("lib{id}.so")
     } else if cfg!(target_os = "macos") {
-        format!("lib{}.dylib", id)
+        format!("lib{id}.dylib")
     } else {
-        format!("{}.dll", id)
+        format!("{id}.dll")
     }
 }
 
