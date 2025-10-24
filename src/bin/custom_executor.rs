@@ -37,10 +37,7 @@ pub fn execute_program(args: &[String]) -> Result<i16, String> {
             .parse::<i16>()
             .map_err(|e| format!("Invalid expected value argument '{}': {}", args[2], e))?;
         if result != correct {
-            return Err(format!(
-                "Result {} does not match expected {}",
-                result, correct
-            ));
+            return Err(format!("Result {} does not match expected {}", result, correct));
         }
     }
     Ok(result)
@@ -94,26 +91,17 @@ fn test_execute_program_with_invalid_args() {
 
 #[test]
 fn executes_file_example() {
-    assert_eq!(
-        84,
-        run_emulator("tests/resources/written_test_example").unwrap()
-    );
+    assert_eq!(84, run_emulator("tests/resources/written_test_example").unwrap());
 }
 
 #[test]
 fn executes_fibonacci_file() {
-    assert_eq!(
-        21,
-        run_emulator("tests/resources/written_fibonacci_test").unwrap()
-    );
+    assert_eq!(21, run_emulator("tests/resources/written_fibonacci_test").unwrap());
 }
 
 #[test]
 fn executes_sum_file() {
-    assert_eq!(
-        84,
-        run_emulator("tests/resources/written_sum_test").unwrap()
-    );
+    assert_eq!(84, run_emulator("tests/resources/written_sum_test").unwrap());
 }
 
 #[test]
@@ -127,10 +115,8 @@ fn test_emulate_basic() {
 
 #[test]
 fn test_execute_program_single_arg() {
-    let args = vec![
-        "program_name".to_string(),
-        "tests/resources/written_test_example".to_string(),
-    ];
+    let args =
+        vec!["program_name".to_string(), "tests/resources/written_test_example".to_string()];
     let result = execute_program(&args);
     assert!(result.is_ok());
     assert_eq!(result.unwrap(), 84);
@@ -167,10 +153,8 @@ fn test_run_emulator_fibonacci() {
 
 #[test]
 fn validates_and_executes_with_valid_args() {
-    let args = vec![
-        "custom_executor".to_string(),
-        "tests/resources/written_test_example".to_string(),
-    ];
+    let args =
+        vec!["custom_executor".to_string(), "tests/resources/written_test_example".to_string()];
     let result = validate_and_execute(&args);
     assert!(result.is_ok());
     assert_eq!(result.unwrap(), 84);
@@ -206,10 +190,8 @@ fn validates_with_empty_args() {
 
 #[test]
 fn test_run_success() {
-    let args = vec![
-        "custom_executor".to_string(),
-        "tests/resources/written_test_example".to_string(),
-    ];
+    let args =
+        vec!["custom_executor".to_string(), "tests/resources/written_test_example".to_string()];
     let result = run(&args);
     assert!(result.is_ok());
     let output = result.unwrap();
@@ -296,10 +278,7 @@ fn test_emulate_with_multiple_operations() {
 
 #[test]
 fn test_run_with_valid_file() {
-    let args = vec![
-        "custom_executor".to_string(),
-        "tests/resources/written_sum_test".to_string(),
-    ];
+    let args = vec!["custom_executor".to_string(), "tests/resources/written_sum_test".to_string()];
     let result = run(&args);
     assert!(result.is_ok());
     let output = result.unwrap();
@@ -356,10 +335,8 @@ fn test_emulate_division() {
 
 #[test]
 fn test_run_with_fibonacci_file() {
-    let args = vec![
-        "custom_executor".to_string(),
-        "tests/resources/written_fibonacci_test".to_string(),
-    ];
+    let args =
+        vec!["custom_executor".to_string(), "tests/resources/written_fibonacci_test".to_string()];
     let result = run(&args);
     assert!(result.is_ok());
     assert!(result.unwrap().contains("21"));
@@ -403,10 +380,7 @@ fn test_run_with_expected_mismatch() {
 
 #[test]
 fn test_validate_and_execute_sum_file() {
-    let args = vec![
-        "custom_executor".to_string(),
-        "tests/resources/written_sum_test".to_string(),
-    ];
+    let args = vec!["custom_executor".to_string(), "tests/resources/written_sum_test".to_string()];
     let result = validate_and_execute(&args);
     assert!(result.is_ok());
     assert_eq!(result.unwrap(), 84);

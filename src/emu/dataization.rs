@@ -39,21 +39,12 @@ impl Emu {
             }
             perf.cycles += 1;
             if let Some(Kid::Dtzd(d)) = self.basket(ROOT_BK).kids.get(&Loc::Phi) {
-                debug!(
-                    "dataize() -> 0x{:04X} in {:?}\n{}\n{}",
-                    *d,
-                    time.elapsed(),
-                    perf,
-                    self
-                );
+                debug!("dataize() -> 0x{:04X} in {:?}\n{}\n{}", *d, time.elapsed(), perf, self);
                 return (*d, perf);
             }
             cycles += 1;
             if self.opts.contains(&Opt::StopWhenTooManyCycles) && cycles > MAX_CYCLES {
-                panic!(
-                    "Too many cycles ({}), most probably endless recursion:\n{}",
-                    cycles, self
-                );
+                panic!("Too many cycles ({}), most probably endless recursion:\n{}", cycles, self);
             }
         }
     }

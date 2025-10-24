@@ -22,8 +22,8 @@ pub enum Loc {
 impl FromStr for Loc {
     type Err = String;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let re_arg =
-            Regex::new("^𝛼?(\\d+)$").map_err(|e| format!("Invalid RE_ARG regex pattern: {}", e))?;
+        let re_arg = Regex::new("^𝛼?(\\d+)$")
+            .map_err(|e| format!("Invalid RE_ARG regex pattern: {}", e))?;
         let re_obj =
             Regex::new("^ν(\\d+)$").map_err(|e| format!("Invalid RE_OBJ regex pattern: {}", e))?;
 

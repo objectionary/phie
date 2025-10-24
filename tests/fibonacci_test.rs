@@ -16,10 +16,7 @@ fn calculates_fibo() {
 #[test]
 fn fails_with_insufficient_args() {
     let mut cmd = Command::cargo_bin("fibonacci").unwrap();
-    cmd.arg("5")
-        .assert()
-        .failure()
-        .stderr(predicates::str::contains("Usage:"));
+    cmd.arg("5").assert().failure().stderr(predicates::str::contains("Usage:"));
 }
 
 #[test]
@@ -65,7 +62,5 @@ fn calculates_with_large_number() {
 #[test]
 fn fails_with_no_args() {
     let mut cmd = Command::cargo_bin("fibonacci").unwrap();
-    cmd.assert()
-        .failure()
-        .stderr(predicates::str::contains("Usage:"));
+    cmd.assert().failure().stderr(predicates::str::contains("Usage:"));
 }

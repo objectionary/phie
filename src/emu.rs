@@ -97,12 +97,7 @@ macro_rules! assert_dataized_eq {
         let mut emu: Emu = $txt.parse().expect("Failed to parse Emu in test");
         emu.opt(Opt::DontDelete);
         emu.opt(Opt::StopWhenTooManyCycles);
-        assert_eq!(
-            $eq,
-            emu.dataize().0,
-            "The expected dataization result is {}",
-            $eq
-        );
+        assert_eq!($eq, emu.dataize().0, "The expected dataization result is {}", $eq);
     };
 }
 
@@ -127,22 +122,14 @@ impl Emu {
 
     /// Add an additional object
     pub fn put(&mut self, ob: Ob, obj: Object) -> &mut Emu {
-        assert!(
-            self.objects[ob].is_empty(),
-            "The object ν{} already occupied",
-            ob
-        );
+        assert!(self.objects[ob].is_empty(), "The object ν{} already occupied", ob);
         self.objects[ob] = obj;
         self
     }
 
     /// Inject a basket
     pub fn inject(&mut self, bk: Bk, bsk: Basket) -> &mut Emu {
-        assert!(
-            self.baskets[bk as usize].is_empty(),
-            "The basket β{} already occupied",
-            bk
-        );
+        assert!(self.baskets[bk as usize].is_empty(), "The basket β{} already occupied", bk);
         self.baskets[bk as usize] = bsk;
         self
     }
@@ -152,9 +139,7 @@ impl Emu {
         match self.basket(bk).kids.get(&loc) {
             None => panic!("Can't find {} in β{}:\n{}", loc, bk, self),
             Some(Kid::Empt) => {
-                let _ = &self.baskets[bk as usize]
-                    .kids
-                    .insert(loc.clone(), Kid::Rqtd);
+                let _ = &self.baskets[bk as usize].kids.insert(loc.clone(), Kid::Rqtd);
                 trace!("read(β{}, {}): was empty, requested", bk, loc);
                 None
             }

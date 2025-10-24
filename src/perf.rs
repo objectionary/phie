@@ -74,12 +74,7 @@ impl Perf {
 macro_rules! print {
     ($lines:expr, $title:expr, $list:expr, $total:expr) => {
         $lines.push(format!("{}:", $title));
-        $lines.extend(
-            $list
-                .iter()
-                .map(|(t, c)| format!("\t{}: {}", t, c))
-                .sorted(),
-        );
+        $lines.extend($list.iter().map(|(t, c)| format!("\t{}: {}", t, c)).sorted());
         $lines.push(format!("\tTotal: {}", $total));
     };
 }

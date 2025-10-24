@@ -23,30 +23,15 @@ pub struct Object {
 
 impl Object {
     pub fn open() -> Object {
-        Object {
-            delta: None,
-            lambda: None,
-            constant: false,
-            attrs: HashMap::new(),
-        }
+        Object { delta: None, lambda: None, constant: false, attrs: HashMap::new() }
     }
 
     pub fn dataic(d: Data) -> Object {
-        Object {
-            delta: Some(d),
-            lambda: None,
-            constant: true,
-            attrs: HashMap::new(),
-        }
+        Object { delta: Some(d), lambda: None, constant: true, attrs: HashMap::new() }
     }
 
     pub fn atomic(n: String, a: Atom) -> Object {
-        Object {
-            delta: None,
-            lambda: Some((n, a)),
-            constant: false,
-            attrs: HashMap::new(),
-        }
+        Object { delta: None, lambda: Some((n, a)), constant: false, attrs: HashMap::new() }
     }
 
     /// This object is an empty one, with nothing inside.
@@ -133,39 +118,28 @@ impl fmt::Display for Object {
             parts.push(format!("{}↦{}", attr, locator) + &suffix);
         }
         parts.sort();
-        write!(
-            f,
-            "⟦{}{}⟧",
-            if self.constant { "! " } else { "" },
-            parts.iter().join(", ")
-        )
+        write!(f, "⟦{}{}⟧", if self.constant { "! " } else { "" }, parts.iter().join(", "))
     }
 }
 
 impl FromStr for Object {
     type Err = String;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let re =
-            Regex::new("⟦(!?)(.*)⟧").map_err(|e| format!("Invalid object regex pattern: {}", e))?;
+        let re = Regex::new("⟦(!?)(.*)⟧")
+            .map_err(|e| format!("Invalid object regex pattern: {}", e))?;
         let mut obj = Object::open();
-        let caps = re
-            .captures(s)
-            .ok_or_else(|| format!("Can't parse object format in '{}'", s))?;
-        let inner = caps
-            .get(2)
-            .ok_or_else(|| format!("Missing object body in '{}'", s))?
-            .as_str()
-            .trim();
+        let caps =
+            re.captures(s).ok_or_else(|| format!("Can't parse object format in '{}'", s))?;
+        let inner =
+            caps.get(2).ok_or_else(|| format!("Missing object body in '{}'", s))?.as_str().trim();
         for pair in inner.split(',').map(|t| t.trim()) {
             let (i, p) = pair
                 .split('↦')
                 .map(|t| t.trim())
                 .collect_tuple()
                 .ok_or_else(|| format!("Can't split '{}' in two parts at '{}'", pair, s))?;
-            let first_char = i
-                .chars()
-                .next()
-                .ok_or_else(|| format!("Empty attribute name in '{}'", pair))?;
+            let first_char =
+                i.chars().next().ok_or_else(|| format!("Empty attribute name in '{}'", pair))?;
             match first_char {
                 'λ' => {
                     let lambda_fn = match p {
@@ -195,9 +169,7 @@ impl FromStr for Object {
                     let xi_suffix = "(ξ)";
                     let xi = tail.ends_with(xi_suffix);
                     let locator = if xi {
-                        tail.chars()
-                            .take(tail.len() - xi_suffix.len() - 1)
-                            .collect()
+                        tail.chars().take(tail.len() - xi_suffix.len() - 1).collect()
                     } else {
                         tail.to_string()
                     };
@@ -272,11 +244,7 @@ fn fails_on_unknown_lambda() {
     let result = Object::from_str(text);
     assert!(result.is_err());
     let err = result.err().unwrap();
-    assert!(
-        err.contains("Unknown lambda"),
-        "Expected 'Unknown lambda' but got: {}",
-        err
-    );
+    assert!(err.contains("Unknown lambda"), "Expected 'Unknown lambda' but got: {}", err);
 }
 
 #[test]
