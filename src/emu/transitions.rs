@@ -82,7 +82,9 @@ impl Emu {
                     }
                     perf.tick(Transition::DEL);
                     for v in wbsk.kids.values() {
-                        if let Kid::Wait(b, _) = v && *b == bk {
+                        if let Kid::Wait(b, _) = v
+                            && *b == bk
+                        {
                             ready = false
                         }
                     }
@@ -217,7 +219,7 @@ impl Emu {
                                 loc,
                                 ob,
                                 join!(log)
-                            ))
+                            ));
                         }
                         Some((p, _psi)) => {
                             locs.insert(0, loc.clone());
@@ -240,7 +242,9 @@ impl Emu {
             ob = next;
             ret = Ok((next, psi, attr.clone()))
         };
-        if let Ok((next, _psi, _attr)) = ret.clone() && self.object(next).is_empty() {
+        if let Ok((next, _psi, _attr)) = ret.clone()
+            && self.object(next).is_empty()
+        {
             return Err(format!(
                 "Object ν{} is found by β{}.{}, but it's empty",
                 next, bk, locator
