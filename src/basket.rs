@@ -318,3 +318,16 @@ fn parses_text(#[case] txt: &str) {
     let basket = Basket::from_str(txt).unwrap();
     assert_eq!(txt, basket.to_string());
 }
+
+#[test]
+fn parses_wait_kid() {
+    let txt = "[ν0, ξ:β0, ρ⇉β1.Δ]";
+    let basket = Basket::from_str(txt).unwrap();
+    match basket.kids.get(&Loc::Rho).unwrap() {
+        Kid::Wait(bk, loc) => {
+            assert_eq!(*bk, 1);
+            assert_eq!(*loc, Loc::Delta);
+        }
+        _ => panic!("Expected Wait kid"),
+    }
+}
