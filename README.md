@@ -1,4 +1,4 @@
-![logo](https://www.objectionary.com/cactus.svg)
+![logo](./cactus.svg)
 
 [![EO principles respected here](https://www.elegantobjects.org/badge.svg)](https://www.elegantobjects.org)
 [![We recommend IntelliJ IDEA](https://www.elegantobjects.org/intellij-idea.svg)](https://www.jetbrains.com/idea/)
