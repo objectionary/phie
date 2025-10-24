@@ -51,7 +51,11 @@ impl fmt::Display for Basket {
         parts.push(format!("ν{}", self.ob));
         parts.push(format!("ξ:β{}", self.psi));
         parts.extend(
-            self.kids.iter().map(|(i, d)| format!("{}{}", i, d)).sorted().collect::<Vec<String>>(),
+            self.kids
+                .iter()
+                .map(|(i, d)| format!("{}{}", i, d))
+                .sorted()
+                .collect::<Vec<String>>(),
         );
         write!(f, "[{}]", parts.iter().join(", "))
     }
@@ -75,9 +79,13 @@ impl FromStr for Basket {
         let re =
             Regex::new("\\[(.*)]").map_err(|e| format!("Invalid basket regex pattern: {}", e))?;
         let mut bsk = Basket::empty();
-        let caps = re.captures(s).ok_or_else(|| format!("Can't parse the basket: '{}'", s))?;
-        let inner =
-            caps.get(1).ok_or_else(|| format!("Can't find the matcher inside '{}'", s))?.as_str();
+        let caps = re
+            .captures(s)
+            .ok_or_else(|| format!("Can't parse the basket: '{}'", s))?;
+        let inner = caps
+            .get(1)
+            .ok_or_else(|| format!("Can't find the matcher inside '{}'", s))?
+            .as_str();
         let parts: Vec<&str> = inner.trim().split(',').map(|t| t.trim()).collect();
         let ob_str: String = parts
             .first()
@@ -85,8 +93,9 @@ impl FromStr for Basket {
             .chars()
             .skip(1)
             .collect();
-        bsk.ob =
-            ob_str.parse().map_err(|e| format!("Can't parse the v part '{}': {}", ob_str, e))?;
+        bsk.ob = ob_str
+            .parse()
+            .map_err(|e| format!("Can't parse the v part '{}': {}", ob_str, e))?;
         let psi_str: String = parts
             .get(1)
             .ok_or_else(|| format!("Missing psi part in basket '{}'", s))?
@@ -99,10 +108,13 @@ impl FromStr for Basket {
         let pre = Regex::new("^(.*)(⇶0x|⇉β|→\\(ν|→∅|→\\?)(.*?)\\)?$")
             .map_err(|e| format!("Invalid kid pattern regex: {}", e))?;
         for p in parts.iter().skip(2) {
-            let caps =
-                pre.captures(p).ok_or_else(|| format!("Can't parse kid pattern in '{}'", p))?;
-            let kind_str =
-                caps.get(2).ok_or_else(|| format!("Missing kid type in '{}'", p))?.as_str();
+            let caps = pre
+                .captures(p)
+                .ok_or_else(|| format!("Can't parse kid pattern in '{}'", p))?;
+            let kind_str = caps
+                .get(2)
+                .ok_or_else(|| format!("Missing kid type in '{}'", p))?
+                .as_str();
             let kid = match kind_str {
                 "→∅" => Kid::Empt,
                 "⇶0x" => {
