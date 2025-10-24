@@ -134,7 +134,10 @@ impl RustEngine {
     pub fn execute(&self, id: &str, vertex: u32) -> Result<Data, String> {
         let atom = self.atoms.get(id).ok_or_else(|| format!("Atom {} not found", id))?;
 
-        let mut uni = self.universe.lock().map_err(|e| format!("Lock error: {}", e))?;
+        let mut uni = self
+            .universe
+            .lock()
+            .map_err(|e| format!("Lock error: {}", e))?;
         atom.execute(&mut uni, vertex)
     }
 

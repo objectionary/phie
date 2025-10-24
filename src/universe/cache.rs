@@ -57,7 +57,9 @@ impl Cache {
     /// ```
     #[inline]
     pub fn new() -> Self {
-        Cache { data: Vec::with_capacity(128) }
+        Cache {
+            data: Vec::with_capacity(128),
+        }
     }
 
     /// Stores a value in the cache for the given vertex.

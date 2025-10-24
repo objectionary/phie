@@ -44,7 +44,11 @@ impl Operations {
     /// let ops = Operations::new();
     /// ```
     pub fn new() -> Self {
-        Operations { sodg: Sodg::empty(), cache: Cache::new(), next_id: 0 }
+        Operations {
+            sodg: Sodg::empty(),
+            cache: Cache::new(),
+            next_id: 0,
+        }
     }
 
     /// Generates the next unique vertex ID.
@@ -95,7 +99,9 @@ impl Operations {
     /// ops.add(v).unwrap();
     /// ```
     pub fn add(&mut self, v: VertexId) -> Result<(), String> {
-        self.sodg.add(v).map_err(|e| format!("Failed to add vertex: {}", e))
+        self.sodg
+            .add(v)
+            .map_err(|e| format!("Failed to add vertex: {}", e))
     }
 
     /// Stores data at a vertex.
@@ -127,7 +133,9 @@ impl Operations {
 
         let bytes = data.to_be_bytes().to_vec();
         let hex = Hex::from_vec(bytes);
-        self.sodg.put(v, &hex).map_err(|e| format!("Failed to put data: {}", e))
+        self.sodg
+            .put(v, &hex)
+            .map_err(|e| format!("Failed to put data: {}", e))
     }
 
     /// Retrieves and dataizes a vertex value.
