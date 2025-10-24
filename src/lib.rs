@@ -18,5 +18,5 @@ use simple_logger::SimpleLogger;
 #[cfg(test)]
 #[ctor::ctor]
 fn init() {
-    SimpleLogger::new().init().unwrap();
+    let _ = SimpleLogger::new().init();
 }

@@ -141,10 +141,10 @@ impl Emu {
                 } else {
                     let _ = &self.baskets[bk as usize].put(loc.clone(), Kid::Need(tob, tpsi));
                 }
-                perf.hit(Transition::FND);
+                perf.hit(Transition::FIND);
             }
         }
-        perf.tick(Transition::FND);
+        perf.tick(Transition::FIND);
     }
 
     /// Make new basket for this attribute.
@@ -222,14 +222,16 @@ impl Emu {
                         }
                         Some((p, _psi)) => {
                             locs.insert(0, loc.clone());
-                            attr = Some((attr.unwrap().0, loc));
+                            let bk_val = attr.map(|(bk, _)| bk).unwrap_or(psi);
+                            attr = Some((bk_val, loc));
                             locs.splice(0..0, p.to_vec());
                             log.push(format!("++{}", p));
                             ob
                         }
                     },
                     Some((p, _psi)) => {
-                        attr = Some((attr.unwrap().0, loc.clone()));
+                        let bk_val = attr.map(|(bk, _)| bk).unwrap_or(psi);
+                        attr = Some((bk_val, loc.clone()));
                         locs.splice(0..0, p.to_vec());
                         log.push(format!("+{}", p));
                         ob
@@ -247,20 +249,22 @@ impl Emu {
                 ));
             }
         }
-        trace!(
-            "find(β{}/ν{}, {}) -> (ν{}, β{}) : {} {}",
-            bk,
-            self.basket(bk).ob,
-            locator,
-            ret.clone().unwrap().0,
-            ret.clone().unwrap().1,
-            join!(log),
-            if let Some((bk, loc)) = ret.clone().unwrap().2 {
-                format!("[β{}.{}]", bk, loc)
-            } else {
-                "".to_string()
-            }
-        );
+        if let Ok((ob, psi, attr_opt)) = &ret {
+            trace!(
+                "find(β{}/ν{}, {}) -> (ν{}, β{}) : {} {}",
+                bk,
+                self.basket(bk).ob,
+                locator,
+                ob,
+                psi,
+                join!(log),
+                if let Some((bk, loc)) = attr_opt {
+                    format!("[β{}.{}]", bk, loc)
+                } else {
+                    "".to_string()
+                }
+            );
+        }
         ret
     }
 

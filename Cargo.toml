@@ -24,3 +24,7 @@ rstest = "0.26"
 [dev-dependencies]
 assert_cmd = "2.0"
 simple_logger = "5.1"
+predicates = "3.0"
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(tarpaulin)'] }

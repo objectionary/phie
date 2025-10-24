@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: MIT
 
 use crate::loc::Loc;
-use lazy_static::lazy_static;
 use rstest::rstest;
 use std::fmt;
 use std::str::FromStr;
@@ -26,7 +25,7 @@ pub struct Locator {
 #[macro_export]
 macro_rules! ph {
     ($s:expr) => {
-        Locator::from_str($s).unwrap()
+        Locator::from_str($s).expect(&format!("Failed to parse locator: {}", $s))
     };
 }
 
@@ -69,42 +68,41 @@ type CheckFn = fn(&Locator) -> Option<String>;
 impl FromStr for Locator {
     type Err = String;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        lazy_static! {
-            static ref CHECKS: [CheckFn; 4] = [
-                |p: &Locator| -> Option<String> {
-                    p.locs[1..]
-                        .iter()
-                        .find(|i| matches!(i, Loc::Obj(_)))
-                        .map(|v| format!("{} can only stay at the first position", v))
-                },
-                |p: &Locator| {
-                    p.locs[1..]
-                        .iter()
-                        .find(|i| matches!(i, Loc::Root))
-                        .map(|v| format!("{} can only start a locator", v))
-                },
-                |p: &Locator| {
-                    p.locs[0..1]
-                        .iter()
-                        .find(|i| matches!(i, Loc::Attr(_)))
-                        .map(|v| format!("{} can't start a locator", v))
-                },
-                |p: &Locator| {
-                    if matches!(p.locs[0], Loc::Obj(_)) && p.locs.len() > 1 {
-                        Some(format!(
-                            "{} can only be the first and only locator",
-                            p.locs[0]
-                        ))
-                    } else {
-                        None
-                    }
-                },
-            ];
-        }
-        let p = Locator {
-            locs: s.split('.').map(|i| Loc::from_str(i).unwrap()).collect(),
-        };
-        for check in CHECKS.iter() {
+        let locs_result: Result<Vec<Loc>, String> = s.split('.').map(Loc::from_str).collect();
+        let p = Locator { locs: locs_result? };
+
+        let checks: [CheckFn; 4] = [
+            |p: &Locator| -> Option<String> {
+                p.locs[1..]
+                    .iter()
+                    .find(|i| matches!(i, Loc::Obj(_)))
+                    .map(|v| format!("{} can only stay at the first position", v))
+            },
+            |p: &Locator| {
+                p.locs[1..]
+                    .iter()
+                    .find(|i| matches!(i, Loc::Root))
+                    .map(|v| format!("{} can only start a locator", v))
+            },
+            |p: &Locator| {
+                p.locs[0..1]
+                    .iter()
+                    .find(|i| matches!(i, Loc::Attr(_)))
+                    .map(|v| format!("{} can't start a locator", v))
+            },
+            |p: &Locator| {
+                if matches!(p.locs[0], Loc::Obj(_)) && p.locs.len() > 1 {
+                    Some(format!(
+                        "{} can only be the first and only locator",
+                        p.locs[0]
+                    ))
+                } else {
+                    None
+                }
+            },
+        ];
+
+        for check in checks.iter() {
             if let Some(msg) = (check)(&p) {
                 return Err(format!("{} in '{}'", msg, p));
             }
@@ -177,4 +175,90 @@ pub fn fetches_loc_from_locator(
     #[case] expected: Loc,
 ) {
     assert_eq!(*ph!(&locator).loc(idx).unwrap(), expected);
+}
+
+#[test]
+fn returns_none_for_out_of_bounds() {
+    let locator = ph!("P.0");
+    assert!(locator.loc(10).is_none());
+}
+
+#[test]
+fn converts_to_vec() {
+    let locator = ph!("P.0.@");
+    let vec = locator.to_vec();
+    assert_eq!(vec.len(), 3);
+    assert_eq!(vec[0], Loc::Pi);
+}
+
+#[test]
+fn creates_from_loc() {
+    let locator = Locator::from_loc(Loc::Phi);
+    assert_eq!(locator.to_vec().len(), 1);
+}
+
+#[test]
+fn creates_from_vec_multiple_locs() {
+    let locs = vec![Loc::Pi, Loc::Attr(0), Loc::Phi];
+    let locator = Locator::from_vec(locs);
+    assert_eq!(locator.to_vec().len(), 3);
+    assert_eq!(locator.loc(0), Some(&Loc::Pi));
+    assert_eq!(locator.loc(1), Some(&Loc::Attr(0)));
+    assert_eq!(locator.loc(2), Some(&Loc::Phi));
+}
+
+#[test]
+fn parses_locator_with_invalid_loc() {
+    let result = Locator::from_str("P.invalid.@");
+    assert!(result.is_err());
+}
+
+#[test]
+fn fails_on_empty_locator() {
+    let result = Locator::from_str("");
+    assert!(result.is_err());
+}
+
+#[test]
+fn fails_on_obj_not_at_first_position() {
+    let result = Locator::from_str("P.ν5");
+    assert!(result.is_err());
+    assert!(result
+        .unwrap_err()
+        .contains("can only stay at the first position"));
+}
+
+#[test]
+fn fails_on_root_not_at_start() {
+    let result = Locator::from_str("P.Q");
+    assert!(result.is_err());
+    assert!(result.unwrap_err().contains("can only start a locator"));
+}
+
+#[test]
+fn fails_on_attr_at_start() {
+    let result = Locator::from_str("0");
+    assert!(result.is_err());
+    assert!(result.unwrap_err().contains("can't start a locator"));
+}
+
+#[test]
+fn fails_on_obj_with_multiple_locs() {
+    let result = Locator::from_str("ν5.0");
+    assert!(result.is_err());
+    assert!(result
+        .unwrap_err()
+        .contains("can only be the first and only locator"));
+}
+
+#[test]
+fn fails_on_trailing_dot() {
+    let result = Locator::from_str("P.");
+    assert!(result.is_err());
+}
+
+#[test]
+fn fails_on_leading_dot() {
+    let result = Locator::from_str(".P");
+    assert!(result.is_err());
 }

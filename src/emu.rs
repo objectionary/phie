@@ -66,11 +66,26 @@ impl FromStr for Emu {
     type Err = String;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut emu = Emu::empty();
-        let re_line = Regex::new("ν(\\d+)\\(𝜋\\) ↦ (⟦.*⟧)").unwrap();
+        let re_line = Regex::new("ν(\\d+)\\(𝜋\\) ↦ (⟦.*⟧)")
+            .map_err(|e| format!("Invalid emu line regex pattern: {}", e))?;
         for line in s.trim().split('\n').map(|t| t.trim()) {
-            let caps = re_line.captures(line).unwrap();
-            let v: Ob = caps.get(1).unwrap().as_str().parse().unwrap();
-            emu.put(v, Object::from_str(caps.get(2).unwrap().as_str()).unwrap());
+            let caps = re_line
+                .captures(line)
+                .ok_or_else(|| format!("Can't parse emu line: '{}'", line))?;
+            let v_str = caps
+                .get(1)
+                .ok_or_else(|| format!("Missing object number in line: '{}'", line))?
+                .as_str();
+            let v: Ob = v_str
+                .parse()
+                .map_err(|e| format!("Can't parse object number '{}': {}", v_str, e))?;
+            let obj_str = caps
+                .get(2)
+                .ok_or_else(|| format!("Missing object definition in line: '{}'", line))?
+                .as_str();
+            let obj = Object::from_str(obj_str)
+                .map_err(|e| format!("Can't parse object in line '{}': {}", line, e))?;
+            emu.put(v, obj);
         }
         Ok(emu)
     }
@@ -79,7 +94,7 @@ impl FromStr for Emu {
 #[macro_export]
 macro_rules! assert_dataized_eq {
     ($eq:expr, $txt:expr) => {
-        let mut emu: Emu = $txt.parse().unwrap();
+        let mut emu: Emu = $txt.parse().expect("Failed to parse Emu in test");
         emu.opt(Opt::DontDelete);
         emu.opt(Opt::StopWhenTooManyCycles);
         assert_eq!(

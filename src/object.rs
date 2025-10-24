@@ -123,16 +123,14 @@ impl fmt::Display for Object {
         }
         for i in self.attrs.iter() {
             let (attr, (locator, xi)) = i;
-            parts.push(
-                format!("{}↦{}", attr, locator)
-                    + &(if *xi {
-                        "(ξ)".to_string()
-                    } else if matches!(locator.loc(0).unwrap(), Loc::Obj(_)) {
-                        "(𝜋)".to_string()
-                    } else {
-                        "".to_string()
-                    }),
-            );
+            let suffix = if *xi {
+                "(ξ)".to_string()
+            } else if locator.loc(0).is_some_and(|loc| matches!(loc, Loc::Obj(_))) {
+                "(𝜋)".to_string()
+            } else {
+                "".to_string()
+            };
+            parts.push(format!("{}↦{}", attr, locator) + &suffix);
         }
         parts.sort();
         write!(
@@ -147,42 +145,45 @@ impl fmt::Display for Object {
 impl FromStr for Object {
     type Err = String;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let re = Regex::new("⟦(!?)(.*)⟧").unwrap();
+        let re =
+            Regex::new("⟦(!?)(.*)⟧").map_err(|e| format!("Invalid object regex pattern: {}", e))?;
         let mut obj = Object::open();
-        let caps = re.captures(s).unwrap();
-        for pair in caps
+        let caps = re
+            .captures(s)
+            .ok_or_else(|| format!("Can't parse object format in '{}'", s))?;
+        let inner = caps
             .get(2)
-            .unwrap()
+            .ok_or_else(|| format!("Missing object body in '{}'", s))?
             .as_str()
-            .trim()
-            .split(',')
-            .map(|t| t.trim())
-        {
+            .trim();
+        for pair in inner.split(',').map(|t| t.trim()) {
             let (i, p) = pair
                 .split('↦')
                 .map(|t| t.trim())
                 .collect_tuple()
-                .ok_or(format!("Can't split '{}' in two parts at '{}'", pair, s))?;
-            match i.chars().take(1).last().unwrap() {
+                .ok_or_else(|| format!("Can't split '{}' in two parts at '{}'", pair, s))?;
+            let first_char = i
+                .chars()
+                .next()
+                .ok_or_else(|| format!("Empty attribute name in '{}'", pair))?;
+            match first_char {
                 'λ' => {
-                    obj = Object::atomic(
-                        p.to_string(),
-                        match p {
-                            "int-times" => int_times,
-                            "int-div" => int_div,
-                            "int-sub" => int_sub,
-                            "int-add" => int_add,
-                            "int-neg" => int_neg,
-                            "bool-if" => bool_if,
-                            "int-less" => int_less,
-                            _ => panic!("Unknown lambda '{}'", p),
-                        },
-                    );
+                    let lambda_fn = match p {
+                        "int-times" => int_times,
+                        "int-div" => int_div,
+                        "int-sub" => int_sub,
+                        "int-add" => int_add,
+                        "int-neg" => int_neg,
+                        "bool-if" => bool_if,
+                        "int-less" => int_less,
+                        _ => return Err(format!("Unknown lambda '{}' in '{}'", p, s)),
+                    };
+                    obj = Object::atomic(p.to_string(), lambda_fn);
                 }
                 'Δ' => {
                     let hex: String = p.chars().skip(2).collect();
-                    let data: Data = Data::from_str_radix(&hex, 16)
-                        .unwrap_or_else(|_| panic!("Can't parse hex '{}' in '{}'", hex, s));
+                    let data = Data::from_str_radix(&hex, 16)
+                        .map_err(|e| format!("Can't parse hex '{}' in '{}': {}", hex, s, e))?;
                     obj = Object::dataic(data);
                 }
                 _ => {
@@ -200,15 +201,19 @@ impl FromStr for Object {
                     } else {
                         tail.to_string()
                     };
-                    obj.push(
-                        Loc::from_str(i).unwrap(),
-                        Locator::from_str(&locator).unwrap(),
-                        xi,
-                    );
+                    let loc = Loc::from_str(i)
+                        .map_err(|e| format!("Can't parse location '{}': {}", i, e))?;
+                    let locator_parsed = Locator::from_str(&locator)
+                        .map_err(|e| format!("Can't parse locator '{}': {}", locator, e))?;
+                    obj.push(loc, locator_parsed, xi);
                 }
             };
         }
-        if !caps.get(1).unwrap().as_str().is_empty() {
+        let constant_flag = caps
+            .get(1)
+            .ok_or_else(|| format!("Missing constant flag capture in '{}'", s))?
+            .as_str();
+        if !constant_flag.is_empty() {
             obj.constant = true;
         }
         Ok(obj)
@@ -259,4 +264,80 @@ fn prints_and_parses_some_object(#[case] text: String) {
     let obj2 = Object::from_str(&text2).unwrap();
     let text3 = obj2.to_string();
     assert_eq!(text2, text3);
+}
+
+#[test]
+fn fails_on_unknown_lambda() {
+    let text = "⟦ λ ↦ unknown-lambda ⟧";
+    let result = Object::from_str(text);
+    assert!(result.is_err());
+    let err = result.err().unwrap();
+    assert!(
+        err.contains("Unknown lambda"),
+        "Expected 'Unknown lambda' but got: {}",
+        err
+    );
+}
+
+#[test]
+fn fails_on_invalid_format() {
+    let text = "invalid object format";
+    let result = Object::from_str(text);
+    assert!(result.is_err());
+    let err = result.err().unwrap();
+    assert!(err.contains("Can't parse object format"));
+}
+
+#[test]
+fn fails_on_invalid_hex() {
+    let text = "⟦ Δ ↦ 0xZZZZ ⟧";
+    let result = Object::from_str(text);
+    assert!(result.is_err());
+    let err = result.err().unwrap();
+    assert!(err.contains("Can't parse hex"));
+}
+
+#[test]
+fn fails_on_malformed_attribute() {
+    let text = "⟦ malformed ⟧";
+    let result = Object::from_str(text);
+    assert!(result.is_err());
+    let err = result.err().unwrap();
+    assert!(err.contains("Can't split"));
+}
+
+#[test]
+fn parses_object_with_xi() {
+    let text = "⟦ 𝜑 ↦ ν2(ξ) ⟧";
+    let obj = Object::from_str(text).unwrap();
+    assert_eq!(obj.attrs.len(), 1);
+    let (_, xi) = obj.attrs.get(&Loc::Phi).unwrap();
+    assert!(*xi);
+}
+
+#[test]
+fn parses_object_without_xi() {
+    let text = "⟦ ρ ↦ 𝜋 ⟧";
+    let obj = Object::from_str(text).unwrap();
+    assert_eq!(obj.attrs.len(), 1);
+    let (_, xi) = obj.attrs.get(&Loc::Rho).unwrap();
+    assert!(!*xi);
+}
+
+#[test]
+fn fails_on_empty_attribute_name() {
+    let text = "⟦ ↦ ν0 ⟧";
+    let result = Object::from_str(text);
+    assert!(result.is_err());
+    let err = result.err().unwrap();
+    assert!(err.contains("Empty attribute name"));
+}
+
+#[test]
+fn fails_on_invalid_loc_in_attribute() {
+    let text = "⟦ invalid_loc ↦ ν0 ⟧";
+    let result = Object::from_str(text);
+    assert!(result.is_err());
+    let err = result.err().unwrap();
+    assert!(err.contains("Can't parse location"));
 }

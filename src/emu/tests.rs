@@ -98,9 +98,8 @@ pub fn preserves_calculation_results() {
         ",
     )
     .unwrap();
-    let dtz = emu.dataize();
-    assert_eq!(84, dtz.0);
-    let perf = dtz.1;
+    let (result, perf) = emu.dataize();
+    assert_eq!(84, result);
     assert_eq!(4, perf.total_atoms());
 }
 
@@ -126,9 +125,8 @@ pub fn calculates_argument_once() {
         ",
     )
     .unwrap();
-    let dtz = emu.dataize();
-    assert_eq!(84, dtz.0);
-    let perf = dtz.1;
+    let (result, perf) = emu.dataize();
+    assert_eq!(84, result);
     assert_eq!(4, perf.total_atoms());
 }
 
@@ -404,8 +402,7 @@ pub fn simple_recursion() {
     )
     .unwrap();
     emu.opt(Opt::DontDelete);
-    let dtz = emu.dataize();
-    let perf = dtz.1;
+    let (_result, perf) = emu.dataize();
     assert_eq!(9, emu.baskets.iter().filter(|bsk| bsk.ob == 1).count());
     assert_eq!(4, *perf.hits.get(&Transition::CPY).unwrap());
 }
@@ -451,12 +448,27 @@ pub fn recursive_fibonacci() {
         .as_str(),
     )
     .unwrap();
-    let dtz = emu.dataize();
-    assert_eq!(fibo(input), dtz.0, "Wrong number calculated");
-    let perf = dtz.1;
+    let (result, perf) = emu.dataize();
+    assert_eq!(fibo(input), result, "Wrong number calculated");
     assert_eq!(
         perf.total_atoms(),
         fibo_ops(input),
         "Too many atomic operations"
     );
+}
+
+#[test]
+fn fails_on_invalid_emu_line() {
+    let result = Emu::from_str("invalid emu format");
+    assert!(result.is_err());
+    let err = result.err().unwrap();
+    assert!(err.contains("Can't parse emu line"));
+}
+
+#[test]
+fn fails_on_invalid_object_in_line() {
+    let result = Emu::from_str("ν0(𝜋) ↦ ⟦ invalid ⟧");
+    assert!(result.is_err());
+    let err = result.err().unwrap();
+    assert!(err.contains("Can't parse object in line"));
 }
