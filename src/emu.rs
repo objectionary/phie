@@ -97,7 +97,12 @@ macro_rules! assert_dataized_eq {
         let mut emu: Emu = $txt.parse().expect("Failed to parse Emu in test");
         emu.opt(Opt::DontDelete);
         emu.opt(Opt::StopWhenTooManyCycles);
-        assert_eq!($eq, emu.dataize().0, "The expected dataization result is {}", $eq);
+        assert_eq!(
+            $eq,
+            emu.dataize().0,
+            "The expected dataization result is {}",
+            $eq
+        );
     };
 }
 

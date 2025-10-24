@@ -44,7 +44,10 @@ impl Emu {
             }
             cycles += 1;
             if self.opts.contains(&Opt::StopWhenTooManyCycles) && cycles > MAX_CYCLES {
-                panic!("Too many cycles ({}), most probably endless recursion:\n{}", cycles, self);
+                panic!(
+                    "Too many cycles ({}), most probably endless recursion:\n{}",
+                    cycles, self
+                );
             }
         }
     }
