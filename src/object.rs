@@ -128,18 +128,24 @@ impl FromStr for Object {
         let re = Regex::new("⟦(!?)(.*)⟧")
             .map_err(|e| format!("Invalid object regex pattern: {}", e))?;
         let mut obj = Object::open();
-        let caps =
-            re.captures(s).ok_or_else(|| format!("Can't parse object format in '{}'", s))?;
-        let inner =
-            caps.get(2).ok_or_else(|| format!("Missing object body in '{}'", s))?.as_str().trim();
+        let caps = re
+            .captures(s)
+            .ok_or_else(|| format!("Can't parse object format in '{}'", s))?;
+        let inner = caps
+            .get(2)
+            .ok_or_else(|| format!("Missing object body in '{}'", s))?
+            .as_str()
+            .trim();
         for pair in inner.split(',').map(|t| t.trim()) {
             let (i, p) = pair
                 .split('↦')
                 .map(|t| t.trim())
                 .collect_tuple()
                 .ok_or_else(|| format!("Can't split '{}' in two parts at '{}'", pair, s))?;
-            let first_char =
-                i.chars().next().ok_or_else(|| format!("Empty attribute name in '{}'", pair))?;
+            let first_char = i
+                .chars()
+                .next()
+                .ok_or_else(|| format!("Empty attribute name in '{}'", pair))?;
             match first_char {
                 'λ' => {
                     let lambda_fn = match p {
@@ -169,7 +175,9 @@ impl FromStr for Object {
                     let xi_suffix = "(ξ)";
                     let xi = tail.ends_with(xi_suffix);
                     let locator = if xi {
-                        tail.chars().take(tail.len() - xi_suffix.len() - 1).collect()
+                        tail.chars()
+                            .take(tail.len() - xi_suffix.len() - 1)
+                            .collect()
                     } else {
                         tail.to_string()
                     };
@@ -244,7 +252,11 @@ fn fails_on_unknown_lambda() {
     let result = Object::from_str(text);
     assert!(result.is_err());
     let err = result.err().unwrap();
-    assert!(err.contains("Unknown lambda"), "Expected 'Unknown lambda' but got: {}", err);
+    assert!(
+        err.contains("Unknown lambda"),
+        "Expected 'Unknown lambda' but got: {}",
+        err
+    );
 }
 
 #[test]
