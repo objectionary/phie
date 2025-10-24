@@ -29,7 +29,7 @@ use crate::universe::VertexId;
 /// # Examples
 ///
 /// ```
-/// use phie::universe::cache::Cache;
+/// use phie::universe::Cache;
 ///
 /// let mut cache = Cache::new();
 /// cache.put(0, 42);
@@ -50,7 +50,7 @@ impl Cache {
     /// # Examples
     ///
     /// ```
-    /// use phie::universe::cache::Cache;
+    /// use phie::universe::Cache;
     ///
     /// let cache = Cache::new();
     /// assert_eq!(cache.len(), 0);
@@ -74,7 +74,7 @@ impl Cache {
     /// # Examples
     ///
     /// ```
-    /// use phie::universe::cache::Cache;
+    /// use phie::universe::Cache;
     ///
     /// let mut cache = Cache::new();
     /// cache.put(5, 100);
@@ -104,7 +104,7 @@ impl Cache {
     /// # Examples
     ///
     /// ```
-    /// use phie::universe::cache::Cache;
+    /// use phie::universe::Cache;
     ///
     /// let mut cache = Cache::new();
     /// cache.put(3, 42);
@@ -129,7 +129,7 @@ impl Cache {
     /// # Examples
     ///
     /// ```
-    /// use phie::universe::cache::Cache;
+    /// use phie::universe::Cache;
     ///
     /// let mut cache = Cache::new();
     /// cache.put(10, 42);
@@ -147,7 +147,7 @@ impl Cache {
     /// # Examples
     ///
     /// ```
-    /// use phie::universe::cache::Cache;
+    /// use phie::universe::Cache;
     ///
     /// let cache = Cache::new();
     /// assert!(cache.is_empty());
@@ -165,7 +165,7 @@ impl Cache {
     /// # Examples
     ///
     /// ```
-    /// use phie::universe::cache::Cache;
+    /// use phie::universe::Cache;
     ///
     /// let mut cache = Cache::new();
     /// cache.put(0, 42);

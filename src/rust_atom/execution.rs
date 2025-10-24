@@ -63,7 +63,7 @@ pub type RustAtomFn = unsafe extern "C" fn(*mut Universe, u32) -> i16;
 /// # Examples
 ///
 /// ```no_run
-/// use phie::rust_atom::execution::execute;
+/// use phie::rust_atom::execute;
 /// use phie::universe::Universe;
 /// use std::path::Path;
 ///

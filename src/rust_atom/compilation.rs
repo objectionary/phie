@@ -44,7 +44,7 @@ use std::process::Command;
 /// # Examples
 ///
 /// ```no_run
-/// use phie::rust_atom::compilation::compile;
+/// use phie::rust_atom::compile;
 ///
 /// let source = r#"
 /// #[no_mangle]

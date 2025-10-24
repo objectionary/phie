@@ -39,7 +39,7 @@ impl Operations {
     /// # Examples
     ///
     /// ```
-    /// use phie::universe::operations::Operations;
+    /// use phie::universe::Operations;
     ///
     /// let ops = Operations::new();
     /// ```
@@ -59,7 +59,7 @@ impl Operations {
     /// # Examples
     ///
     /// ```
-    /// use phie::universe::operations::Operations;
+    /// use phie::universe::Operations;
     ///
     /// let mut ops = Operations::new();
     /// assert_eq!(ops.next_id(), 0);
@@ -88,7 +88,7 @@ impl Operations {
     /// # Examples
     ///
     /// ```
-    /// use phie::universe::operations::Operations;
+    /// use phie::universe::Operations;
     ///
     /// let mut ops = Operations::new();
     /// let v = ops.next_id();
@@ -115,7 +115,7 @@ impl Operations {
     /// # Examples
     ///
     /// ```
-    /// use phie::universe::operations::Operations;
+    /// use phie::universe::Operations;
     ///
     /// let mut ops = Operations::new();
     /// let v = ops.next_id();
@@ -153,7 +153,7 @@ impl Operations {
     /// # Examples
     ///
     /// ```
-    /// use phie::universe::operations::Operations;
+    /// use phie::universe::Operations;
     ///
     /// let mut ops = Operations::new();
     /// let v = ops.next_id();
@@ -202,7 +202,7 @@ impl Operations {
     /// # Examples
     ///
     /// ```
-    /// use phie::universe::operations::Operations;
+    /// use phie::universe::Operations;
     ///
     /// let mut ops = Operations::new();
     /// let v1 = ops.next_id();
@@ -238,7 +238,7 @@ impl Operations {
     /// # Examples
     ///
     /// ```
-    /// use phie::universe::operations::Operations;
+    /// use phie::universe::Operations;
     ///
     /// let ops = Operations::new();
     /// assert_eq!(ops.parse_path("v0").unwrap(), 0);
