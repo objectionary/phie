@@ -13,18 +13,16 @@
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/objectionary/phie/blob/master/LICENSE.txt)
 
 It's an experimental emulator of a machine that understands
-[𝜑-calculus](https://arxiv.org/abs/2111.13384) expressions, which is
-the formalism behind [EO](https://www.eolang.org) programming language.
+[𝜑-calculus](https://arxiv.org/abs/2111.13384) expressions,
+which is the formalism behind [EO](https://www.eolang.org) programming language.
 
-To build it, install [Rust](https://www.rust-lang.org/tools/install)
-and then:
+To build it, install [Rust](https://www.rust-lang.org/tools/install) and then:
 
 ```bash
 cargo build --release
 ```
 
-If everything goes well, an executable binary will be in
-`target/release/fibonacci`:
+If everything goes well, an executable binary will be in `target/release/fibonacci`:
 
 ```bash
 target/release/fibonacci 7 40
@@ -80,8 +78,7 @@ First, install [Rust](https://www.rust-lang.org/tools/install) and then:
 cargo test -vv --release
 ```
 
-If everything goes well, an executable binary will be in
-`target/release/phie`:
+If everything goes well, an executable binary will be in `target/release/phie`:
 
 ```bash
 target/release/phie --help
