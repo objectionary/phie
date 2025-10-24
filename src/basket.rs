@@ -140,8 +140,9 @@ impl FromStr for Basket {
                         .collect_tuple()
                         .ok_or_else(|| format!("Can't parse the needed pair '{}'", part))?;
                     let psi_str: String = p.chars().skip(1).collect();
-                    let o_num =
-                        o.parse().map_err(|e| format!("Can't parse need obj '{}': {}", o, e))?;
+                    let o_num = o
+                        .parse()
+                        .map_err(|e| format!("Can't parse need obj '{}': {}", o, e))?;
                     let psi_num = psi_str
                         .parse()
                         .map_err(|e| format!("Can't parse need psi '{}': {}", psi_str, e))?;
@@ -150,8 +151,10 @@ impl FromStr for Basket {
                 "→?" => Kid::Rqtd,
                 _ => return Err(format!("Unknown kid type: '{}'", kind_str)),
             };
-            let loc_str =
-                caps.get(1).ok_or_else(|| format!("Missing location in '{}'", p))?.as_str();
+            let loc_str = caps
+                .get(1)
+                .ok_or_else(|| format!("Missing location in '{}'", p))?
+                .as_str();
             let loc = Loc::from_str(loc_str)
                 .map_err(|e| format!("Can't parse location '{}': {}", loc_str, e))?;
             bsk.kids.insert(loc, kid);
@@ -183,7 +186,10 @@ fn prints_itself() {
     basket.put(Loc::Delta, Kid::Dtzd(42));
     basket.put(Loc::Rho, Kid::Wait(42, Loc::Phi));
     basket.put(Loc::Attr(1), Kid::Need(7, 12));
-    assert_eq!("[ν5, ξ:β7, Δ⇶0x002A, ρ⇉β42.𝜑, 𝛼1→(ν7;β12)]", basket.to_string());
+    assert_eq!(
+        "[ν5, ξ:β7, Δ⇶0x002A, ρ⇉β42.𝜑, 𝛼1→(ν7;β12)]",
+        basket.to_string()
+    );
 }
 
 #[test]
