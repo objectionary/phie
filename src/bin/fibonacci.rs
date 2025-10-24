@@ -173,7 +173,11 @@ fn test_run_with_insufficient_args() {
 
 #[test]
 fn test_run_with_invalid_input() {
-    let args = vec!["fibonacci".to_string(), "invalid".to_string(), "3".to_string()];
+    let args = vec![
+        "fibonacci".to_string(),
+        "invalid".to_string(),
+        "3".to_string(),
+    ];
     let result = run(&args);
     assert!(result.is_err());
     assert!(result.unwrap_err().contains("Invalid input argument"));
@@ -205,7 +209,11 @@ fn test_parse_args_with_single_arg() {
 
 #[test]
 fn test_run_with_invalid_cycles_format() {
-    let args = vec!["fibonacci".to_string(), "5".to_string(), "invalid".to_string()];
+    let args = vec![
+        "fibonacci".to_string(),
+        "5".to_string(),
+        "invalid".to_string(),
+    ];
     let result = run(&args);
     assert!(result.is_err());
     assert!(result.unwrap_err().contains("Invalid cycles argument"));

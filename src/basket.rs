@@ -29,11 +29,19 @@ pub struct Basket {
 
 impl Basket {
     pub fn empty() -> Basket {
-        Basket { ob: 0, psi: -1, kids: HashMap::new() }
+        Basket {
+            ob: 0,
+            psi: -1,
+            kids: HashMap::new(),
+        }
     }
 
     pub fn start(ob: Ob, psi: Bk) -> Basket {
-        Basket { ob, psi, kids: HashMap::new() }
+        Basket {
+            ob,
+            psi,
+            kids: HashMap::new(),
+        }
     }
 
     pub fn is_empty(&self) -> bool {
