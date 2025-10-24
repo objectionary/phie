@@ -41,10 +41,11 @@ impl Emu {
                     continue;
                 }
                 for k in bsk.kids.keys() {
-                    if let Some(Kid::Wait(b, l)) = &bsk.kids.get(k) {
-                        if *b == bk && *l == loc {
-                            changes.push((i as Bk, k.clone(), *d));
-                        }
+                    if let Some(Kid::Wait(b, l)) = &bsk.kids.get(k)
+                        && *b == bk
+                        && *l == loc
+                    {
+                        changes.push((i as Bk, k.clone(), *d));
                     }
                     perf.tick(Transition::PPG);
                 }
@@ -81,10 +82,8 @@ impl Emu {
                     }
                     perf.tick(Transition::DEL);
                     for v in wbsk.kids.values() {
-                        if let Kid::Wait(b, _) = v {
-                            if *b == bk {
-                                ready = false
-                            }
+                        if let Kid::Wait(b, _) = v && *b == bk {
+                            ready = false
                         }
                     }
                 }
@@ -101,17 +100,17 @@ impl Emu {
     /// Give control to the atom of the basket.
     pub fn delegate(&mut self, perf: &mut Perf, bk: Bk) {
         let bsk = self.basket(bk);
-        if let Some(Kid::Rqtd) = bsk.kids.get(&Loc::Phi) {
-            if !bsk.kids.values().any(|k| matches!(&k, Kid::Wait(_, _))) {
-                let obj = self.object(bsk.ob);
-                if let Some((n, func)) = &obj.lambda {
-                    let name = n.clone();
-                    perf.hit(Transition::DLG);
-                    if let Some(d) = func(self, bk) {
-                        perf.atom(name);
-                        let _ = &self.baskets[bk as usize].put(Loc::Phi, Kid::Dtzd(d));
-                        trace!("delegate(β{}) -> 0x{:04X}", bk, d);
-                    }
+        if let Some(Kid::Rqtd) = bsk.kids.get(&Loc::Phi)
+            && !bsk.kids.values().any(|k| matches!(&k, Kid::Wait(_, _)))
+        {
+            let obj = self.object(bsk.ob);
+            if let Some((n, func)) = &obj.lambda {
+                let name = n.clone();
+                perf.hit(Transition::DLG);
+                if let Some(d) = func(self, bk) {
+                    perf.atom(name);
+                    let _ = &self.baskets[bk as usize].put(Loc::Phi, Kid::Dtzd(d));
+                    trace!("delegate(β{}) -> 0x{:04X}", bk, d);
                 }
             }
         }
@@ -241,13 +240,11 @@ impl Emu {
             ob = next;
             ret = Ok((next, psi, attr.clone()))
         };
-        if let Ok((next, _psi, _attr)) = ret.clone() {
-            if self.object(next).is_empty() {
-                return Err(format!(
-                    "Object ν{} is found by β{}.{}, but it's empty",
-                    next, bk, locator
-                ));
-            }
+        if let Ok((next, _psi, _attr)) = ret.clone() && self.object(next).is_empty() {
+            return Err(format!(
+                "Object ν{} is found by β{}.{}, but it's empty",
+                next, bk, locator
+            ));
         }
         if let Ok((ob, psi, attr_opt)) = &ret {
             trace!(
