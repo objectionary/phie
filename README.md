@@ -19,13 +19,13 @@ which is the formalism behind [EO](https://www.eolang.org) programming language.
 To build it, install [Rust](https://www.rust-lang.org/tools/install) and then:
 
 ```bash
-$ cargo build --release
+cargo build --release
 ```
 
 If everything goes well, an executable binary will be in `target/release/fibonacci`:
 
 ```bash
-$ target/release/fibonacci 7 40
+target/release/fibonacci 7 40
 ```
 
 This will calculate the 7th Fibonacci number 40 times.
