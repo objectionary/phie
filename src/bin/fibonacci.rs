@@ -41,10 +41,12 @@ pub fn parse_fibonacci_args(args: &[String]) -> Result<(Data, i32), String> {
             args.first().unwrap_or(&"fibonacci".to_string())
         ));
     }
-    let input =
-        args[1].parse().map_err(|e| format!("Invalid input argument '{}': {}", args[1], e))?;
-    let cycles =
-        args[2].parse().map_err(|e| format!("Invalid cycles argument '{}': {}", args[2], e))?;
+    let input = args[1]
+        .parse()
+        .map_err(|e| format!("Invalid input argument '{}': {}", args[1], e))?;
+    let cycles = args[2]
+        .parse()
+        .map_err(|e| format!("Invalid cycles argument '{}': {}", args[2], e))?;
     Ok((input, cycles))
 }
 

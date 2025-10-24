@@ -335,8 +335,10 @@ fn test_emulate_division() {
 
 #[test]
 fn test_run_with_fibonacci_file() {
-    let args =
-        vec!["custom_executor".to_string(), "tests/resources/written_fibonacci_test".to_string()];
+    let args = vec![
+        "custom_executor".to_string(),
+        "tests/resources/written_fibonacci_test".to_string(),
+    ];
     let result = run(&args);
     assert!(result.is_ok());
     assert!(result.unwrap().contains("21"));
@@ -380,7 +382,10 @@ fn test_run_with_expected_mismatch() {
 
 #[test]
 fn test_validate_and_execute_sum_file() {
-    let args = vec!["custom_executor".to_string(), "tests/resources/written_sum_test".to_string()];
+    let args = vec![
+        "custom_executor".to_string(),
+        "tests/resources/written_sum_test".to_string(),
+    ];
     let result = validate_and_execute(&args);
     assert!(result.is_ok());
     assert_eq!(result.unwrap(), 84);
