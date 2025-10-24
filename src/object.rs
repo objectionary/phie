@@ -23,15 +23,30 @@ pub struct Object {
 
 impl Object {
     pub fn open() -> Object {
-        Object { delta: None, lambda: None, constant: false, attrs: HashMap::new() }
+        Object {
+            delta: None,
+            lambda: None,
+            constant: false,
+            attrs: HashMap::new(),
+        }
     }
 
     pub fn dataic(d: Data) -> Object {
-        Object { delta: Some(d), lambda: None, constant: true, attrs: HashMap::new() }
+        Object {
+            delta: Some(d),
+            lambda: None,
+            constant: true,
+            attrs: HashMap::new(),
+        }
     }
 
     pub fn atomic(n: String, a: Atom) -> Object {
-        Object { delta: None, lambda: Some((n, a)), constant: false, attrs: HashMap::new() }
+        Object {
+            delta: None,
+            lambda: Some((n, a)),
+            constant: false,
+            attrs: HashMap::new(),
+        }
     }
 
     /// This object is an empty one, with nothing inside.
@@ -118,15 +133,20 @@ impl fmt::Display for Object {
             parts.push(format!("{}↦{}", attr, locator) + &suffix);
         }
         parts.sort();
-        write!(f, "⟦{}{}⟧", if self.constant { "! " } else { "" }, parts.iter().join(", "))
+        write!(
+            f,
+            "⟦{}{}⟧",
+            if self.constant { "! " } else { "" },
+            parts.iter().join(", ")
+        )
     }
 }
 
 impl FromStr for Object {
     type Err = String;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let re = Regex::new("⟦(!?)(.*)⟧")
-            .map_err(|e| format!("Invalid object regex pattern: {}", e))?;
+        let re =
+            Regex::new("⟦(!?)(.*)⟧").map_err(|e| format!("Invalid object regex pattern: {}", e))?;
         let mut obj = Object::open();
         let caps = re
             .captures(s)
