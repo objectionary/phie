@@ -14,7 +14,7 @@ mod compilation;
 mod execution;
 
 pub use compilation::{compile, write_cargo_toml, write_lib_rs};
-pub use execution::{execute, RustAtomFn};
+pub use execution::{RustAtomFn, execute};
 
 use crate::data::Data;
 use crate::universe::Universe;
@@ -75,7 +75,11 @@ impl RustAtom {
     /// let atom = RustAtom::new("sum", "pub fn f() { }");
     /// ```
     pub fn new(id: &str, source: &str) -> Self {
-        RustAtom { id: id.to_string(), source: source.to_string(), lib_path: None }
+        RustAtom {
+            id: id.to_string(),
+            source: source.to_string(),
+            lib_path: None,
+        }
     }
 
     /// Compiles the Rust source code to a shared library.

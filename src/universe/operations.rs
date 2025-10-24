@@ -182,9 +182,7 @@ impl Operations {
 
         if bytes.len() != 2 {
             let len = bytes.len();
-            return Err(format!(
-                "Invalid data length: expected 2 bytes, got {len}"
-            ));
+            return Err(format!("Invalid data length: expected 2 bytes, got {len}"));
         }
 
         let data = Data::from_be_bytes([bytes[0], bytes[1]]);

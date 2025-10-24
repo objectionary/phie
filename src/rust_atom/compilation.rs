@@ -136,7 +136,8 @@ pub fn write_lib_rs(dir: &Path, source: &str) -> Result<(), String> {
 
     let mut file = fs::File::create(src_dir.join("lib.rs"))
         .map_err(|e| format!("Failed to create lib.rs: {e}"))?;
-    file.write_all(source.as_bytes()).map_err(|e| format!("Failed to write lib.rs: {e}"))?;
+    file.write_all(source.as_bytes())
+        .map_err(|e| format!("Failed to write lib.rs: {e}"))?;
     Ok(())
 }
 
