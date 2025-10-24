@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: Copyright (c) 2022 Yegor Bugayenko
+// SPDX-License-Identifier: MIT
+
 //! Caching layer for dataized vertex values.
 //!
 //! This module implements an efficient caching mechanism for storing

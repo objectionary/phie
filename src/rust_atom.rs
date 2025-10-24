@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: Copyright (c) 2022 Yegor Bugayenko
+// SPDX-License-Identifier: MIT
+
 //! Rust atom compilation and execution module.
 //!
 //! This module provides the infrastructure for compiling Rust source code

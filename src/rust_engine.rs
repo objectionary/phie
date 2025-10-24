@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: Copyright (c) 2022 Yegor Bugayenko
+// SPDX-License-Identifier: MIT
+
 //! Rust atom execution engine with compilation caching and Universe management.
 //!
 //! This module provides a high-level engine for managing multiple Rust atoms

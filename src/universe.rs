@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: Copyright (c) 2022 Yegor Bugayenko
+// SPDX-License-Identifier: MIT
+
 //! Universe module provides a bridge between phie and SODG for Rust atoms.
 //!
 //! This module implements the Universe abstraction that allows dynamically compiled

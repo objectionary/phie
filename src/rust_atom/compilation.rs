@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: Copyright (c) 2022 Yegor Bugayenko
+// SPDX-License-Identifier: MIT
+
 //! Compilation of Rust source code to shared libraries.
 //!
 //! This module handles the complete compilation pipeline for Rust atoms:

@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: Copyright (c) 2022 Yegor Bugayenko
+// SPDX-License-Identifier: MIT
+
 //! Dynamic loading and execution of compiled Rust atoms.
 //!
 //! This module handles loading shared libraries at runtime via libloading

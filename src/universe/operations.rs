@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: Copyright (c) 2022 Yegor Bugayenko
+// SPDX-License-Identifier: MIT
+
 //! SODG graph operations for the Universe.
 //!
 //! This module provides all graph manipulation operations including
