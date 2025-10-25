@@ -130,7 +130,6 @@ impl Operations {
     /// ```
     pub fn put(&mut self, v: VertexId, data: Data) -> Result<(), String> {
         self.cache.put(v, data);
-
         let bytes = data.to_be_bytes().to_vec();
         let hex = Hex::from_vec(bytes);
         self.sodg
@@ -173,21 +172,17 @@ impl Operations {
         if let Some(data) = self.cache.get(v) {
             return Ok(data);
         }
-
         let hex = self
             .sodg
             .data(v)
             .map_err(|e| format!("Failed to get data: {e}"))?;
         let bytes = hex.to_vec();
-
         if bytes.len() != 2 {
             let len = bytes.len();
             return Err(format!("Invalid data length: expected 2 bytes, got {len}"));
         }
-
         let data = Data::from_be_bytes([bytes[0], bytes[1]]);
         self.cache.put(v, data);
-
         Ok(data)
     }
 

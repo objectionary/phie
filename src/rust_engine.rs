@@ -123,7 +123,6 @@ impl RustEngine {
             .atoms
             .get_mut(id)
             .ok_or_else(|| format!("Atom {id} not found"))?;
-
         atom.compile(self.build_dir.to_str().ok_or("Invalid build dir")?)?;
         Ok(())
     }
@@ -139,7 +138,6 @@ impl RustEngine {
             .atoms
             .get(id)
             .ok_or_else(|| format!("Atom {id} not found"))?;
-
         let mut uni = self
             .universe
             .lock()
@@ -198,7 +196,6 @@ pub extern "C" fn f(_uni: *mut u8, _v: u32) -> i16 {
 }
 "#;
         let result = engine.compile_and_execute("integration", source, 0);
-
         if result.is_ok() {
             assert_eq!(result.unwrap(), 999);
         }
@@ -209,9 +206,7 @@ pub extern "C" fn f(_uni: *mut u8, _v: u32) -> i16 {
         let mut engine = RustEngine::new("/tmp/phie_compile_flow");
         let source = "pub extern \"C\" fn f() {}";
         engine.register("flow_test", source);
-
         assert!(engine.atoms.contains_key("flow_test"));
-
         if engine.compile("flow_test").is_ok() {
             assert!(engine.atoms.get("flow_test").unwrap().lib_path.is_some());
         }
@@ -227,7 +222,6 @@ pub extern "C" fn f(_uni: *mut u8, _v: u32) -> i16 {
 }
 "#;
         engine.register("exec_flow", source);
-
         if engine.compile("exec_flow").is_ok() {
             let result = engine.execute("exec_flow", 0);
             if result.is_ok() {

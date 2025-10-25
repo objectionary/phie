@@ -55,32 +55,25 @@ use std::process::Command;
 pub fn compile(id: &str, source: &str, build_dir: &str) -> Result<PathBuf, String> {
     let build_path = Path::new(build_dir);
     fs::create_dir_all(build_path).map_err(|e| format!("Failed to create build dir: {e}"))?;
-
     let atom_dir = build_path.join(id);
     fs::create_dir_all(&atom_dir).map_err(|e| format!("Failed to create atom dir: {e}"))?;
-
     write_cargo_toml(&atom_dir, id)?;
     write_lib_rs(&atom_dir, source)?;
-
     let output = Command::new("cargo")
         .args(["build", "--release", "--manifest-path"])
         .arg(atom_dir.join("Cargo.toml"))
         .output()
         .map_err(|e| format!("Failed to run cargo: {e}"))?;
-
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
         return Err(format!("Compilation failed: {stderr}"));
     }
-
     let lib_name = get_library_name(id);
     let lib_path = atom_dir.join("target/release").join(&lib_name);
-
     if !lib_path.exists() {
         let path = lib_path.display();
         return Err(format!("Library not found: {path}"));
     }
-
     Ok(lib_path)
 }
 
@@ -110,7 +103,6 @@ crate-type = ["cdylib"]
 "#,
         id
     );
-
     let mut file = fs::File::create(dir.join("Cargo.toml"))
         .map_err(|e| format!("Failed to create Cargo.toml: {e}"))?;
     file.write_all(content.as_bytes())
@@ -133,7 +125,6 @@ crate-type = ["cdylib"]
 pub fn write_lib_rs(dir: &Path, source: &str) -> Result<(), String> {
     let src_dir = dir.join("src");
     fs::create_dir_all(&src_dir).map_err(|e| format!("Failed to create src dir: {e}"))?;
-
     let mut file = fs::File::create(src_dir.join("lib.rs"))
         .map_err(|e| format!("Failed to create lib.rs: {e}"))?;
     file.write_all(source.as_bytes())
@@ -183,17 +174,13 @@ mod tests {
     fn test_write_cargo_toml() {
         let temp_dir = std::env::temp_dir().join("phie_test_cargo_write");
         fs::create_dir_all(&temp_dir).unwrap();
-
         write_cargo_toml(&temp_dir, "test_crate").unwrap();
-
         let cargo_path = temp_dir.join("Cargo.toml");
         assert!(cargo_path.exists());
-
         let content = fs::read_to_string(cargo_path).unwrap();
         assert!(content.contains("name = \"test_crate\""));
         assert!(content.contains("edition = \"2024\""));
         assert!(content.contains("crate-type = [\"cdylib\"]"));
-
         fs::remove_dir_all(&temp_dir).ok();
     }
 
@@ -201,16 +188,12 @@ mod tests {
     fn test_write_lib_rs() {
         let temp_dir = std::env::temp_dir().join("phie_test_lib_write");
         fs::create_dir_all(&temp_dir).unwrap();
-
         let source = "pub fn hello() { println!(\"test\"); }";
         write_lib_rs(&temp_dir, source).unwrap();
-
         let lib_path = temp_dir.join("src/lib.rs");
         assert!(lib_path.exists());
-
         let content = fs::read_to_string(lib_path).unwrap();
         assert_eq!(content, source);
-
         fs::remove_dir_all(&temp_dir).ok();
     }
 
@@ -223,15 +206,12 @@ pub extern "C" fn f(_uni: *mut u8, _v: u32) -> i16 {
 }
 "#;
         let temp_dir = std::env::temp_dir().join("phie_test_compile_int");
-
         let result = compile("compile_test", source, temp_dir.to_str().unwrap());
-
         if let Ok(lib_path) = result {
             assert!(lib_path.exists());
             let filename = lib_path.file_name().unwrap().to_str().unwrap();
             assert!(filename.contains("compile_test"));
         }
-
         fs::remove_dir_all(&temp_dir).ok();
     }
 
@@ -239,14 +219,12 @@ pub extern "C" fn f(_uni: *mut u8, _v: u32) -> i16 {
     fn test_compile_creates_structure() {
         let source = "pub extern \"C\" fn f() {}";
         let temp_dir = std::env::temp_dir().join("phie_test_structure");
-
         if compile("structure_test", source, temp_dir.to_str().unwrap()).is_ok() {
             let atom_dir = temp_dir.join("structure_test");
             assert!(atom_dir.exists());
             assert!(atom_dir.join("Cargo.toml").exists());
             assert!(atom_dir.join("src/lib.rs").exists());
         }
-
         fs::remove_dir_all(&temp_dir).ok();
     }
 
@@ -254,13 +232,10 @@ pub extern "C" fn f(_uni: *mut u8, _v: u32) -> i16 {
     fn test_compile_invalid_source() {
         let invalid_source = "this is not valid rust";
         let temp_dir = std::env::temp_dir().join("phie_test_invalid");
-
         let result = compile("invalid", invalid_source, temp_dir.to_str().unwrap());
-
         if Command::new("cargo").arg("--version").output().is_ok() {
             assert!(result.is_err());
         }
-
         fs::remove_dir_all(&temp_dir).ok();
     }
 }

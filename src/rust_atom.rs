@@ -166,14 +166,11 @@ pub extern "C" fn f(_uni: *mut u8, _v: u32) -> i16 {
 "#;
         let mut atom = RustAtom::new("workflow_test", source);
         let temp_dir = std::env::temp_dir().join("phie_workflow_test");
-
         let result = atom.compile(temp_dir.to_str().unwrap());
-
         if result.is_ok() {
             assert!(atom.lib_path.is_some());
             assert!(atom.lib_path.as_ref().unwrap().exists());
         }
-
         fs::remove_dir_all(&temp_dir).ok();
     }
 
@@ -187,7 +184,6 @@ pub extern "C" fn f(_uni: *mut u8, _v: u32) -> i16 {
 "#;
         let mut atom = RustAtom::new("exec_workflow", source);
         let temp_dir = std::env::temp_dir().join("phie_exec_workflow");
-
         if atom.compile(temp_dir.to_str().unwrap()).is_ok() {
             let mut uni = Universe::new();
             let result = atom.execute(&mut uni, 0);
@@ -195,7 +191,6 @@ pub extern "C" fn f(_uni: *mut u8, _v: u32) -> i16 {
                 assert_eq!(result.unwrap(), 100);
             }
         }
-
         fs::remove_dir_all(&temp_dir).ok();
     }
 
@@ -203,14 +198,12 @@ pub extern "C" fn f(_uni: *mut u8, _v: u32) -> i16 {
     fn test_compile_sets_lib_path() {
         let mut atom = RustAtom::new("lib_path_test", "pub extern \"C\" fn f() {}");
         let temp_dir = std::env::temp_dir().join("phie_lib_path_test");
-
         if atom.compile(temp_dir.to_str().unwrap()).is_ok() {
             assert!(atom.lib_path.is_some());
             let lib_path = atom.lib_path.unwrap();
             assert!(lib_path.exists());
             assert!(lib_path.to_string_lossy().contains("lib_path_test"));
         }
-
         fs::remove_dir_all(&temp_dir).ok();
     }
 }

@@ -75,15 +75,12 @@ pub fn execute(lib_path: &Path, universe: &mut Universe, vertex: u32) -> Result<
         let path = lib_path.display();
         return Err(format!("Library not found: {path}"));
     }
-
     unsafe {
         let lib = libloading::Library::new(lib_path)
             .map_err(|e| format!("Failed to load library: {e}"))?;
-
         let func: libloading::Symbol<RustAtomFn> = lib
             .get(b"f")
             .map_err(|e| format!("Failed to find function f: {e}"))?;
-
         let result = func(universe as *mut Universe, vertex);
         Ok(result)
     }
