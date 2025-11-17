@@ -89,9 +89,20 @@ pub fn execute(lib_path: &Path, universe: &mut Universe, vertex: u32) -> Result<
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::rust_atom::compile;
     use std::fs;
     use std::path::PathBuf;
+
+    fn get_test_lib_path(name: &str) -> PathBuf {
+        let test_libs_dir = env!("TEST_LIBS_DIR");
+        let lib_name = if cfg!(target_os = "linux") {
+            format!("lib{name}.so")
+        } else if cfg!(target_os = "macos") {
+            format!("lib{name}.dylib")
+        } else {
+            format!("{name}.dll")
+        };
+        PathBuf::from(test_libs_dir).join(name).join("target/release").join(lib_name)
+    }
 
     #[test]
     fn test_execute_nonexistent_library() {
@@ -111,94 +122,47 @@ mod tests {
 
     #[test]
     fn test_execute_successful_simple_function() {
-        let source = r#"
-#[no_mangle]
-pub extern "C" fn f(_universe: *mut u8, _vertex: u32) -> i16 {
-    42
-}
-"#;
-        let temp_dir = std::env::temp_dir().join("phie_test_exec_simple");
-        let lib_path = compile("exec_simple", source, temp_dir.to_str().unwrap()).unwrap();
+        let lib_path = get_test_lib_path("test_simple");
         let mut universe = Universe::new();
         let result = execute(&lib_path, &mut universe, 0).unwrap();
         assert_eq!(result, 42);
-        fs::remove_dir_all(&temp_dir).ok();
     }
 
     #[test]
     fn test_execute_with_different_return_values() {
-        let source = r#"
-#[no_mangle]
-pub extern "C" fn f(_universe: *mut u8, _vertex: u32) -> i16 {
-    -123
-}
-"#;
-        let temp_dir = std::env::temp_dir().join("phie_test_exec_negative");
-        let lib_path = compile("exec_negative", source, temp_dir.to_str().unwrap()).unwrap();
+        let lib_path = get_test_lib_path("test_negative");
         let mut universe = Universe::new();
         let result = execute(&lib_path, &mut universe, 0).unwrap();
         assert_eq!(result, -123);
-        fs::remove_dir_all(&temp_dir).ok();
     }
 
     #[test]
     fn test_execute_with_zero_return() {
-        let source = r#"
-#[no_mangle]
-pub extern "C" fn f(_universe: *mut u8, _vertex: u32) -> i16 {
-    0
-}
-"#;
-        let temp_dir = std::env::temp_dir().join("phie_test_exec_zero");
-        let lib_path = compile("exec_zero", source, temp_dir.to_str().unwrap()).unwrap();
+        let lib_path = get_test_lib_path("test_zero");
         let mut universe = Universe::new();
         let result = execute(&lib_path, &mut universe, 0).unwrap();
         assert_eq!(result, 0);
-        fs::remove_dir_all(&temp_dir).ok();
     }
 
     #[test]
     fn test_execute_with_max_i16_value() {
-        let source = r#"
-#[no_mangle]
-pub extern "C" fn f(_universe: *mut u8, _vertex: u32) -> i16 {
-    32767
-}
-"#;
-        let temp_dir = std::env::temp_dir().join("phie_test_exec_max");
-        let lib_path = compile("exec_max", source, temp_dir.to_str().unwrap()).unwrap();
+        let lib_path = get_test_lib_path("test_max");
         let mut universe = Universe::new();
         let result = execute(&lib_path, &mut universe, 0).unwrap();
         assert_eq!(result, i16::MAX);
-        fs::remove_dir_all(&temp_dir).ok();
     }
 
     #[test]
     fn test_execute_with_min_i16_value() {
-        let source = r#"
-#[no_mangle]
-pub extern "C" fn f(_universe: *mut u8, _vertex: u32) -> i16 {
-    -32768
-}
-"#;
-        let temp_dir = std::env::temp_dir().join("phie_test_exec_min");
-        let lib_path = compile("exec_min", source, temp_dir.to_str().unwrap()).unwrap();
+        let lib_path = get_test_lib_path("test_min");
         let mut universe = Universe::new();
         let result = execute(&lib_path, &mut universe, 0).unwrap();
         assert_eq!(result, i16::MIN);
-        fs::remove_dir_all(&temp_dir).ok();
     }
 
     #[test]
     fn test_execute_with_different_vertex_ids() {
-        let source = r#"
-#[no_mangle]
-pub extern "C" fn f(_universe: *mut u8, vertex: u32) -> i16 {
-    (vertex % 100) as i16
-}
-"#;
-        let temp_dir = std::env::temp_dir().join("phie_test_exec_vertex");
-        let lib_path = compile("exec_vertex", source, temp_dir.to_str().unwrap()).unwrap();
+        let lib_path = get_test_lib_path("test_vertex");
         let mut universe = Universe::new();
         let result_0 = execute(&lib_path, &mut universe, 0).unwrap();
         assert_eq!(result_0, 0);
@@ -206,15 +170,14 @@ pub extern "C" fn f(_universe: *mut u8, vertex: u32) -> i16 {
         assert_eq!(result_42, 42);
         let result_max = execute(&lib_path, &mut universe, u32::MAX).unwrap();
         assert_eq!(result_max, (u32::MAX % 100) as i16);
-        fs::remove_dir_all(&temp_dir).ok();
     }
 
     #[test]
     fn test_execute_invalid_library_file() {
         let temp_dir = std::env::temp_dir().join("phie_test_exec_invalid");
-        fs::create_dir_all(&temp_dir).ok();
+        fs::create_dir_all(&temp_dir).unwrap();
         let invalid_lib = temp_dir.join("invalid.so");
-        fs::write(&invalid_lib, b"not a valid library").ok();
+        fs::write(&invalid_lib, b"not a valid library").unwrap();
         let mut universe = Universe::new();
         let result = execute(&invalid_lib, &mut universe, 0);
         assert!(result.is_err());
@@ -224,25 +187,17 @@ pub extern "C" fn f(_universe: *mut u8, vertex: u32) -> i16 {
 
     #[test]
     fn test_execute_library_without_f_function() {
-        let source = r#"
-#[no_mangle]
-pub extern "C" fn wrong_name(_universe: *mut u8, _vertex: u32) -> i16 {
-    42
-}
-"#;
-        let temp_dir = std::env::temp_dir().join("phie_test_exec_no_f");
-        let lib_path = compile("exec_no_f", source, temp_dir.to_str().unwrap()).unwrap();
+        let lib_path = get_test_lib_path("test_no_f");
         let mut universe = Universe::new();
         let result = execute(&lib_path, &mut universe, 0);
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("Failed to find function f"));
-        fs::remove_dir_all(&temp_dir).ok();
     }
 
     #[test]
     fn test_execute_directory_instead_of_file() {
         let temp_dir = std::env::temp_dir().join("phie_test_exec_dir");
-        fs::create_dir_all(&temp_dir).ok();
+        fs::create_dir_all(&temp_dir).unwrap();
         let mut universe = Universe::new();
         let result = execute(&temp_dir, &mut universe, 0);
         assert!(result.is_err());
@@ -259,24 +214,12 @@ pub extern "C" fn wrong_name(_universe: *mut u8, _vertex: u32) -> i16 {
 
     #[test]
     fn test_execute_multiple_calls_same_library() {
-        let source = r#"
-static mut COUNTER: i16 = 0;
-#[no_mangle]
-pub extern "C" fn f(_universe: *mut u8, _vertex: u32) -> i16 {
-    unsafe {
-        COUNTER += 1;
-        COUNTER
-    }
-}
-"#;
-        let temp_dir = std::env::temp_dir().join("phie_test_exec_multi");
-        let lib_path = compile("exec_multi", source, temp_dir.to_str().unwrap()).unwrap();
+        let lib_path = get_test_lib_path("test_counter");
         let mut universe = Universe::new();
         let result1 = execute(&lib_path, &mut universe, 0).unwrap();
         let result2 = execute(&lib_path, &mut universe, 0).unwrap();
         assert!(result1 > 0);
         assert!(result2 > 0);
-        fs::remove_dir_all(&temp_dir).ok();
     }
 
     #[test]
@@ -288,21 +231,5 @@ pub extern "C" fn f(_universe: *mut u8, _vertex: u32) -> i16 {
         let error = result.unwrap_err();
         assert!(error.contains("Library not found"));
         assert!(error.contains("/definitely/does/not/exist/library.so"));
-    }
-
-    #[test]
-    fn test_execute_with_relative_path() {
-        let source = r#"
-#[no_mangle]
-pub extern "C" fn f(_universe: *mut u8, _vertex: u32) -> i16 {
-    99
-}
-"#;
-        let temp_dir = std::env::temp_dir().join("phie_test_exec_relative");
-        let lib_path = compile("exec_relative", source, temp_dir.to_str().unwrap()).unwrap();
-        let mut universe = Universe::new();
-        let result = execute(&lib_path, &mut universe, 5).unwrap();
-        assert_eq!(result, 99);
-        fs::remove_dir_all(&temp_dir).ok();
     }
 }
