@@ -316,7 +316,12 @@ fn test_search_with_pi() {
     emu.inject(1, Basket::from_str("[ν1, ξ:β2, 𝛼0→?]").unwrap());
     let mut perf = Perf::new();
     emu.find(&mut perf, 1, crate::loc::Loc::from_str("𝛼0").unwrap());
-    assert!(matches!(emu.basket(1).kids.get(&crate::loc::Loc::from_str("𝛼0").unwrap()), Some(crate::basket::Kid::Wait(_, _))));
+    assert!(matches!(
+        emu.basket(1)
+            .kids
+            .get(&crate::loc::Loc::from_str("𝛼0").unwrap()),
+        Some(crate::basket::Kid::Wait(_, _))
+    ));
 }
 
 #[test]
@@ -325,16 +330,30 @@ fn test_find_without_attr() {
     emu.inject(1, Basket::from_str("[ν1, ξ:β0, 𝛼0→?]").unwrap());
     let mut perf = Perf::new();
     emu.find(&mut perf, 1, crate::loc::Loc::from_str("𝛼0").unwrap());
-    assert!(matches!(emu.basket(1).kids.get(&crate::loc::Loc::from_str("𝛼0").unwrap()), Some(crate::basket::Kid::Need(0, _))));
+    assert!(matches!(
+        emu.basket(1)
+            .kids
+            .get(&crate::loc::Loc::from_str("𝛼0").unwrap()),
+        Some(crate::basket::Kid::Need(0, _))
+    ));
 }
 
 #[test]
 fn test_stashed_constant_same_psi() {
-    let mut emu = Emu::from_str("ν0(𝜋) ↦ ⟦ 𝜑 ↦ ν0(𝜋) ⟧\nν1(𝜋) ↦ ⟦ 𝛼0 ↦ ν2(𝜋), 𝛼1 ↦ ν2(𝜋) ⟧\nν2(𝜋) ↦ ⟦ 𝜑 ↦ ν2(𝜋) ⟧").unwrap();
+    let mut emu = Emu::from_str(
+        "ν0(𝜋) ↦ ⟦ 𝜑 ↦ ν0(𝜋) ⟧\nν1(𝜋) ↦ ⟦ 𝛼0 ↦ ν2(𝜋), 𝛼1 ↦ ν2(𝜋) ⟧\nν2(𝜋) ↦ ⟦ 𝜑 ↦ ν2(𝜋) ⟧",
+    )
+    .unwrap();
     emu.objects[2].constant = true;
     emu.inject(1, Basket::from_str("[ν1, ξ:β0]").unwrap());
-    emu.baskets[1].put(crate::loc::Loc::from_str("𝛼0").unwrap(), crate::basket::Kid::Need(2, 0));
-    emu.baskets[1].put(crate::loc::Loc::from_str("𝛼1").unwrap(), crate::basket::Kid::Need(2, 0));
+    emu.baskets[1].put(
+        crate::loc::Loc::from_str("𝛼0").unwrap(),
+        crate::basket::Kid::Need(2, 0),
+    );
+    emu.baskets[1].put(
+        crate::loc::Loc::from_str("𝛼1").unwrap(),
+        crate::basket::Kid::Need(2, 0),
+    );
     let mut perf = Perf::new();
     emu.new(&mut perf, 1, crate::loc::Loc::from_str("𝛼0").unwrap());
     emu.new(&mut perf, 1, crate::loc::Loc::from_str("𝛼1").unwrap());
