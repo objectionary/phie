@@ -1,9 +1,9 @@
 // SPDX-FileCopyrightText: Copyright (c) 2022 Yegor Bugayenko
 // SPDX-License-Identifier: MIT
 
+use std::{fs, path::PathBuf};
+
 use phie::cli;
-use std::fs;
-use std::path::PathBuf;
 
 fn mktemp(filename: &str) -> (PathBuf, String) {
     let mut file = std::env::temp_dir();
