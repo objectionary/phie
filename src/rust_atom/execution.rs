@@ -101,7 +101,10 @@ mod tests {
         } else {
             format!("{name}.dll")
         };
-        PathBuf::from(test_libs_dir).join(name).join("target/release").join(lib_name)
+        PathBuf::from(test_libs_dir)
+            .join(name)
+            .join("target/release")
+            .join(lib_name)
     }
 
     #[test]
