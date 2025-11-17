@@ -204,7 +204,12 @@ fn test_find_with_advice_false() {
     emu.inject(1, Basket::from_str("[ν1, ξ:β2, 𝛼0→?]").unwrap());
     let mut perf = Perf::new();
     emu.find(&mut perf, 1, crate::loc::Loc::from_str("𝛼0").unwrap());
-    assert!(matches!(emu.basket(1).kids.get(&crate::loc::Loc::from_str("𝛼0").unwrap()), Some(crate::basket::Kid::Wait(_, _))));
+    assert!(matches!(
+        emu.basket(1)
+            .kids
+            .get(&crate::loc::Loc::from_str("𝛼0").unwrap()),
+        Some(crate::basket::Kid::Wait(_, _))
+    ));
 }
 
 #[test]
@@ -214,14 +219,24 @@ fn test_find_with_non_empt_ploc() {
     emu.inject(1, Basket::from_str("[ν1, ξ:β2, 𝛼0→?]").unwrap());
     let mut perf = Perf::new();
     emu.find(&mut perf, 1, crate::loc::Loc::from_str("𝛼0").unwrap());
-    assert!(matches!(emu.basket(1).kids.get(&crate::loc::Loc::from_str("𝛼0").unwrap()), Some(crate::basket::Kid::Wait(_, _))));
+    assert!(matches!(
+        emu.basket(1)
+            .kids
+            .get(&crate::loc::Loc::from_str("𝛼0").unwrap()),
+        Some(crate::basket::Kid::Wait(_, _))
+    ));
 }
 
 #[test]
 fn test_new_with_non_need_loc() {
-    let mut emu = Emu::from_str("ν0(𝜋) ↦ ⟦ 𝜑 ↦ ν0(𝜋) ⟧\nν1(𝜋) ↦ ⟦ 𝛼0 ↦ ν2(𝜋) ⟧\nν2(𝜋) ↦ ⟦ Δ ↦ 0x002A ⟧").unwrap();
+    let mut emu =
+        Emu::from_str("ν0(𝜋) ↦ ⟦ 𝜑 ↦ ν0(𝜋) ⟧\nν1(𝜋) ↦ ⟦ 𝛼0 ↦ ν2(𝜋) ⟧\nν2(𝜋) ↦ ⟦ Δ ↦ 0x002A ⟧")
+            .unwrap();
     emu.inject(1, Basket::from_str("[ν1, ξ:β0]").unwrap());
-    emu.baskets[1].put(crate::loc::Loc::from_str("𝛼0").unwrap(), crate::basket::Kid::Rqtd);
+    emu.baskets[1].put(
+        crate::loc::Loc::from_str("𝛼0").unwrap(),
+        crate::basket::Kid::Rqtd,
+    );
     let mut perf = Perf::new();
     emu.new(&mut perf, 1, crate::loc::Loc::from_str("𝛼0").unwrap());
     assert!(matches!(
@@ -234,7 +249,9 @@ fn test_new_with_non_need_loc() {
 
 #[test]
 fn test_stashed_with_delta() {
-    let mut emu = Emu::from_str("ν0(𝜋) ↦ ⟦ 𝜑 ↦ ν0(𝜋) ⟧\nν1(𝜋) ↦ ⟦ 𝛼0 ↦ ν2(𝜋) ⟧\nν2(𝜋) ↦ ⟦ Δ ↦ 0x002A ⟧").unwrap();
+    let mut emu =
+        Emu::from_str("ν0(𝜋) ↦ ⟦ 𝜑 ↦ ν0(𝜋) ⟧\nν1(𝜋) ↦ ⟦ 𝛼0 ↦ ν2(𝜋) ⟧\nν2(𝜋) ↦ ⟦ Δ ↦ 0x002A ⟧")
+            .unwrap();
     emu.inject(2, Basket::from_str("[ν2, ξ:β0, 𝜑⇶0x002A]").unwrap());
     emu.inject(1, Basket::from_str("[ν1, ξ:β0]").unwrap());
     emu.baskets[1].put(
