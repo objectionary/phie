@@ -2,14 +2,12 @@
 // SPDX-License-Identifier: MIT
 
 #[cfg(test)]
-use crate::basket::Basket;
-
-#[cfg(test)]
 use std::str::FromStr;
 
 #[cfg(test)]
+use crate::basket::Basket;
+#[cfg(test)]
 use crate::emu::Emu;
-
 #[cfg(test)]
 use crate::perf::Perf;
 
@@ -74,7 +72,7 @@ fn test_delete_with_waiting_baskets() {
     emu.inject(2, Basket::from_str("[ν2, ξ:β0, 𝜑⇶0x002A]").unwrap());
     emu.baskets[1].put(
         crate::loc::Loc::from_str("𝛼0").unwrap(),
-        crate::basket::Kid::Wait(2, crate::loc::Loc::Phi),
+        crate::basket::Kid::Wait(2, crate::loc::Loc::Phi)
     );
     let mut perf = Perf::new();
     emu.delete(&mut perf, 2);
@@ -90,7 +88,7 @@ fn test_propagate_value() {
     emu.inject(2, Basket::from_str("[ν2, ξ:β0, 𝜑⇶0x002A]").unwrap());
     emu.baskets[1].put(
         crate::loc::Loc::from_str("𝛼0").unwrap(),
-        crate::basket::Kid::Wait(2, crate::loc::Loc::Phi),
+        crate::basket::Kid::Wait(2, crate::loc::Loc::Phi)
     );
     let mut perf = Perf::new();
     emu.propagate(&mut perf, 2, crate::loc::Loc::Phi);
@@ -108,7 +106,7 @@ fn test_delegate_with_lambda() {
         .unwrap();
     emu.inject(
         1,
-        Basket::from_str("[ν1, ξ:β0, 𝜑→?, ρ⇶0x0001, 𝛼0⇶0x0002]").unwrap(),
+        Basket::from_str("[ν1, ξ:β0, 𝜑→?, ρ⇶0x0001, 𝛼0⇶0x0002]").unwrap()
     );
     let mut perf = Perf::new();
     emu.delegate(&mut perf, 1);
@@ -120,8 +118,7 @@ fn test_delegate_with_lambda() {
 
 #[test]
 fn test_delegate_without_lambda() {
-    let mut emu =
-        Emu::from_str("ν0(𝜋) ↦ ⟦ 𝜑 ↦ ν0(𝜋) ⟧\nν1(𝜋) ↦ ⟦ 𝜑 ↦ ν1(𝜋) ⟧").unwrap();
+    let mut emu = Emu::from_str("ν0(𝜋) ↦ ⟦ 𝜑 ↦ ν0(𝜋) ⟧\nν1(𝜋) ↦ ⟦ 𝜑 ↦ ν1(𝜋) ⟧").unwrap();
     emu.inject(1, Basket::from_str("[ν1, ξ:β0, 𝜑→?]").unwrap());
     let mut perf = Perf::new();
     emu.delegate(&mut perf, 1);
@@ -155,7 +152,7 @@ fn test_new_basket() {
     emu.inject(1, Basket::from_str("[ν1, ξ:β0]").unwrap());
     emu.baskets[1].put(
         crate::loc::Loc::from_str("𝛼0").unwrap(),
-        crate::basket::Kid::Need(2, 0),
+        crate::basket::Kid::Need(2, 0)
     );
     let mut perf = Perf::new();
     emu.new(&mut perf, 1, crate::loc::Loc::from_str("𝛼0").unwrap());
@@ -177,7 +174,7 @@ fn test_new_finds_stashed_constant() {
     emu.inject(2, Basket::from_str("[ν2, ξ:β0, 𝜑⇶0x002A]").unwrap());
     emu.baskets[1].put(
         crate::loc::Loc::from_str("𝛼0").unwrap(),
-        crate::basket::Kid::Need(2, 0),
+        crate::basket::Kid::Need(2, 0)
     );
     let mut perf = Perf::new();
     emu.new(&mut perf, 1, crate::loc::Loc::from_str("𝛼0").unwrap());
@@ -191,8 +188,7 @@ fn test_new_finds_stashed_constant() {
 
 #[test]
 fn test_copy_with_non_rqtd_phi() {
-    let mut emu =
-        Emu::from_str("ν0(𝜋) ↦ ⟦ 𝜑 ↦ ν0(𝜋) ⟧\nν1(𝜋) ↦ ⟦ Δ ↦ 0x002A ⟧").unwrap();
+    let mut emu = Emu::from_str("ν0(𝜋) ↦ ⟦ 𝜑 ↦ ν0(𝜋) ⟧\nν1(𝜋) ↦ ⟦ Δ ↦ 0x002A ⟧").unwrap();
     emu.inject(1, Basket::from_str("[ν1, ξ:β0, 𝜑⇶0x002A]").unwrap());
     let mut perf = Perf::new();
     emu.copy(&mut perf, 1);
@@ -227,7 +223,7 @@ fn test_delete_with_empt_kid() {
     emu.inject(1, Basket::from_str("[ν1, ξ:β0, 𝜑⇶0x002A]").unwrap());
     emu.baskets[1].put(
         crate::loc::Loc::from_str("𝛼0").unwrap(),
-        crate::basket::Kid::Empt,
+        crate::basket::Kid::Empt
     );
     let mut perf = Perf::new();
     emu.delete(&mut perf, 1);
@@ -253,7 +249,7 @@ fn test_delegate_with_wait_in_basket() {
     emu.inject(2, Basket::from_str("[ν2, ξ:β0, 𝜑⇶0x0001]").unwrap());
     emu.baskets[1].put(
         crate::loc::Loc::Rho,
-        crate::basket::Kid::Wait(2, crate::loc::Loc::Phi),
+        crate::basket::Kid::Wait(2, crate::loc::Loc::Phi)
     );
     let mut perf = Perf::new();
     emu.delegate(&mut perf, 1);
@@ -319,7 +315,7 @@ fn test_new_with_non_need_loc() {
     emu.inject(1, Basket::from_str("[ν1, ξ:β0]").unwrap());
     emu.baskets[1].put(
         crate::loc::Loc::from_str("𝛼0").unwrap(),
-        crate::basket::Kid::Rqtd,
+        crate::basket::Kid::Rqtd
     );
     let mut perf = Perf::new();
     emu.new(&mut perf, 1, crate::loc::Loc::from_str("𝛼0").unwrap());
@@ -340,7 +336,7 @@ fn test_stashed_with_delta() {
     emu.inject(1, Basket::from_str("[ν1, ξ:β0]").unwrap());
     emu.baskets[1].put(
         crate::loc::Loc::from_str("𝛼0").unwrap(),
-        crate::basket::Kid::Need(2, 0),
+        crate::basket::Kid::Need(2, 0)
     );
     let mut perf = Perf::new();
     emu.new(&mut perf, 1, crate::loc::Loc::from_str("𝛼0").unwrap());
@@ -355,17 +351,17 @@ fn test_stashed_with_delta() {
 #[test]
 fn test_stashed_non_constant() {
     let mut emu = Emu::from_str(
-        "ν0(𝜋) ↦ ⟦ 𝜑 ↦ ν0(𝜋) ⟧\nν1(𝜋) ↦ ⟦ 𝛼0 ↦ ν2(𝜋), 𝛼1 ↦ ν2(𝜋) ⟧\nν2(𝜋) ↦ ⟦ 𝜑 ↦ ν2(𝜋) ⟧",
+        "ν0(𝜋) ↦ ⟦ 𝜑 ↦ ν0(𝜋) ⟧\nν1(𝜋) ↦ ⟦ 𝛼0 ↦ ν2(𝜋), 𝛼1 ↦ ν2(𝜋) ⟧\nν2(𝜋) ↦ ⟦ 𝜑 ↦ ν2(𝜋) ⟧"
     )
     .unwrap();
     emu.inject(1, Basket::from_str("[ν1, ξ:β0]").unwrap());
     emu.baskets[1].put(
         crate::loc::Loc::from_str("𝛼0").unwrap(),
-        crate::basket::Kid::Need(2, 0),
+        crate::basket::Kid::Need(2, 0)
     );
     emu.baskets[1].put(
         crate::loc::Loc::from_str("𝛼1").unwrap(),
-        crate::basket::Kid::Need(2, 0),
+        crate::basket::Kid::Need(2, 0)
     );
     let mut perf = Perf::new();
     emu.new(&mut perf, 1, crate::loc::Loc::from_str("𝛼0").unwrap());
@@ -394,8 +390,7 @@ fn test_stashed_non_constant() {
 #[test]
 #[should_panic(expected = "Can't find 𝜋")]
 fn test_search_pi_on_root() {
-    let mut emu =
-        Emu::from_str("ν0(𝜋) ↦ ⟦ 𝜑 ↦ ν0(𝜋) ⟧\nν1(𝜋) ↦ ⟦ 𝛼0 ↦ 𝜋 ⟧").unwrap();
+    let mut emu = Emu::from_str("ν0(𝜋) ↦ ⟦ 𝜑 ↦ ν0(𝜋) ⟧\nν1(𝜋) ↦ ⟦ 𝛼0 ↦ 𝜋 ⟧").unwrap();
     emu.inject(1, Basket::from_str("[ν1, ξ:β0, 𝛼0→?]").unwrap());
     let mut perf = Perf::new();
     emu.find(&mut perf, 1, crate::loc::Loc::from_str("𝛼0").unwrap());
@@ -419,8 +414,7 @@ fn test_search_finds_object_without_phi() {
 
 #[test]
 fn test_search_with_loc_root() {
-    let mut emu =
-        Emu::from_str("ν0(𝜋) ↦ ⟦ 𝜑 ↦ ν0(𝜋) ⟧\nν1(𝜋) ↦ ⟦ 𝛼0 ↦ Φ ⟧").unwrap();
+    let mut emu = Emu::from_str("ν0(𝜋) ↦ ⟦ 𝜑 ↦ ν0(𝜋) ⟧\nν1(𝜋) ↦ ⟦ 𝛼0 ↦ Φ ⟧").unwrap();
     emu.inject(1, Basket::from_str("[ν1, ξ:β0, 𝛼0→?]").unwrap());
     let mut perf = Perf::new();
     emu.find(&mut perf, 1, crate::loc::Loc::from_str("𝛼0").unwrap());
@@ -466,8 +460,7 @@ fn test_search_with_pi() {
 
 #[test]
 fn test_find_without_attr() {
-    let mut emu =
-        Emu::from_str("ν0(𝜋) ↦ ⟦ 𝜑 ↦ ν0(𝜋) ⟧\nν1(𝜋) ↦ ⟦ 𝛼0 ↦ Φ ⟧").unwrap();
+    let mut emu = Emu::from_str("ν0(𝜋) ↦ ⟦ 𝜑 ↦ ν0(𝜋) ⟧\nν1(𝜋) ↦ ⟦ 𝛼0 ↦ Φ ⟧").unwrap();
     emu.inject(1, Basket::from_str("[ν1, ξ:β0, 𝛼0→?]").unwrap());
     let mut perf = Perf::new();
     emu.find(&mut perf, 1, crate::loc::Loc::from_str("𝛼0").unwrap());
@@ -482,18 +475,18 @@ fn test_find_without_attr() {
 #[test]
 fn test_stashed_constant_same_psi() {
     let mut emu = Emu::from_str(
-        "ν0(𝜋) ↦ ⟦ 𝜑 ↦ ν0(𝜋) ⟧\nν1(𝜋) ↦ ⟦ 𝛼0 ↦ ν2(𝜋), 𝛼1 ↦ ν2(𝜋) ⟧\nν2(𝜋) ↦ ⟦ 𝜑 ↦ ν2(𝜋) ⟧",
+        "ν0(𝜋) ↦ ⟦ 𝜑 ↦ ν0(𝜋) ⟧\nν1(𝜋) ↦ ⟦ 𝛼0 ↦ ν2(𝜋), 𝛼1 ↦ ν2(𝜋) ⟧\nν2(𝜋) ↦ ⟦ 𝜑 ↦ ν2(𝜋) ⟧"
     )
     .unwrap();
     emu.objects[2].constant = true;
     emu.inject(1, Basket::from_str("[ν1, ξ:β0]").unwrap());
     emu.baskets[1].put(
         crate::loc::Loc::from_str("𝛼0").unwrap(),
-        crate::basket::Kid::Need(2, 0),
+        crate::basket::Kid::Need(2, 0)
     );
     emu.baskets[1].put(
         crate::loc::Loc::from_str("𝛼1").unwrap(),
-        crate::basket::Kid::Need(2, 0),
+        crate::basket::Kid::Need(2, 0)
     );
     let mut perf = Perf::new();
     emu.new(&mut perf, 1, crate::loc::Loc::from_str("𝛼0").unwrap());
@@ -534,8 +527,7 @@ fn test_delegate_returns_none() {
 
 #[test]
 fn test_find_attr_not_in_object() {
-    let mut emu =
-        Emu::from_str("ν0(𝜋) ↦ ⟦ 𝜑 ↦ ν0(𝜋) ⟧\nν1(𝜋) ↦ ⟦ 𝜑 ↦ ν1(𝜋) ⟧").unwrap();
+    let mut emu = Emu::from_str("ν0(𝜋) ↦ ⟦ 𝜑 ↦ ν0(𝜋) ⟧\nν1(𝜋) ↦ ⟦ 𝜑 ↦ ν1(𝜋) ⟧").unwrap();
     emu.inject(1, Basket::from_str("[ν1, ξ:β0, 𝛼0→?]").unwrap());
     let mut perf = Perf::new();
     emu.find(&mut perf, 1, crate::loc::Loc::from_str("𝛼0").unwrap());
@@ -571,7 +563,7 @@ fn test_delete_with_need_kid() {
     emu.inject(1, Basket::from_str("[ν1, ξ:β0, 𝜑⇶0x002A]").unwrap());
     emu.baskets[1].put(
         crate::loc::Loc::from_str("𝛼0").unwrap(),
-        crate::basket::Kid::Need(2, 0),
+        crate::basket::Kid::Need(2, 0)
     );
     let mut perf = Perf::new();
     emu.delete(&mut perf, 1);
