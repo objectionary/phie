@@ -3,9 +3,12 @@
 
 extern crate phie;
 
-use phie::data::Data;
-use phie::emu::{Emu, Opt};
 use std::env;
+
+use phie::{
+    data::Data,
+    emu::{Emu, Opt}
+};
 
 pub fn fibo(x: Data) -> Result<Data, String> {
     let mut emu: Emu = format!(

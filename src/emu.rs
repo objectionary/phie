@@ -6,16 +6,18 @@ mod tests;
 mod tests_transitions;
 mod transitions;
 
-use crate::basket::{Basket, Bk, Kid};
-use crate::data::Data;
-use crate::loc::Loc;
-use crate::object::{Ob, Object};
+use std::{collections::HashSet, fmt, str::FromStr};
+
 use arr_macro::arr;
 use log::trace;
 use regex::Regex;
-use std::collections::HashSet;
-use std::fmt;
-use std::str::FromStr;
+
+use crate::{
+    basket::{Basket, Bk, Kid},
+    data::Data,
+    loc::Loc,
+    object::{Ob, Object}
+};
 
 pub const ROOT_BK: Bk = 0;
 pub const ROOT_OB: Ob = 0;
@@ -28,13 +30,13 @@ pub enum Opt {
     DontDelete,
     LogSnapshots,
     StopWhenTooManyCycles,
-    StopWhenStuck,
+    StopWhenStuck
 }
 
 pub struct Emu {
     pub objects: [Object; MAX_OBJECTS],
     pub baskets: [Basket; MAX_BASKETS],
-    pub opts: HashSet<Opt>,
+    pub opts:    HashSet<Opt>
 }
 
 impl fmt::Display for Emu {
@@ -113,7 +115,7 @@ impl Emu {
         let mut emu = Emu {
             objects: arr![Object::open(); 16],
             baskets: arr![Basket::empty(); 128],
-            opts: HashSet::new(),
+            opts:    HashSet::new()
         };
         let mut basket = Basket::start(0, 0);
         basket.kids.insert(Loc::Phi, Kid::Rqtd);
@@ -159,7 +161,7 @@ impl Emu {
                 None
             }
             Some(Kid::Need(_, _)) | Some(Kid::Wait(_, _)) | Some(Kid::Rqtd) => None,
-            Some(Kid::Dtzd(d)) => Some(*d),
+            Some(Kid::Dtzd(d)) => Some(*d)
         }
     }
 }

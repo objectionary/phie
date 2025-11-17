@@ -1,25 +1,25 @@
 // SPDX-FileCopyrightText: Copyright (c) 2022 Yegor Bugayenko
 // SPDX-License-Identifier: MIT
 
-use crate::loc::Loc;
+use std::{fmt, str::FromStr};
+
 use rstest::rstest;
-use std::fmt;
-use std::str::FromStr;
+
+use crate::loc::Loc;
 
 /// Locator is a chain of attributes connected with dots,
 /// for example `𝜋.𝜋.𝛼0` is a locator.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Locator {
-    locs: Vec<Loc>,
+    locs: Vec<Loc>
 }
 
 /// Use this macro to create a locator faster:
 ///
 /// ```
-/// use phie::ph;
-/// use phie::loc::Loc;
-/// use phie::locator::Locator;
 /// use std::str::FromStr;
+///
+/// use phie::{loc::Loc, locator::Locator, ph};
 /// let k = ph!("𝜋.𝜋.𝛼0");
 /// ```
 #[macro_export]
@@ -33,19 +33,19 @@ impl Locator {
     /// Make a locator from a vector of attribute names:
     ///
     /// ```
-    /// use phie::loc::Loc;
-    /// use phie::locator::Locator;
+    /// use phie::{loc::Loc, locator::Locator};
     /// let k = Locator::from_vec(vec![Loc::Phi, Loc::Delta]);
     /// ```
     pub fn from_vec(locs: Vec<Loc>) -> Locator {
-        Locator { locs }
+        Locator {
+            locs
+        }
     }
 
     /// Make a locator from a single attribute:
     ///
     /// ```
-    /// use phie::loc::Loc;
-    /// use phie::locator::Locator;
+    /// use phie::{loc::Loc, locator::Locator};
     /// let k = Locator::from_loc(Loc::Phi);
     /// ```
     pub fn from_loc(loc: Loc) -> Locator {
@@ -69,7 +69,9 @@ impl FromStr for Locator {
     type Err = String;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let locs_result: Result<Vec<Loc>, String> = s.split('.').map(Loc::from_str).collect();
-        let p = Locator { locs: locs_result? };
+        let p = Locator {
+            locs: locs_result?
+        };
 
         let checks: [CheckFn; 4] = [
             |p: &Locator| -> Option<String> {
@@ -99,7 +101,7 @@ impl FromStr for Locator {
                 } else {
                     None
                 }
-            },
+            }
         ];
 
         for check in checks.iter() {
@@ -119,7 +121,7 @@ impl fmt::Display for Locator {
                 .iter()
                 .map(|i| i.to_string())
                 .collect::<Vec<String>>()
-                .join("."),
+                .join(".")
         )
     }
 }
@@ -172,7 +174,7 @@ pub fn fails_on_incorrect_locator(#[case] locator: String) {
 pub fn fetches_loc_from_locator(
     #[case] locator: String,
     #[case] idx: usize,
-    #[case] expected: Loc,
+    #[case] expected: Loc
 ) {
     assert_eq!(*ph!(&locator).loc(idx).unwrap(), expected);
 }

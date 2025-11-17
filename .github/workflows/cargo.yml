@@ -18,7 +18,11 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: stable
+      - uses: dtolnay/rust-toolchain@nightly
+        with:
+          toolchain: nightly
+          components: rustfmt
       - run: cargo test
       - run: target/debug/fibonacci 7 10
-      - run: cargo fmt --check
+      - run: cargo +nightly fmt --check
       - run: cargo clippy

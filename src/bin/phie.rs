@@ -21,7 +21,6 @@ extern crate phie;
 use std::{env::args, process::exit};
 
 use env_logger::init as logger_init;
-
 use phie::cli::run;
 
 fn main() {

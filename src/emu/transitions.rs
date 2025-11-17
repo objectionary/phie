@@ -1,14 +1,17 @@
 // SPDX-FileCopyrightText: Copyright (c) 2022 Yegor Bugayenko
 // SPDX-License-Identifier: MIT
 
-use crate::basket::{Basket, Bk, Kid};
-use crate::emu::{Emu, MAX_BASKETS, ROOT_BK, ROOT_OB};
-use crate::loc::Loc;
-use crate::locator::Locator;
-use crate::object::{Ob, Object};
-use crate::perf::{Perf, Transition};
 use itertools::Itertools;
 use log::trace;
+
+use crate::{
+    basket::{Basket, Bk, Kid},
+    emu::{Emu, MAX_BASKETS, ROOT_BK, ROOT_OB},
+    loc::Loc,
+    locator::Locator,
+    object::{Ob, Object},
+    perf::{Perf, Transition}
+};
 
 macro_rules! join {
     ($log:expr) => {
@@ -236,7 +239,7 @@ impl Emu {
                         log.push(format!("+{}", p));
                         ob
                     }
-                },
+                }
             };
             ob = next;
             ret = Ok((next, psi, attr.clone()))

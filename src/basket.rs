@@ -1,15 +1,13 @@
 // SPDX-FileCopyrightText: Copyright (c) 2022 Yegor Bugayenko
 // SPDX-License-Identifier: MIT
 
-use crate::data::Data;
-use crate::loc::Loc;
-use crate::object::Ob;
+use std::{collections::HashMap, fmt, str::FromStr};
+
 use itertools::Itertools;
 use regex::Regex;
 use rstest::rstest;
-use std::collections::HashMap;
-use std::fmt;
-use std::str::FromStr;
+
+use crate::{data::Data, loc::Loc, object::Ob};
 
 pub type Bk = isize;
 
@@ -18,21 +16,21 @@ pub enum Kid {
     Rqtd,
     Need(Ob, Bk),
     Wait(Bk, Loc),
-    Dtzd(Data),
+    Dtzd(Data)
 }
 
 pub struct Basket {
-    pub ob: Ob,
-    pub psi: Bk,
-    pub kids: HashMap<Loc, Kid>,
+    pub ob:   Ob,
+    pub psi:  Bk,
+    pub kids: HashMap<Loc, Kid>
 }
 
 impl Basket {
     pub fn empty() -> Basket {
         Basket {
-            ob: 0,
-            psi: -1,
-            kids: HashMap::new(),
+            ob:   0,
+            psi:  -1,
+            kids: HashMap::new()
         }
     }
 
@@ -40,7 +38,7 @@ impl Basket {
         Basket {
             ob,
             psi,
-            kids: HashMap::new(),
+            kids: HashMap::new()
         }
     }
 
@@ -63,7 +61,7 @@ impl fmt::Display for Basket {
                 .iter()
                 .map(|(i, d)| format!("{}{}", i, d))
                 .sorted()
-                .collect::<Vec<String>>(),
+                .collect::<Vec<String>>()
         );
         write!(f, "[{}]", parts.iter().join(", "))
     }
@@ -76,7 +74,7 @@ impl fmt::Display for Kid {
             Kid::Rqtd => "→?".to_string(),
             Kid::Need(ob, bk) => format!("→(ν{};β{})", ob, bk),
             Kid::Wait(bk, loc) => format!("⇉β{}.{}", bk, loc),
-            Kid::Dtzd(d) => format!("⇶0x{:04X}", d),
+            Kid::Dtzd(d) => format!("⇶0x{:04X}", d)
         })
     }
 }
@@ -169,7 +167,7 @@ impl FromStr for Basket {
                     Kid::Need(o_num, psi_num)
                 }
                 "→?" => Kid::Rqtd,
-                _ => return Err(format!("Unknown kid type: '{}'", kind_str)),
+                _ => return Err(format!("Unknown kid type: '{}'", kind_str))
             };
             let loc_str = caps
                 .get(1)
@@ -328,6 +326,6 @@ fn parses_wait_kid() {
             assert_eq!(*bk, 1);
             assert_eq!(*loc, Loc::Delta);
         }
-        _ => panic!("Expected Wait kid"),
+        _ => panic!("Expected Wait kid")
     }
 }

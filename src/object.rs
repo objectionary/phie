@@ -1,51 +1,48 @@
 // SPDX-FileCopyrightText: Copyright (c) 2022 Yegor Bugayenko
 // SPDX-License-Identifier: MIT
 
-use crate::atom::*;
-use crate::data::Data;
-use crate::loc::Loc;
-use crate::locator::Locator;
+use std::{collections::HashMap, fmt, str::FromStr};
+
 use itertools::Itertools;
 use regex::Regex;
 use rstest::rstest;
-use std::collections::HashMap;
-use std::fmt;
-use std::str::FromStr;
+
+use crate::{atom::*, data::Data, loc::Loc, locator::Locator};
 
 pub type Ob = usize;
 
 pub struct Object {
-    pub delta: Option<Data>,
-    pub lambda: Option<(String, Atom)>,
+    pub delta:    Option<Data>,
+    pub lambda:   Option<(String, Atom)>,
     pub constant: bool,
-    pub attrs: HashMap<Loc, (Locator, bool)>,
+    pub attrs:    HashMap<Loc, (Locator, bool)>
 }
 
 impl Object {
     pub fn open() -> Object {
         Object {
-            delta: None,
-            lambda: None,
+            delta:    None,
+            lambda:   None,
             constant: false,
-            attrs: HashMap::new(),
+            attrs:    HashMap::new()
         }
     }
 
     pub fn dataic(d: Data) -> Object {
         Object {
-            delta: Some(d),
-            lambda: None,
+            delta:    Some(d),
+            lambda:   None,
             constant: true,
-            attrs: HashMap::new(),
+            attrs:    HashMap::new()
         }
     }
 
     pub fn atomic(n: String, a: Atom) -> Object {
         Object {
-            delta: None,
-            lambda: Some((n, a)),
+            delta:    None,
+            lambda:   Some((n, a)),
             constant: false,
-            attrs: HashMap::new(),
+            attrs:    HashMap::new()
         }
     }
 
@@ -63,16 +60,13 @@ impl Object {
     /// first child.
     ///
     /// ```
-    /// use phie::loc::Loc;
-    /// use phie::locator::Locator;
-    /// use phie::object::Object;
     /// use std::str::FromStr;
-    /// use phie::ph;
+    ///
+    /// use phie::{loc::Loc, locator::Locator, object::Object, ph};
     /// let mut obj = Object::open();
     /// obj.push(Loc::Phi, ph!("ν13"), false);
     /// obj.push(Loc::Attr(0), ph!("ρ.1"), false);
     /// ```
-    ///
     pub fn push(&mut self, loc: Loc, p: Locator, xi: bool) -> &mut Object {
         self.attrs.insert(loc, (p, xi));
         self
@@ -81,14 +75,13 @@ impl Object {
     /// You can do the same, but with "fluent interface" of the `Object`.
     ///
     /// ```
-    /// use phie::loc::Loc;
-    /// use phie::locator::Locator;
-    /// use phie::object::Object;
     /// use std::str::FromStr;
-    /// use phie::ph;
-    /// let obj = Object::open()
-    ///   .with(Loc::Phi, ph!("ν13"), false)
-    ///   .with(Loc::Attr(0), ph!("ρ.1"), false);
+    ///
+    /// use phie::{loc::Loc, locator::Locator, object::Object, ph};
+    /// let obj =
+    ///     Object::open()
+    ///         .with(Loc::Phi, ph!("ν13"), false)
+    ///         .with(Loc::Attr(0), ph!("ρ.1"), false);
     /// ```
     pub fn with(&self, loc: Loc, p: Locator, xi: bool) -> Object {
         let mut obj = self.copy();
@@ -145,8 +138,8 @@ impl fmt::Display for Object {
 impl FromStr for Object {
     type Err = String;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let re =
-            Regex::new("⟦(!?)(.*)⟧").map_err(|e| format!("Invalid object regex pattern: {}", e))?;
+        let re = Regex::new("⟦(!?)(.*)⟧")
+            .map_err(|e| format!("Invalid object regex pattern: {}", e))?;
         let mut obj = Object::open();
         let caps = re
             .captures(s)
@@ -176,7 +169,7 @@ impl FromStr for Object {
                         "int-neg" => int_neg,
                         "bool-if" => bool_if,
                         "int-less" => int_less,
-                        _ => return Err(format!("Unknown lambda '{}' in '{}'", p, s)),
+                        _ => return Err(format!("Unknown lambda '{}' in '{}'", p, s))
                     };
                     obj = Object::atomic(p.to_string(), lambda_fn);
                 }

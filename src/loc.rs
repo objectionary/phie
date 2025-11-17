@@ -1,11 +1,12 @@
 // SPDX-FileCopyrightText: Copyright (c) 2022 Yegor Bugayenko
 // SPDX-License-Identifier: MIT
 
-use crate::object::Ob;
+use std::{fmt, str::FromStr};
+
 use regex::Regex;
 use rstest::rstest;
-use std::fmt;
-use std::str::FromStr;
+
+use crate::object::Ob;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Loc {
@@ -16,14 +17,14 @@ pub enum Loc {
     Delta,
     Sigma,
     Attr(i8),
-    Obj(Ob),
+    Obj(Ob)
 }
 
 impl FromStr for Loc {
     type Err = String;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let re_arg =
-            Regex::new("^𝛼?(\\d+)$").map_err(|e| format!("Invalid RE_ARG regex pattern: {}", e))?;
+        let re_arg = Regex::new("^𝛼?(\\d+)$")
+            .map_err(|e| format!("Invalid RE_ARG regex pattern: {}", e))?;
         let re_obj =
             Regex::new("^ν(\\d+)$").map_err(|e| format!("Invalid RE_OBJ regex pattern: {}", e))?;
 
@@ -53,7 +54,7 @@ impl FromStr for Loc {
                 "ρ" | "^" => Ok(Loc::Rho),
                 "𝜑" | "@" => Ok(Loc::Phi),
                 "σ" | "&" => Ok(Loc::Sigma),
-                _ => Err(format!("Unknown loc: '{}'", s)),
+                _ => Err(format!("Unknown loc: '{}'", s))
             }
         }
     }
@@ -69,7 +70,7 @@ impl fmt::Display for Loc {
             Loc::Pi => "𝜋".to_owned(),
             Loc::Sigma => "σ".to_owned(),
             Loc::Attr(i) => format!("𝛼{}", i),
-            Loc::Obj(i) => format!("ν{}", i),
+            Loc::Obj(i) => format!("ν{}", i)
         })
     }
 }

@@ -2,31 +2,24 @@
 // SPDX-License-Identifier: MIT
 
 #[cfg(test)]
-use crate::emu::{Emu, Opt};
-
-#[cfg(test)]
-use crate::perf::Transition;
-
-#[cfg(test)]
-use crate::loc::Loc;
-
-#[cfg(test)]
-use crate::locator::Locator;
-
-#[cfg(test)]
-use crate::data::Data;
-
-#[cfg(test)]
-use crate::ph;
+use std::str::FromStr;
 
 #[cfg(test)]
 use crate::assert_dataized_eq;
-
+#[cfg(test)]
+use crate::data::Data;
+#[cfg(test)]
+use crate::emu::{Emu, Opt};
+#[cfg(test)]
+use crate::loc::Loc;
+#[cfg(test)]
+use crate::locator::Locator;
 #[cfg(test)]
 use crate::object::Object;
-
 #[cfg(test)]
-use std::str::FromStr;
+use crate::perf::Transition;
+#[cfg(test)]
+use crate::ph;
 
 #[test]
 pub fn simple_dataization_cycle() {
@@ -95,7 +88,7 @@ pub fn preserves_calculation_results() {
         ν3(𝜋) ↦ ⟦ λ ↦ int-add, ρ ↦ ν4(𝜋), 𝛼0 ↦ ν9(𝜋) ⟧
         ν4(𝜋) ↦ ⟦ λ ↦ int-neg, ρ ↦ ν9(𝜋) ⟧
         ν9(𝜋) ↦ ⟦ Δ ↦ 0x002A ⟧
-        ",
+        "
     )
     .unwrap();
     let (result, perf) = emu.dataize();
@@ -122,7 +115,7 @@ pub fn calculates_argument_once() {
         ν3(𝜋) ↦ ⟦ λ ↦ int-add, ρ ↦ ν4(𝜋), 𝛼0 ↦ ν9(𝜋) ⟧
         ν4(𝜋) ↦ ⟦ λ ↦ int-neg, ρ ↦ ν9(𝜋) ⟧
         ν9(𝜋) ↦ ⟦ Δ ↦ 0x002A ⟧
-        ",
+        "
     )
     .unwrap();
     let (result, perf) = emu.dataize();
@@ -398,7 +391,7 @@ pub fn simple_recursion() {
         ν8(𝜋) ↦ ⟦ Δ ↦ 0x0001 ⟧
         ν9(𝜋) ↦ ⟦ 𝜑 ↦ ν1(ξ), 𝛼0 ↦ ν10(𝜋) ⟧
         ν10(𝜋) ↦ ⟦ Δ ↦ 0x0007 ⟧
-        ",
+        "
     )
     .unwrap();
     emu.opt(Opt::DontDelete);
@@ -445,7 +438,7 @@ pub fn recursive_fibonacci() {
             ",
             input
         )
-        .as_str(),
+        .as_str()
     )
     .unwrap();
     let (result, perf) = emu.dataize();

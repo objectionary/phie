@@ -1,10 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (c) 2022 Yegor Bugayenko
 // SPDX-License-Identifier: MIT
 
-use crate::basket::Bk;
-use crate::data::Data;
-use crate::emu::Emu;
-use crate::loc::Loc;
+use crate::{basket::Bk, data::Data, emu::Emu, loc::Loc};
 
 pub type Atom = fn(&mut Emu, Bk) -> Option<Data>;
 
@@ -39,7 +36,6 @@ pub fn bool_if(emu: &mut Emu, bk: Bk) -> Option<Data> {
 
 #[cfg(test)]
 use crate::assert_dataized_eq;
-
 #[cfg(test)]
 use crate::emu::Opt;
 

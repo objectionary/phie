@@ -1,9 +1,9 @@
 // SPDX-FileCopyrightText: Copyright (c) 2022 Yegor Bugayenko
 // SPDX-License-Identifier: MIT
 
+use std::{collections::HashMap, fmt};
+
 use itertools::Itertools;
-use std::collections::HashMap;
-use std::fmt;
 
 #[derive(Hash, Eq, PartialEq, strum_macros::Display)]
 pub enum Transition {
@@ -12,15 +12,15 @@ pub enum Transition {
     NEW,
     DLG,
     PPG,
-    FIND,
+    FIND
 }
 
 pub struct Perf {
     pub cycles: usize,
-    pub peak: usize,
-    pub atoms: HashMap<String, usize>,
-    pub hits: HashMap<Transition, usize>,
-    pub ticks: HashMap<Transition, usize>,
+    pub peak:   usize,
+    pub atoms:  HashMap<String, usize>,
+    pub hits:   HashMap<Transition, usize>,
+    pub ticks:  HashMap<Transition, usize>
 }
 
 impl Default for Perf {
@@ -32,11 +32,11 @@ impl Default for Perf {
 impl Perf {
     pub fn new() -> Perf {
         Perf {
-            atoms: HashMap::new(),
-            ticks: HashMap::new(),
-            hits: HashMap::new(),
+            atoms:  HashMap::new(),
+            ticks:  HashMap::new(),
+            hits:   HashMap::new(),
             cycles: 0,
-            peak: 0,
+            peak:   0
         }
     }
 
@@ -78,7 +78,7 @@ macro_rules! print {
             $list
                 .iter()
                 .map(|(t, c)| format!("\t{}: {}", t, c))
-                .sorted(),
+                .sorted()
         );
         $lines.push(format!("\tTotal: {}", $total));
     };

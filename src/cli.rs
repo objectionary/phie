@@ -14,14 +14,16 @@
 //! let args = vec!["phie".to_string(), "program.phie".to_string()];
 //! match cli::run(&args) {
 //!     Ok(output) => println!("{}", output),
-//!     Err(e) => eprintln!("Error: {}", e),
+//!     Err(e) => eprintln!("Error: {}", e)
 //! }
 //! ```
 
 use std::{fs, path::Path};
 
-use crate::data::Data;
-use crate::emu::{Emu, Opt};
+use crate::{
+    data::Data,
+    emu::{Emu, Opt}
+};
 
 /// Parses command line arguments and extracts the file path.
 ///
@@ -29,7 +31,8 @@ use crate::emu::{Emu, Opt};
 ///
 /// # Arguments
 ///
-/// * `args` - Slice of command line arguments where first element is program name
+/// * `args` - Slice of command line arguments where first element is program
+///   name
 ///
 /// # Returns
 ///
@@ -57,7 +60,8 @@ pub fn parse_args(args: &[String]) -> Result<String, String> {
 
 /// Reads and returns content from a phie program file.
 ///
-/// Validates file existence before reading and provides detailed error messages.
+/// Validates file existence before reading and provides detailed error
+/// messages.
 ///
 /// # Arguments
 ///
@@ -79,13 +83,14 @@ pub fn read_phie_file(file_path: &str) -> Result<String, String> {
     if !Path::new(file_path).exists() {
         return Err(format!("File '{}' does not exist", file_path));
     }
-    fs::read_to_string(file_path).map_err(|e| format!("Failed to read file '{}': {}", file_path, e))
+    fs::read_to_string(file_path)
+        .map_err(|e| format!("Failed to read file '{}': {}", file_path, e))
 }
 
 /// Executes a phie program and returns the dataized result.
 ///
-/// Parses the program content into an Emu instance, configures execution options,
-/// and performs dataization to compute the result.
+/// Parses the program content into an Emu instance, configures execution
+/// options, and performs dataization to compute the result.
 ///
 /// # Arguments
 ///
@@ -135,7 +140,7 @@ pub fn execute_phie(content: &str) -> Result<Data, String> {
 /// let args = vec!["phie".to_string(), "program.phie".to_string()];
 /// match run(&args) {
 ///     Ok(output) => println!("{}", output),
-///     Err(e) => eprintln!("Error: {}", e),
+///     Err(e) => eprintln!("Error: {}", e)
 /// }
 /// ```
 pub fn run(args: &[String]) -> Result<String, String> {

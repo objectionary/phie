@@ -1,13 +1,17 @@
 // SPDX-FileCopyrightText: Copyright (c) 2022 Yegor Bugayenko
 // SPDX-License-Identifier: MIT
 
-use crate::basket::{Bk, Kid};
-use crate::data::Data;
-use crate::emu::{Emu, Opt, ROOT_BK};
-use crate::loc::Loc;
-use crate::perf::Perf;
-use log::debug;
 use std::time::Instant;
+
+use log::debug;
+
+use crate::{
+    basket::{Bk, Kid},
+    data::Data,
+    emu::{Emu, Opt, ROOT_BK},
+    loc::Loc,
+    perf::Perf
+};
 
 const MAX_CYCLES: usize = 65536;
 

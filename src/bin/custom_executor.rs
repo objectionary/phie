@@ -4,11 +4,12 @@
 
 extern crate phie;
 
-use phie::data::Data;
-use phie::emu::{Emu, Opt};
-use std::env;
-use std::fs;
-use std::str::FromStr;
+use std::{env, fs, str::FromStr};
+
+use phie::{
+    data::Data,
+    emu::{Emu, Opt}
+};
 
 fn emulate(phi_code: &str) -> Result<Data, String> {
     let mut emu: Emu =

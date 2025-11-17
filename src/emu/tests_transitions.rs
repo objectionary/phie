@@ -2,14 +2,12 @@
 // SPDX-License-Identifier: MIT
 
 #[cfg(test)]
-use crate::basket::Basket;
-
-#[cfg(test)]
 use std::str::FromStr;
 
 #[cfg(test)]
+use crate::basket::Basket;
+#[cfg(test)]
 use crate::emu::Emu;
-
 #[cfg(test)]
 use crate::perf::Perf;
 
