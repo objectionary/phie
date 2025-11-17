@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright (c) 2022 Yegor Bugayenko
+# SPDX-License-Identifier: MIT
+
 trailing_comma = "Never"
 brace_style = "SameLineWhere"
 struct_field_align_threshold = 20
