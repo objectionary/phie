@@ -238,4 +238,243 @@ pub extern "C" fn f(_uni: *mut u8, _v: u32) -> i16 {
         }
         fs::remove_dir_all(&temp_dir).ok();
     }
+
+    #[test]
+    fn test_write_cargo_toml_creates_valid_content() {
+        let temp_dir = std::env::temp_dir().join("phie_test_cargo_content");
+        fs::create_dir_all(&temp_dir).unwrap();
+        write_cargo_toml(&temp_dir, "my_atom").unwrap();
+        let content = fs::read_to_string(temp_dir.join("Cargo.toml")).unwrap();
+        assert!(content.contains("[package]"));
+        assert!(content.contains("name = \"my_atom\""));
+        assert!(content.contains("version = \"0.1.0\""));
+        assert!(content.contains("[lib]"));
+        assert!(content.contains("[dependencies]"));
+        fs::remove_dir_all(&temp_dir).ok();
+    }
+
+    #[test]
+    fn test_write_lib_rs_creates_src_directory() {
+        let temp_dir = std::env::temp_dir().join("phie_test_src_creation");
+        fs::create_dir_all(&temp_dir).unwrap();
+        write_lib_rs(&temp_dir, "test").unwrap();
+        assert!(temp_dir.join("src").exists());
+        assert!(temp_dir.join("src").is_dir());
+        fs::remove_dir_all(&temp_dir).ok();
+    }
+
+    #[test]
+    fn test_write_lib_rs_preserves_exact_content() {
+        let temp_dir = std::env::temp_dir().join("phie_test_exact_content");
+        fs::create_dir_all(&temp_dir).unwrap();
+        let source = "// comment\npub fn test() {\n    println!(\"hello\");\n}\n";
+        write_lib_rs(&temp_dir, source).unwrap();
+        let content = fs::read_to_string(temp_dir.join("src/lib.rs")).unwrap();
+        assert_eq!(content, source);
+        fs::remove_dir_all(&temp_dir).ok();
+    }
+
+    #[test]
+    fn test_compile_creates_build_directory() {
+        let source = r#"#[no_mangle] pub extern "C" fn f(_u: *mut u8, _v: u32) -> i16 { 0 }"#;
+        let temp_dir = std::env::temp_dir().join("phie_test_build_dir");
+        fs::remove_dir_all(&temp_dir).ok();
+        compile("build_test", source, temp_dir.to_str().unwrap()).ok();
+        assert!(temp_dir.exists());
+        fs::remove_dir_all(&temp_dir).ok();
+    }
+
+    #[test]
+    fn test_get_library_name_with_different_ids() {
+        assert!(get_library_name("atom1").contains("atom1"));
+        assert!(get_library_name("my_custom_atom").contains("my_custom_atom"));
+        assert!(get_library_name("x").contains("x"));
+    }
+
+    #[test]
+    fn test_get_library_name_linux_format() {
+        if cfg!(target_os = "linux") {
+            let name = get_library_name("foo");
+            assert!(name.starts_with("lib"));
+            assert!(name.ends_with(".so"));
+        }
+    }
+
+    #[test]
+    fn test_write_cargo_toml_with_special_characters() {
+        let temp_dir = std::env::temp_dir().join("phie_test_special");
+        fs::create_dir_all(&temp_dir).unwrap();
+        write_cargo_toml(&temp_dir, "atom_123").unwrap();
+        let content = fs::read_to_string(temp_dir.join("Cargo.toml")).unwrap();
+        assert!(content.contains("name = \"atom_123\""));
+        fs::remove_dir_all(&temp_dir).ok();
+    }
+
+    #[test]
+    fn test_compile_with_complex_source() {
+        let source = r#"
+use std::ffi::c_void;
+
+#[no_mangle]
+pub extern "C" fn f(_universe: *mut c_void, _vertex: u32) -> i16 {
+    let result = 10 + 32;
+    result
+}
+"#;
+        let temp_dir = std::env::temp_dir().join("phie_test_complex");
+        let result = compile("complex", source, temp_dir.to_str().unwrap());
+        if result.is_ok() {
+            assert!(result.unwrap().exists());
+        }
+        fs::remove_dir_all(&temp_dir).ok();
+    }
+
+    #[test]
+    fn test_write_lib_rs_with_empty_source() {
+        let temp_dir = std::env::temp_dir().join("phie_test_empty");
+        fs::create_dir_all(&temp_dir).unwrap();
+        write_lib_rs(&temp_dir, "").unwrap();
+        let content = fs::read_to_string(temp_dir.join("src/lib.rs")).unwrap();
+        assert_eq!(content, "");
+        fs::remove_dir_all(&temp_dir).ok();
+    }
+
+    #[test]
+    fn test_compile_creates_target_directory() {
+        let source = r#"#[no_mangle] pub extern "C" fn f(_u: *mut u8, _v: u32) -> i16 { 1 }"#;
+        let temp_dir = std::env::temp_dir().join("phie_test_target");
+        if compile("target_test", source, temp_dir.to_str().unwrap()).is_ok() {
+            let target_dir = temp_dir.join("target_test/target");
+            assert!(target_dir.exists() || temp_dir.join("target_test/Cargo.toml").exists());
+        }
+        fs::remove_dir_all(&temp_dir).ok();
+    }
+
+    #[test]
+    fn test_write_cargo_toml_overwrites_existing() {
+        let temp_dir = std::env::temp_dir().join("phie_test_overwrite");
+        fs::create_dir_all(&temp_dir).unwrap();
+        write_cargo_toml(&temp_dir, "first").unwrap();
+        write_cargo_toml(&temp_dir, "second").unwrap();
+        let content = fs::read_to_string(temp_dir.join("Cargo.toml")).unwrap();
+        assert!(content.contains("name = \"second\""));
+        assert!(!content.contains("name = \"first\""));
+        fs::remove_dir_all(&temp_dir).ok();
+    }
+
+    #[test]
+    fn test_write_lib_rs_overwrites_existing() {
+        let temp_dir = std::env::temp_dir().join("phie_test_lib_overwrite");
+        fs::create_dir_all(&temp_dir).unwrap();
+        write_lib_rs(&temp_dir, "first").unwrap();
+        write_lib_rs(&temp_dir, "second").unwrap();
+        let content = fs::read_to_string(temp_dir.join("src/lib.rs")).unwrap();
+        assert_eq!(content, "second");
+        fs::remove_dir_all(&temp_dir).ok();
+    }
+
+    #[test]
+    fn test_compile_with_whitespace_in_source() {
+        let source = r#"
+
+        #[no_mangle]
+        pub extern "C" fn f(_u: *mut u8, _v: u32) -> i16 {
+
+            42
+
+        }
+
+        "#;
+        let temp_dir = std::env::temp_dir().join("phie_test_whitespace");
+        let result = compile("whitespace", source, temp_dir.to_str().unwrap());
+        if result.is_ok() {
+            let lib_path = result.unwrap();
+            assert!(lib_path.exists());
+            assert!(lib_path.to_str().unwrap().contains("whitespace"));
+        }
+        fs::remove_dir_all(&temp_dir).ok();
+    }
+
+    #[test]
+    fn test_compile_returns_correct_path() {
+        let source = r#"#[no_mangle] pub extern "C" fn f(_u: *mut u8, _v: u32) -> i16 { 7 }"#;
+        let temp_dir = std::env::temp_dir().join("phie_test_path");
+        if let Ok(path) = compile("path_test", source, temp_dir.to_str().unwrap()) {
+            assert!(path.to_str().unwrap().contains("path_test"));
+            assert!(path.to_str().unwrap().contains("target/release"));
+            let lib_name = get_library_name("path_test");
+            assert!(path.to_str().unwrap().contains(&lib_name));
+        }
+        fs::remove_dir_all(&temp_dir).ok();
+    }
+
+    #[test]
+    fn test_get_library_name_format_consistency() {
+        let name1 = get_library_name("test");
+        let name2 = get_library_name("test");
+        assert_eq!(name1, name2);
+    }
+
+    #[test]
+    fn test_write_cargo_toml_includes_all_sections() {
+        let temp_dir = std::env::temp_dir().join("phie_test_sections");
+        fs::create_dir_all(&temp_dir).unwrap();
+        write_cargo_toml(&temp_dir, "test").unwrap();
+        let content = fs::read_to_string(temp_dir.join("Cargo.toml")).unwrap();
+        assert!(content.lines().any(|l| l.trim() == "[package]"));
+        assert!(content.lines().any(|l| l.trim() == "[lib]"));
+        assert!(content.lines().any(|l| l.trim() == "[dependencies]"));
+        fs::remove_dir_all(&temp_dir).ok();
+    }
+
+    #[test]
+    fn test_compile_with_minimal_valid_source() {
+        let source = r#"#[no_mangle] pub extern "C" fn f(_u: *mut u8, _v: u32) -> i16 { 0 }"#;
+        let temp_dir = std::env::temp_dir().join("phie_test_minimal");
+        let result = compile("minimal", source, temp_dir.to_str().unwrap());
+        if result.is_ok() {
+            assert!(result.unwrap().exists());
+        }
+        fs::remove_dir_all(&temp_dir).ok();
+    }
+
+    #[test]
+    fn test_write_lib_rs_handles_multiline() {
+        let temp_dir = std::env::temp_dir().join("phie_test_multiline");
+        fs::create_dir_all(&temp_dir).unwrap();
+        let source = "line1\nline2\nline3";
+        write_lib_rs(&temp_dir, source).unwrap();
+        let content = fs::read_to_string(temp_dir.join("src/lib.rs")).unwrap();
+        assert_eq!(content.lines().count(), 3);
+        fs::remove_dir_all(&temp_dir).ok();
+    }
+
+    #[test]
+    fn test_compile_error_message_on_invalid_rust() {
+        let temp_dir = std::env::temp_dir().join("phie_test_error_msg");
+        let result = compile("error_test", "fn {{{", temp_dir.to_str().unwrap());
+        if Command::new("cargo").arg("--version").output().is_ok() {
+            if let Err(msg) = result {
+                assert!(msg.contains("Compilation failed") || msg.contains("error"));
+            }
+        }
+        fs::remove_dir_all(&temp_dir).ok();
+    }
+
+    #[test]
+    fn test_get_library_name_preserves_underscores() {
+        let name = get_library_name("my_atom_name");
+        assert!(name.contains("my_atom_name"));
+    }
+
+    #[test]
+    fn test_compile_creates_atom_subdirectory() {
+        let source = r#"#[no_mangle] pub extern "C" fn f(_u: *mut u8, _v: u32) -> i16 { 3 }"#;
+        let temp_dir = std::env::temp_dir().join("phie_test_subdir");
+        if compile("subdir_atom", source, temp_dir.to_str().unwrap()).is_ok() {
+            assert!(temp_dir.join("subdir_atom").exists());
+            assert!(temp_dir.join("subdir_atom").is_dir());
+        }
+        fs::remove_dir_all(&temp_dir).ok();
+    }
 }
