@@ -3,5 +3,5 @@
 node_modules/
 target/
 *.profraw
-tarpaulin-report.html
+tarpaulin-report.html 
 lcov.info
