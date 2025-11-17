@@ -140,7 +140,7 @@ fn test_find_attribute() {
         emu.basket(1)
             .kids
             .get(&crate::loc::Loc::from_str("𝛼0").unwrap()),
-        Some(crate::basket::Kid::Need(_, _))
+        Some(crate::basket::Kid::Need(_, _)),
     ));
 }
 
@@ -160,7 +160,7 @@ fn test_new_basket() {
         emu.basket(1)
             .kids
             .get(&crate::loc::Loc::from_str("𝛼0").unwrap()),
-        Some(crate::basket::Kid::Wait(_, _))
+        Some(crate::basket::Kid::Wait(_, _)),
     ));
 }
 
@@ -194,7 +194,7 @@ fn test_copy_with_non_rqtd_phi() {
     emu.copy(&mut perf, 1);
     assert!(matches!(
         emu.basket(1).kids.get(&crate::loc::Loc::Phi),
-        Some(crate::basket::Kid::Dtzd(42))
+        Some(crate::basket::Kid::Dtzd(42)),
     ));
 }
 
@@ -255,7 +255,7 @@ fn test_delegate_with_wait_in_basket() {
     emu.delegate(&mut perf, 1);
     assert!(matches!(
         emu.basket(1).kids.get(&crate::loc::Loc::Phi),
-        Some(crate::basket::Kid::Rqtd)
+        Some(crate::basket::Kid::Rqtd),
     ));
 }
 
@@ -271,7 +271,7 @@ fn test_find_with_non_rqtd_loc() {
         emu.basket(1)
             .kids
             .get(&crate::loc::Loc::from_str("𝛼0").unwrap()),
-        Some(crate::basket::Kid::Dtzd(42))
+        Some(crate::basket::Kid::Dtzd(42)),
     ));
 }
 
@@ -287,7 +287,7 @@ fn test_find_with_advice_false() {
         emu.basket(1)
             .kids
             .get(&crate::loc::Loc::from_str("𝛼0").unwrap()),
-        Some(crate::basket::Kid::Wait(_, _))
+        Some(crate::basket::Kid::Wait(_, _)),
     ));
 }
 
@@ -351,17 +351,17 @@ fn test_stashed_with_delta() {
 #[test]
 fn test_stashed_non_constant() {
     let mut emu = Emu::from_str(
-        "ν0(𝜋) ↦ ⟦ 𝜑 ↦ ν0(𝜋) ⟧\nν1(𝜋) ↦ ⟦ 𝛼0 ↦ ν2(𝜋), 𝛼1 ↦ ν2(𝜋) ⟧\nν2(𝜋) ↦ ⟦ 𝜑 ↦ ν2(𝜋) ⟧"
+        "ν0(𝜋) ↦ ⟦ 𝜑 ↦ ν0(𝜋) ⟧\nν1(𝜋) ↦ ⟦ 𝛼0 ↦ ν2(𝜋), 𝛼1 ↦ ν2(𝜋) ⟧\nν2(𝜋) ↦ ⟦ 𝜑 ↦ ν2(𝜋) ⟧",
     )
     .unwrap();
     emu.inject(1, Basket::from_str("[ν1, ξ:β0]").unwrap());
     emu.baskets[1].put(
         crate::loc::Loc::from_str("𝛼0").unwrap(),
-        crate::basket::Kid::Need(2, 0)
+        crate::basket::Kid::Need(2, 0),
     );
     emu.baskets[1].put(
         crate::loc::Loc::from_str("𝛼1").unwrap(),
-        crate::basket::Kid::Need(2, 0)
+        crate::basket::Kid::Need(2, 0),
     );
     let mut perf = Perf::new();
     emu.new(&mut perf, 1, crate::loc::Loc::from_str("𝛼0").unwrap());
@@ -475,18 +475,18 @@ fn test_find_without_attr() {
 #[test]
 fn test_stashed_constant_same_psi() {
     let mut emu = Emu::from_str(
-        "ν0(𝜋) ↦ ⟦ 𝜑 ↦ ν0(𝜋) ⟧\nν1(𝜋) ↦ ⟦ 𝛼0 ↦ ν2(𝜋), 𝛼1 ↦ ν2(𝜋) ⟧\nν2(𝜋) ↦ ⟦ 𝜑 ↦ ν2(𝜋) ⟧"
+        "ν0(𝜋) ↦ ⟦ 𝜑 ↦ ν0(𝜋) ⟧\nν1(𝜋) ↦ ⟦ 𝛼0 ↦ ν2(𝜋), 𝛼1 ↦ ν2(𝜋) ⟧\nν2(𝜋) ↦ ⟦ 𝜑 ↦ ν2(𝜋) ⟧",
     )
     .unwrap();
     emu.objects[2].constant = true;
     emu.inject(1, Basket::from_str("[ν1, ξ:β0]").unwrap());
     emu.baskets[1].put(
         crate::loc::Loc::from_str("𝛼0").unwrap(),
-        crate::basket::Kid::Need(2, 0)
+        crate::basket::Kid::Need(2, 0),
     );
     emu.baskets[1].put(
         crate::loc::Loc::from_str("𝛼1").unwrap(),
-        crate::basket::Kid::Need(2, 0)
+        crate::basket::Kid::Need(2, 0),
     );
     let mut perf = Perf::new();
     emu.new(&mut perf, 1, crate::loc::Loc::from_str("𝛼0").unwrap());
@@ -563,7 +563,7 @@ fn test_delete_with_need_kid() {
     emu.inject(1, Basket::from_str("[ν1, ξ:β0, 𝜑⇶0x002A]").unwrap());
     emu.baskets[1].put(
         crate::loc::Loc::from_str("𝛼0").unwrap(),
-        crate::basket::Kid::Need(2, 0)
+        crate::basket::Kid::Need(2, 0),
     );
     let mut perf = Perf::new();
     emu.delete(&mut perf, 1);
