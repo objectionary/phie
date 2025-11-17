@@ -15,13 +15,14 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: stable
       - uses: dtolnay/rust-toolchain@nightly
         with:
           toolchain: nightly
           components: rustfmt
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+          components: clippy
       - run: cargo test
       - run: target/debug/fibonacci 7 10
       - run: cargo +nightly fmt --check
