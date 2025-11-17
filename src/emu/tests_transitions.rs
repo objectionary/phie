@@ -72,7 +72,7 @@ fn test_delete_with_waiting_baskets() {
     emu.inject(2, Basket::from_str("[ν2, ξ:β0, 𝜑⇶0x002A]").unwrap());
     emu.baskets[1].put(
         crate::loc::Loc::from_str("𝛼0").unwrap(),
-        crate::basket::Kid::Wait(2, crate::loc::Loc::Phi)
+        crate::basket::Kid::Wait(2, crate::loc::Loc::Phi),
     );
     let mut perf = Perf::new();
     emu.delete(&mut perf, 2);
@@ -88,7 +88,7 @@ fn test_propagate_value() {
     emu.inject(2, Basket::from_str("[ν2, ξ:β0, 𝜑⇶0x002A]").unwrap());
     emu.baskets[1].put(
         crate::loc::Loc::from_str("𝛼0").unwrap(),
-        crate::basket::Kid::Wait(2, crate::loc::Loc::Phi)
+        crate::basket::Kid::Wait(2, crate::loc::Loc::Phi),
     );
     let mut perf = Perf::new();
     emu.propagate(&mut perf, 2, crate::loc::Loc::Phi);
@@ -106,7 +106,7 @@ fn test_delegate_with_lambda() {
         .unwrap();
     emu.inject(
         1,
-        Basket::from_str("[ν1, ξ:β0, 𝜑→?, ρ⇶0x0001, 𝛼0⇶0x0002]").unwrap()
+        Basket::from_str("[ν1, ξ:β0, 𝜑→?, ρ⇶0x0001, 𝛼0⇶0x0002]").unwrap(),
     );
     let mut perf = Perf::new();
     emu.delegate(&mut perf, 1);
@@ -152,7 +152,7 @@ fn test_new_basket() {
     emu.inject(1, Basket::from_str("[ν1, ξ:β0]").unwrap());
     emu.baskets[1].put(
         crate::loc::Loc::from_str("𝛼0").unwrap(),
-        crate::basket::Kid::Need(2, 0)
+        crate::basket::Kid::Need(2, 0),
     );
     let mut perf = Perf::new();
     emu.new(&mut perf, 1, crate::loc::Loc::from_str("𝛼0").unwrap());
@@ -174,7 +174,7 @@ fn test_new_finds_stashed_constant() {
     emu.inject(2, Basket::from_str("[ν2, ξ:β0, 𝜑⇶0x002A]").unwrap());
     emu.baskets[1].put(
         crate::loc::Loc::from_str("𝛼0").unwrap(),
-        crate::basket::Kid::Need(2, 0)
+        crate::basket::Kid::Need(2, 0),
     );
     let mut perf = Perf::new();
     emu.new(&mut perf, 1, crate::loc::Loc::from_str("𝛼0").unwrap());
