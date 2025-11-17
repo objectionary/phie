@@ -288,7 +288,12 @@ fn test_search_finds_object_without_phi() {
     emu.inject(1, Basket::from_str("[ν1, ξ:β0, 𝛼0→?]").unwrap());
     let mut perf = Perf::new();
     emu.find(&mut perf, 1, crate::loc::Loc::from_str("𝛼0").unwrap());
-    assert!(matches!(emu.basket(1).kids.get(&crate::loc::Loc::from_str("𝛼0").unwrap()), Some(crate::basket::Kid::Need(2, _))));
+    assert!(matches!(
+        emu.basket(1)
+            .kids
+            .get(&crate::loc::Loc::from_str("𝛼0").unwrap()),
+        Some(crate::basket::Kid::Need(2, _))
+    ));
 }
 
 #[test]
@@ -297,16 +302,28 @@ fn test_search_with_loc_root() {
     emu.inject(1, Basket::from_str("[ν1, ξ:β0, 𝛼0→?]").unwrap());
     let mut perf = Perf::new();
     emu.find(&mut perf, 1, crate::loc::Loc::from_str("𝛼0").unwrap());
-    assert!(matches!(emu.basket(1).kids.get(&crate::loc::Loc::from_str("𝛼0").unwrap()), Some(crate::basket::Kid::Need(0, _))));
+    assert!(matches!(
+        emu.basket(1)
+            .kids
+            .get(&crate::loc::Loc::from_str("𝛼0").unwrap()),
+        Some(crate::basket::Kid::Need(0, _))
+    ));
 }
 
 #[test]
 fn test_search_with_loc_obj() {
-    let mut emu = Emu::from_str("ν0(𝜋) ↦ ⟦ 𝜑 ↦ ν0(𝜋) ⟧\nν1(𝜋) ↦ ⟦ 𝛼0 ↦ ν2 ⟧\nν2(𝜋) ↦ ⟦ Δ ↦ 0x002A ⟧").unwrap();
+    let mut emu =
+        Emu::from_str("ν0(𝜋) ↦ ⟦ 𝜑 ↦ ν0(𝜋) ⟧\nν1(𝜋) ↦ ⟦ 𝛼0 ↦ ν2 ⟧\nν2(𝜋) ↦ ⟦ Δ ↦ 0x002A ⟧")
+            .unwrap();
     emu.inject(1, Basket::from_str("[ν1, ξ:β0, 𝛼0→?]").unwrap());
     let mut perf = Perf::new();
     emu.find(&mut perf, 1, crate::loc::Loc::from_str("𝛼0").unwrap());
-    assert!(matches!(emu.basket(1).kids.get(&crate::loc::Loc::from_str("𝛼0").unwrap()), Some(crate::basket::Kid::Need(2, _))));
+    assert!(matches!(
+        emu.basket(1)
+            .kids
+            .get(&crate::loc::Loc::from_str("𝛼0").unwrap()),
+        Some(crate::basket::Kid::Need(2, _))
+    ));
 }
 
 #[test]
