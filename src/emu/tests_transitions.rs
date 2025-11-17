@@ -237,18 +237,35 @@ fn test_stashed_with_delta() {
     let mut emu = Emu::from_str("ν0(𝜋) ↦ ⟦ 𝜑 ↦ ν0(𝜋) ⟧\nν1(𝜋) ↦ ⟦ 𝛼0 ↦ ν2(𝜋) ⟧\nν2(𝜋) ↦ ⟦ Δ ↦ 0x002A ⟧").unwrap();
     emu.inject(2, Basket::from_str("[ν2, ξ:β0, 𝜑⇶0x002A]").unwrap());
     emu.inject(1, Basket::from_str("[ν1, ξ:β0]").unwrap());
-    emu.baskets[1].put(crate::loc::Loc::from_str("𝛼0").unwrap(), crate::basket::Kid::Need(2, 0));
+    emu.baskets[1].put(
+        crate::loc::Loc::from_str("𝛼0").unwrap(),
+        crate::basket::Kid::Need(2, 0),
+    );
     let mut perf = Perf::new();
     emu.new(&mut perf, 1, crate::loc::Loc::from_str("𝛼0").unwrap());
-    assert!(matches!(emu.basket(1).kids.get(&crate::loc::Loc::from_str("𝛼0").unwrap()), Some(crate::basket::Kid::Wait(2, _))));
+    assert!(matches!(
+        emu.basket(1)
+            .kids
+            .get(&crate::loc::Loc::from_str("𝛼0").unwrap()),
+        Some(crate::basket::Kid::Wait(2, _))
+    ));
 }
 
 #[test]
 fn test_stashed_non_constant() {
-    let mut emu = Emu::from_str("ν0(𝜋) ↦ ⟦ 𝜑 ↦ ν0(𝜋) ⟧\nν1(𝜋) ↦ ⟦ 𝛼0 ↦ ν2(𝜋), 𝛼1 ↦ ν2(𝜋) ⟧\nν2(𝜋) ↦ ⟦ 𝜑 ↦ ν2(𝜋) ⟧").unwrap();
+    let mut emu = Emu::from_str(
+        "ν0(𝜋) ↦ ⟦ 𝜑 ↦ ν0(𝜋) ⟧\nν1(𝜋) ↦ ⟦ 𝛼0 ↦ ν2(𝜋), 𝛼1 ↦ ν2(𝜋) ⟧\nν2(𝜋) ↦ ⟦ 𝜑 ↦ ν2(𝜋) ⟧",
+    )
+    .unwrap();
     emu.inject(1, Basket::from_str("[ν1, ξ:β0]").unwrap());
-    emu.baskets[1].put(crate::loc::Loc::from_str("𝛼0").unwrap(), crate::basket::Kid::Need(2, 0));
-    emu.baskets[1].put(crate::loc::Loc::from_str("𝛼1").unwrap(), crate::basket::Kid::Need(2, 0));
+    emu.baskets[1].put(
+        crate::loc::Loc::from_str("𝛼0").unwrap(),
+        crate::basket::Kid::Need(2, 0),
+    );
+    emu.baskets[1].put(
+        crate::loc::Loc::from_str("𝛼1").unwrap(),
+        crate::basket::Kid::Need(2, 0),
+    );
     let mut perf = Perf::new();
     emu.new(&mut perf, 1, crate::loc::Loc::from_str("𝛼0").unwrap());
     emu.new(&mut perf, 1, crate::loc::Loc::from_str("𝛼1").unwrap());
@@ -284,7 +301,9 @@ fn test_search_pi_on_root() {
 
 #[test]
 fn test_search_finds_object_without_phi() {
-    let mut emu = Emu::from_str("ν0(𝜋) ↦ ⟦ 𝜑 ↦ ν0(𝜋) ⟧\nν1(𝜋) ↦ ⟦ 𝛼0 ↦ ν2 ⟧\nν2(𝜋) ↦ ⟦ 𝛼1 ↦ ν0(𝜋) ⟧").unwrap();
+    let mut emu =
+        Emu::from_str("ν0(𝜋) ↦ ⟦ 𝜑 ↦ ν0(𝜋) ⟧\nν1(𝜋) ↦ ⟦ 𝛼0 ↦ ν2 ⟧\nν2(𝜋) ↦ ⟦ 𝛼1 ↦ ν0(𝜋) ⟧")
+            .unwrap();
     emu.inject(1, Basket::from_str("[ν1, ξ:β0, 𝛼0→?]").unwrap());
     let mut perf = Perf::new();
     emu.find(&mut perf, 1, crate::loc::Loc::from_str("𝛼0").unwrap());
