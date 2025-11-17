@@ -25,8 +25,7 @@ pub fn deletes_one_basket() {
 
 #[test]
 fn test_copy_with_delta() {
-    let mut emu =
-        Emu::from_str("ν0(𝜋) ↦ ⟦ 𝜑 ↦ ν0(𝜋) ⟧\nν1(𝜋) ↦ ⟦ Δ ↦ 0x002A ⟧").unwrap();
+    let mut emu = Emu::from_str("ν0(𝜋) ↦ ⟦ 𝜑 ↦ ν0(𝜋) ⟧\nν1(𝜋) ↦ ⟦ Δ ↦ 0x002A ⟧").unwrap();
     emu.inject(1, Basket::from_str("[ν1, ξ:β0, 𝜑→?]").unwrap());
     let mut perf = Perf::new();
     emu.copy(&mut perf, 1);
@@ -38,8 +37,7 @@ fn test_copy_with_delta() {
 
 #[test]
 fn test_copy_without_delta() {
-    let mut emu =
-        Emu::from_str("ν0(𝜋) ↦ ⟦ 𝜑 ↦ ν0(𝜋) ⟧\nν1(𝜋) ↦ ⟦ 𝜑 ↦ ν1(𝜋) ⟧").unwrap();
+    let mut emu = Emu::from_str("ν0(𝜋) ↦ ⟦ 𝜑 ↦ ν0(𝜋) ⟧\nν1(𝜋) ↦ ⟦ 𝜑 ↦ ν1(𝜋) ⟧").unwrap();
     emu.inject(1, Basket::from_str("[ν1, ξ:β0, 𝜑→?]").unwrap());
     let mut perf = Perf::new();
     emu.copy(&mut perf, 1);
@@ -59,8 +57,7 @@ fn test_delete_root_basket() {
 
 #[test]
 fn test_delete_constant_object() {
-    let mut emu =
-        Emu::from_str("ν0(𝜋) ↦ ⟦ 𝜑 ↦ ν0(𝜋) ⟧\nν1(𝜋) ↦ ⟦ Δ ↦ 0x002A ⟧").unwrap();
+    let mut emu = Emu::from_str("ν0(𝜋) ↦ ⟦ 𝜑 ↦ ν0(𝜋) ⟧\nν1(𝜋) ↦ ⟦ Δ ↦ 0x002A ⟧").unwrap();
     emu.objects[1].constant = true;
     emu.inject(1, Basket::from_str("[ν1, ξ:β0, 𝜑⇶0x002A]").unwrap());
     let mut perf = Perf::new();
@@ -109,7 +106,10 @@ fn test_propagate_value() {
 fn test_delegate_with_lambda() {
     let mut emu = Emu::from_str("ν0(𝜋) ↦ ⟦ 𝜑 ↦ ν1(𝜋) ⟧\nν1(𝜋) ↦ ⟦ λ ↦ int-add, ρ ↦ ν2(𝜋), 𝛼0 ↦ ν3(𝜋) ⟧\nν2(𝜋) ↦ ⟦ Δ ↦ 0x0001 ⟧\nν3(𝜋) ↦ ⟦ Δ ↦ 0x0002 ⟧")
         .unwrap();
-    emu.inject(1, Basket::from_str("[ν1, ξ:β0, 𝜑→?, ρ⇶0x0001, 𝛼0⇶0x0002]").unwrap());
+    emu.inject(
+        1,
+        Basket::from_str("[ν1, ξ:β0, 𝜑→?, ρ⇶0x0001, 𝛼0⇶0x0002]").unwrap(),
+    );
     let mut perf = Perf::new();
     emu.delegate(&mut perf, 1);
     assert!(matches!(
