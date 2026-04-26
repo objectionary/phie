@@ -181,3 +181,59 @@ fn preserves_absolute_path() {
     assert!(result.is_ok());
     assert_eq!(result.unwrap(), "/absolute/path/test.phie");
 }
+
+#[test]
+fn mktemp_returns_unique_paths_per_call() {
+    use std::collections::HashSet;
+    let mut paths: HashSet<String> = HashSet::new();
+    for _ in 0..16 {
+        let (_, path) = mktemp("phie_test_unique.phie");
+        assert!(
+            paths.insert(path.clone()),
+            "mktemp returned a duplicate path on repeated calls: {}",
+            path
+        );
+    }
+}
+
+#[test]
+fn parallel_mktemp_users_do_not_clash() {
+    use std::sync::{Arc, Mutex};
+    use std::thread;
+    let collected: Arc<Mutex<Vec<String>>> = Arc::new(Mutex::new(Vec::new()));
+    let errors: Arc<Mutex<Vec<String>>> = Arc::new(Mutex::new(Vec::new()));
+    let mut handles = Vec::new();
+    for _ in 0..16 {
+        let collected = collected.clone();
+        let errors = errors.clone();
+        handles.push(thread::spawn(move || {
+            let (file, path) = mktemp("phie_test_parallel.phie");
+            collected.lock().unwrap().push(path.clone());
+            if let Err(err) = fs::write(&file, "ν0(𝜋) ↦ ⟦ Δ ↦ 0x002A ⟧") {
+                errors.lock().unwrap().push(format!("write {}: {}", path, err));
+                return;
+            }
+            let result = cli::run(&vec!["phie".to_string(), path.clone()]);
+            if let Err(err) = fs::remove_file(&file) {
+                errors.lock().unwrap().push(format!("remove {}: {}", path, err));
+            }
+            if !matches!(result.as_deref(), Ok("42")) {
+                errors.lock().unwrap()
+                    .push(format!("run {} returned {:?}", path, result));
+            }
+        }));
+    }
+    for handle in handles {
+        handle.join().unwrap();
+    }
+    let errors = errors.lock().unwrap();
+    assert!(errors.is_empty(), "parallel mktemp users clashed: {:?}", *errors);
+    let collected = collected.lock().unwrap();
+    let unique: std::collections::HashSet<&String> = collected.iter().collect();
+    assert_eq!(
+        collected.len(),
+        unique.len(),
+        "mktemp returned duplicate paths under parallel use: {:?}",
+        *collected
+    );
+}
