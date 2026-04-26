@@ -4,10 +4,15 @@
 use phie::cli;
 use std::fs;
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicU64, Ordering};
+
+static MKTEMP_COUNTER: AtomicU64 = AtomicU64::new(0);
 
 fn mktemp(filename: &str) -> (PathBuf, String) {
+    let serial = MKTEMP_COUNTER.fetch_add(1, Ordering::Relaxed);
+    let pid = std::process::id();
     let mut file = std::env::temp_dir();
-    file.push(filename);
+    file.push(format!("phie-{pid}-{serial}-{filename}"));
     let path = file.clone().into_os_string().into_string().unwrap();
     (file, path)
 }
