@@ -215,15 +215,23 @@ fn parallel_mktemp_users_do_not_clash() {
             let (file, path) = mktemp("phie_test_parallel.phie");
             collected.lock().unwrap().push(path.clone());
             if let Err(err) = fs::write(&file, "ν0(𝜋) ↦ ⟦ Δ ↦ 0x002A ⟧") {
-                errors.lock().unwrap().push(format!("write {}: {}", path, err));
+                errors
+                    .lock()
+                    .unwrap()
+                    .push(format!("write {}: {}", path, err));
                 return;
             }
-            let result = cli::run(&vec!["phie".to_string(), path.clone()]);
+            let result = cli::run(&["phie".to_string(), path.clone()]);
             if let Err(err) = fs::remove_file(&file) {
-                errors.lock().unwrap().push(format!("remove {}: {}", path, err));
+                errors
+                    .lock()
+                    .unwrap()
+                    .push(format!("remove {}: {}", path, err));
             }
             if !matches!(result.as_deref(), Ok("42")) {
-                errors.lock().unwrap()
+                errors
+                    .lock()
+                    .unwrap()
                     .push(format!("run {} returned {:?}", path, result));
             }
         }));
@@ -232,7 +240,11 @@ fn parallel_mktemp_users_do_not_clash() {
         handle.join().unwrap();
     }
     let errors = errors.lock().unwrap();
-    assert!(errors.is_empty(), "parallel mktemp users clashed: {:?}", *errors);
+    assert!(
+        errors.is_empty(),
+        "parallel mktemp users clashed: {:?}",
+        *errors
+    );
     let collected = collected.lock().unwrap();
     let unique: std::collections::HashSet<&String> = collected.iter().collect();
     assert_eq!(
