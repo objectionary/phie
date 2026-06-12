@@ -18,7 +18,7 @@ strum_macros = "0.27"
 itertools = "0.14"
 arr_macro = "0.2"
 log = "0.4"
-ctor = "0.6"
+ctor = "1.0"
 rstest = "0.26"
 
 [dev-dependencies]
