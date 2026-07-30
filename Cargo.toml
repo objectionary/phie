@@ -20,6 +20,8 @@ arr_macro = "0.2"
 log = "0.4"
 ctor = "0.6"
 rstest = "0.26"
+sodg = "0.0.32"
+libloading = "0.9"
 
 [dev-dependencies]
 assert_cmd = "2.0"
