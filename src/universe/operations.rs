@@ -324,6 +324,44 @@ mod tests {
     }
 
     #[test]
+    fn test_dataize_reads_graph_when_cache_is_cold() {
+        let mut ops = Operations::new();
+        let v = ops.next_id();
+        ops.add(v).unwrap();
+        ops.put(v, 7).unwrap();
+        ops.cache = Cache::new();
+        assert_eq!(ops.dataize(v).unwrap(), 7);
+        assert_eq!(ops.cache.get(v), Some(7));
+    }
+
+    #[test]
+    fn test_dataize_fails_on_data_of_wrong_length() {
+        let mut ops = Operations::new();
+        let v = ops.next_id();
+        ops.add(v).unwrap();
+        ops.sodg.put(v, &Hex::from_vec(vec![1])).unwrap();
+        ops.cache = Cache::new();
+        let err = ops.dataize(v).unwrap_err();
+        assert!(err.contains("expected 2 bytes, got 1"), "{err}");
+    }
+
+    #[test]
+    fn test_dataize_fails_on_vertex_without_data() {
+        let mut ops = Operations::new();
+        let v = ops.next_id();
+        ops.add(v).unwrap();
+        let err = ops.dataize(v).unwrap_err();
+        assert!(err.contains("expected 2 bytes, got 0"), "{err}");
+    }
+
+    #[test]
+    fn test_dataize_fails_on_unknown_vertex() {
+        let mut ops = Operations::new();
+        let err = ops.dataize(99).unwrap_err();
+        assert!(err.contains("Failed to get data"), "{err}");
+    }
+
+    #[test]
     fn test_bind_vertices() {
         let mut ops = Operations::new();
         let v1 = ops.next_id();
