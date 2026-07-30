@@ -196,8 +196,8 @@ pub extern "C" fn f(_uni: *mut u8, _v: u32) -> i16 {
 }
 "#;
         let result = engine.compile_and_execute("integration", source, 0);
-        if result.is_ok() {
-            assert_eq!(result.unwrap(), 999);
+        if let Ok(value) = result {
+            assert_eq!(value, 999);
         }
     }
 
@@ -224,8 +224,8 @@ pub extern "C" fn f(_uni: *mut u8, _v: u32) -> i16 {
         engine.register("exec_flow", source);
         if engine.compile("exec_flow").is_ok() {
             let result = engine.execute("exec_flow", 0);
-            if result.is_ok() {
-                assert_eq!(result.unwrap(), 777);
+            if let Ok(value) = result {
+                assert_eq!(value, 777);
             }
         }
     }

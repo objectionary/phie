@@ -323,8 +323,8 @@ pub extern "C" fn f(_universe: *mut c_void, _vertex: u32) -> i16 {
 "#;
         let temp_dir = std::env::temp_dir().join("phie_test_complex");
         let result = compile("complex", source, temp_dir.to_str().unwrap());
-        if result.is_ok() {
-            assert!(result.unwrap().exists());
+        if let Ok(lib_path) = result {
+            assert!(lib_path.exists());
         }
         fs::remove_dir_all(&temp_dir).ok();
     }
@@ -387,8 +387,7 @@ pub extern "C" fn f(_universe: *mut c_void, _vertex: u32) -> i16 {
         "#;
         let temp_dir = std::env::temp_dir().join("phie_test_whitespace");
         let result = compile("whitespace", source, temp_dir.to_str().unwrap());
-        if result.is_ok() {
-            let lib_path = result.unwrap();
+        if let Ok(lib_path) = result {
             assert!(lib_path.exists());
             assert!(lib_path.to_str().unwrap().contains("whitespace"));
         }
@@ -432,8 +431,8 @@ pub extern "C" fn f(_universe: *mut c_void, _vertex: u32) -> i16 {
         let source = r#"#[no_mangle] pub extern "C" fn f(_u: *mut u8, _v: u32) -> i16 { 0 }"#;
         let temp_dir = std::env::temp_dir().join("phie_test_minimal");
         let result = compile("minimal", source, temp_dir.to_str().unwrap());
-        if result.is_ok() {
-            assert!(result.unwrap().exists());
+        if let Ok(lib_path) = result {
+            assert!(lib_path.exists());
         }
         fs::remove_dir_all(&temp_dir).ok();
     }

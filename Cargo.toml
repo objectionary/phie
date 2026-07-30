@@ -1,19 +1,14 @@
 [package]
 name = "phie"
 version = "0.0.0"
-edition = "2024"
+edition = "2021"
 repository = "https://github.com/objectionary/phie"
 description = "Experimental emulator of a machine that understands 𝜑-calculus expressions"
 readme = "README.md"
 license-file = "LICENSE.txt"
 homepage = "https://github.com/objectionary/phie"
 keywords = ["eolang", "compiler", "emulator", "oop"]
-categories = [
-  "command-line-utilities",
-  "development-tools",
-  "emulators",
-  "virtualization",
-]
+categories = ["command-line-utilities", "development-tools", "emulators", "virtualization"]
 
 [dependencies]
 regex = "1.12"

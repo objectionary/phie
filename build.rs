@@ -4,7 +4,7 @@
 use std::env;
 use std::fs;
 use std::io::Write;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 
 fn main() {
@@ -23,7 +23,7 @@ fn main() {
     println!("cargo:rerun-if-changed=build.rs");
 }
 
-fn compile_test_lib(dir: &PathBuf, name: &str, return_value: &str) {
+fn compile_test_lib(dir: &Path, name: &str, return_value: &str) {
     let source = format!(
         r#"
 #[unsafe(no_mangle)]
@@ -35,7 +35,7 @@ pub extern "C" fn f(_universe: *mut u8, _vertex: u32) -> i16 {{
     compile_lib(dir, name, &source);
 }
 
-fn compile_test_lib_vertex(dir: &PathBuf) {
+fn compile_test_lib_vertex(dir: &Path) {
     let source = r#"
 #[unsafe(no_mangle)]
 pub extern "C" fn f(_universe: *mut u8, vertex: u32) -> i16 {
@@ -45,7 +45,7 @@ pub extern "C" fn f(_universe: *mut u8, vertex: u32) -> i16 {
     compile_lib(dir, "test_vertex", source);
 }
 
-fn compile_test_lib_counter(dir: &PathBuf) {
+fn compile_test_lib_counter(dir: &Path) {
     let source = r#"
 static mut COUNTER: i16 = 0;
 #[unsafe(no_mangle)]
@@ -59,7 +59,7 @@ pub extern "C" fn f(_universe: *mut u8, _vertex: u32) -> i16 {
     compile_lib(dir, "test_counter", source);
 }
 
-fn compile_test_lib_no_f(dir: &PathBuf) {
+fn compile_test_lib_no_f(dir: &Path) {
     let source = r#"
 #[unsafe(no_mangle)]
 pub extern "C" fn wrong_name(_universe: *mut u8, _vertex: u32) -> i16 {
@@ -69,7 +69,7 @@ pub extern "C" fn wrong_name(_universe: *mut u8, _vertex: u32) -> i16 {
     compile_lib(dir, "test_no_f", source);
 }
 
-fn compile_lib(dir: &PathBuf, name: &str, source: &str) {
+fn compile_lib(dir: &Path, name: &str, source: &str) {
     let lib_dir = dir.join(name);
     fs::create_dir_all(&lib_dir).unwrap();
     let cargo_toml = format!(

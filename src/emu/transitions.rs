@@ -41,11 +41,10 @@ impl Emu {
                     continue;
                 }
                 for k in bsk.kids.keys() {
-                    if let Some(Kid::Wait(b, l)) = &bsk.kids.get(k)
-                        && *b == bk
-                        && *l == loc
-                    {
-                        changes.push((i as Bk, k.clone(), *d));
+                    if let Some(Kid::Wait(b, l)) = &bsk.kids.get(k) {
+                        if *b == bk && *l == loc {
+                            changes.push((i as Bk, k.clone(), *d));
+                        }
                     }
                     perf.tick(Transition::PPG);
                 }
@@ -82,10 +81,10 @@ impl Emu {
                     }
                     perf.tick(Transition::DEL);
                     for v in wbsk.kids.values() {
-                        if let Kid::Wait(b, _) = v
-                            && *b == bk
-                        {
-                            ready = false
+                        if let Kid::Wait(b, _) = v {
+                            if *b == bk {
+                                ready = false
+                            }
                         }
                     }
                 }
@@ -102,7 +101,7 @@ impl Emu {
     /// Give control to the atom of the basket.
     pub fn delegate(&mut self, perf: &mut Perf, bk: Bk) {
         let bsk = self.basket(bk);
-        if let Some(Kid::Rqtd) = bsk.kids.get(&Loc::Phi)
+        if matches!(bsk.kids.get(&Loc::Phi), Some(Kid::Rqtd))
             && !bsk.kids.values().any(|k| matches!(&k, Kid::Wait(_, _)))
         {
             let obj = self.object(bsk.ob);
@@ -242,13 +241,13 @@ impl Emu {
             ob = next;
             ret = Ok((next, psi, attr.clone()))
         };
-        if let Ok((next, _psi, _attr)) = ret.clone()
-            && self.object(next).is_empty()
-        {
-            return Err(format!(
-                "Object ν{} is found by β{}.{}, but it's empty",
-                next, bk, locator
-            ));
+        if let Ok((next, _psi, _attr)) = ret.clone() {
+            if self.object(next).is_empty() {
+                return Err(format!(
+                    "Object ν{} is found by β{}.{}, but it's empty",
+                    next, bk, locator
+                ));
+            }
         }
         if let Ok((ob, psi, attr_opt)) = &ret {
             trace!(

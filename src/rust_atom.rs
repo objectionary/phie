@@ -14,7 +14,7 @@ mod compilation;
 mod execution;
 
 pub use compilation::{compile, write_cargo_toml, write_lib_rs};
-pub use execution::{RustAtomFn, execute};
+pub use execution::{execute, RustAtomFn};
 
 use crate::data::Data;
 use crate::universe::Universe;
@@ -187,8 +187,8 @@ pub extern "C" fn f(_uni: *mut u8, _v: u32) -> i16 {
         if atom.compile(temp_dir.to_str().unwrap()).is_ok() {
             let mut uni = Universe::new();
             let result = atom.execute(&mut uni, 0);
-            if result.is_ok() {
-                assert_eq!(result.unwrap(), 100);
+            if let Ok(value) = result {
+                assert_eq!(value, 100);
             }
         }
         fs::remove_dir_all(&temp_dir).ok();

@@ -207,12 +207,10 @@ fn test_propagate_with_non_dtzd_loc() {
     emu.inject(2, Basket::from_str("[ν2, ξ:β0, 𝜑→?]").unwrap());
     let mut perf = Perf::new();
     emu.propagate(&mut perf, 2, crate::loc::Loc::Phi);
-    assert!(matches!(
-        emu.basket(1)
-            .kids
-            .get(&crate::loc::Loc::from_str("𝛼0").unwrap()),
-        None
-    ));
+    assert!(!emu
+        .basket(1)
+        .kids
+        .contains_key(&crate::loc::Loc::from_str("𝛼0").unwrap()));
 }
 
 #[test]
