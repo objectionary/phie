@@ -4,4 +4,3 @@ node_modules/
 target/
 *.profraw
 tarpaulin-report.html
-lcov.info
