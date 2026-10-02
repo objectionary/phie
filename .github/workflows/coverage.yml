@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 ---
 # yamllint disable rule:line-length
-name: tarpaulin
+name: coverage
 'on':
   push:
   pull_request:
@@ -10,19 +10,19 @@ jobs:
   check:
     timeout-minutes: 15
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - uses: actions/checkout@v5
-      - name: Install OpenSSL 1.1
-        run: |
-          wget http://archive.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.1f-1ubuntu2_amd64.deb
-          sudo dpkg -i libssl1.1_1.1.1f-1ubuntu2_amd64.deb
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: stable
-      - uses: actions-rs/tarpaulin@v0.1
-        with:
-          version: '0.22.0'
-          args: '--all-features --exclude-files src/lib.rs -- --test-threads 1'
+          components: llvm-tools-preview
+      - uses: taiki-e/install-action@cargo-llvm-cov
+      - run: cargo llvm-cov --all-features --ignore-filename-regex 'src/lib\.rs$' --lcov --output-path lcov.info -- --test-threads 1
       - uses: codecov/codecov-action@v5
         with:
+          files: lcov.info
           fail_ci_if_error: true
+          use_oidc: true
