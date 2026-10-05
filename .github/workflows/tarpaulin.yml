@@ -6,6 +6,9 @@ name: tarpaulin
 'on':
   push:
   pull_request:
+concurrency:
+  group: tarpaulin-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   check:
     timeout-minutes: 15
