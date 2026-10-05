@@ -7,7 +7,7 @@ name: cargo
   push:
   pull_request:
 concurrency:
-  group: ${{ github.ref }}
+  group: cargo-${{ github.ref }}
   cancel-in-progress: true
 jobs:
   build:
