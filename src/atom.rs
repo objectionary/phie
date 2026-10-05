@@ -9,19 +9,28 @@ use crate::loc::Loc;
 pub type Atom = fn(&mut Emu, Bk) -> Option<Data>;
 
 pub fn int_add(emu: &mut Emu, bk: Bk) -> Option<Data> {
-    Some(emu.read(bk, Loc::Rho)? + emu.read(bk, Loc::Attr(0))?)
+    Some(
+        emu.read(bk, Loc::Rho)?
+            .wrapping_add(emu.read(bk, Loc::Attr(0))?),
+    )
 }
 
 pub fn int_times(emu: &mut Emu, bk: Bk) -> Option<Data> {
-    Some(emu.read(bk, Loc::Rho)? * emu.read(bk, Loc::Attr(0))?)
+    Some(
+        emu.read(bk, Loc::Rho)?
+            .wrapping_mul(emu.read(bk, Loc::Attr(0))?),
+    )
 }
 
 pub fn int_neg(emu: &mut Emu, bk: Bk) -> Option<Data> {
-    Some(-emu.read(bk, Loc::Rho)?)
+    Some(emu.read(bk, Loc::Rho)?.wrapping_neg())
 }
 
 pub fn int_sub(emu: &mut Emu, bk: Bk) -> Option<Data> {
-    Some(emu.read(bk, Loc::Rho)? - emu.read(bk, Loc::Attr(0))?)
+    Some(
+        emu.read(bk, Loc::Rho)?
+            .wrapping_sub(emu.read(bk, Loc::Attr(0))?),
+    )
 }
 
 pub fn int_div(emu: &mut Emu, bk: Bk) -> Option<Data> {
@@ -146,6 +155,60 @@ pub fn int_less_works() {
         ν1(𝜋) ↦ ⟦ Δ ↦ 0x002A ⟧
         ν2(𝜋) ↦ ⟦ λ ↦ int-less, ρ ↦ ν1, 𝛼0 ↦ ν3 ⟧
         ν3(𝜋) ↦ ⟦ Δ ↦ 0x002B ⟧
+    "
+    );
+}
+
+#[test]
+pub fn int_add_wraps_on_overflow() {
+    assert_dataized_eq!(
+        i16::MIN,
+        "
+        ν0(𝜋) ↦ ⟦ 𝜑 ↦ ν2 ⟧
+        ν1(𝜋) ↦ ⟦ Δ ↦ 0x7FFF ⟧
+        ν2(𝜋) ↦ ⟦ λ ↦ int-add, ρ ↦ ν1, 𝛼0 ↦ ν3 ⟧
+        ν3(𝜋) ↦ ⟦ Δ ↦ 0x0001 ⟧
+    "
+    );
+}
+
+#[test]
+pub fn int_times_wraps_on_overflow() {
+    assert_dataized_eq!(
+        -2,
+        "
+        ν0(𝜋) ↦ ⟦ 𝜑 ↦ ν2 ⟧
+        ν1(𝜋) ↦ ⟦ Δ ↦ 0x7FFF ⟧
+        ν2(𝜋) ↦ ⟦ λ ↦ int-times, ρ ↦ ν1, 𝛼0 ↦ ν3 ⟧
+        ν3(𝜋) ↦ ⟦ Δ ↦ 0x0002 ⟧
+    "
+    );
+}
+
+#[test]
+pub fn int_sub_wraps_on_overflow() {
+    assert_dataized_eq!(
+        i16::MAX,
+        "
+        ν0(𝜋) ↦ ⟦ 𝜑 ↦ ν4 ⟧
+        ν1(𝜋) ↦ ⟦ Δ ↦ 0x7FFF ⟧
+        ν2(𝜋) ↦ ⟦ λ ↦ int-add, ρ ↦ ν1, 𝛼0 ↦ ν3 ⟧
+        ν3(𝜋) ↦ ⟦ Δ ↦ 0x0001 ⟧
+        ν4(𝜋) ↦ ⟦ λ ↦ int-sub, ρ ↦ ν2, 𝛼0 ↦ ν3 ⟧
+    "
+    );
+}
+
+#[test]
+pub fn int_neg_wraps_on_overflow() {
+    assert_dataized_eq!(
+        i16::MIN,
+        "
+        ν0(𝜋) ↦ ⟦ 𝜑 ↦ ν4 ⟧
+        ν1(𝜋) ↦ ⟦ Δ ↦ 0x7FFF ⟧
+        ν2(𝜋) ↦ ⟦ λ ↦ int-add, ρ ↦ ν1, 𝛼0 ↦ ν3 ⟧
+        ν3(𝜋) ↦ ⟦ Δ ↦ 0x0001 ⟧
+        ν4(𝜋) ↦ ⟦ λ ↦ int-neg, ρ ↦ ν2 ⟧
     "
     );
 }
