@@ -12,6 +12,9 @@ pub mod loc;
 pub mod locator;
 pub mod object;
 pub mod perf;
+pub mod rust_atom;
+pub mod rust_engine;
+pub mod universe;
 
 #[cfg(test)]
 use simple_logger::SimpleLogger;

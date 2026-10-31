@@ -101,17 +101,17 @@ impl Emu {
     /// Give control to the atom of the basket.
     pub fn delegate(&mut self, perf: &mut Perf, bk: Bk) {
         let bsk = self.basket(bk);
-        if let Some(Kid::Rqtd) = bsk.kids.get(&Loc::Phi) {
-            if !bsk.kids.values().any(|k| matches!(&k, Kid::Wait(_, _))) {
-                let obj = self.object(bsk.ob);
-                if let Some((n, func)) = &obj.lambda {
-                    let name = n.clone();
-                    perf.hit(Transition::DLG);
-                    if let Some(d) = func(self, bk) {
-                        perf.atom(name);
-                        let _ = &self.baskets[bk as usize].put(Loc::Phi, Kid::Dtzd(d));
-                        trace!("delegate(β{}) -> 0x{:04X}", bk, d);
-                    }
+        if matches!(bsk.kids.get(&Loc::Phi), Some(Kid::Rqtd))
+            && !bsk.kids.values().any(|k| matches!(&k, Kid::Wait(_, _)))
+        {
+            let obj = self.object(bsk.ob);
+            if let Some((n, func)) = &obj.lambda {
+                let name = n.clone();
+                perf.hit(Transition::DLG);
+                if let Some(d) = func(self, bk) {
+                    perf.atom(name);
+                    let _ = &self.baskets[bk as usize].put(Loc::Phi, Kid::Dtzd(d));
+                    trace!("delegate(β{}) -> 0x{:04X}", bk, d);
                 }
             }
         }
@@ -218,7 +218,7 @@ impl Emu {
                                 loc,
                                 ob,
                                 join!(log)
-                            ))
+                            ));
                         }
                         Some((p, _psi)) => {
                             locs.insert(0, loc.clone());
