@@ -47,12 +47,37 @@ use crate::emu::{Emu, Opt};
 /// ```
 pub fn parse_args(args: &[String]) -> Result<String, String> {
     if args.len() < 2 {
-        return Err(format!(
-            "Usage: {} <file.phie>",
-            args.first().map(|s| s.as_str()).unwrap_or("phie")
-        ));
+        return Err(usage(args));
     }
     Ok(args[1].clone())
+}
+
+/// Builds the usage line, naming the binary the way it was invoked.
+///
+/// # Arguments
+///
+/// * `args` - Command line arguments including program name
+///
+/// # Examples
+///
+/// ```
+/// use phie::cli::usage;
+///
+/// let args = vec!["phie".to_string()];
+/// assert_eq!(usage(&args), "Usage: phie <file.phie>");
+/// ```
+pub fn usage(args: &[String]) -> String {
+    format!(
+        "Usage: {} <file.phie>",
+        args.first().map(|s| s.as_str()).unwrap_or("phie")
+    )
+}
+
+/// Tells whether the arguments ask for the usage line instead of a program.
+fn help_requested(args: &[String]) -> bool {
+    args.iter()
+        .skip(1)
+        .any(|arg| arg == "--help" || arg == "-h")
 }
 
 /// Reads and returns content from a phie program file.
@@ -139,6 +164,9 @@ pub fn execute_phie(content: &str) -> Result<Data, String> {
 /// }
 /// ```
 pub fn run(args: &[String]) -> Result<String, String> {
+    if help_requested(args) {
+        return Ok(usage(args));
+    }
     let file_path = parse_args(args)?;
     let content = read_phie_file(&file_path)?;
     let result = execute_phie(&content)?;
