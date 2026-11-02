@@ -254,3 +254,19 @@ fn parallel_mktemp_users_do_not_clash() {
         *collected
     );
 }
+
+#[test]
+fn prints_usage_when_help_is_requested() {
+    let args = vec!["phie".to_string(), "--help".to_string()];
+    let result = cli::run(&args);
+    assert!(result.is_ok(), "{}", result.unwrap_err());
+    assert!(result.unwrap().contains("Usage: phie <file.phie>"));
+}
+
+#[test]
+fn prints_usage_when_help_is_requested_briefly() {
+    let args = vec!["phie".to_string(), "-h".to_string()];
+    let result = cli::run(&args);
+    assert!(result.is_ok(), "{}", result.unwrap_err());
+    assert!(result.unwrap().contains("Usage: phie <file.phie>"));
+}
