@@ -28,6 +28,20 @@ pub fn atom(uni: &Universe, v: u32) -> Result<i16, String> {
 }
 
 #[test]
+#[should_panic(expected = "is not registered")]
+fn panics_when_rust_atom_not_registered() {
+    let mut emu: Emu = "
+        ν0(𝜋) ↦ ⟦ 𝜑 ↦ ν2 ⟧
+        ν2(𝜋) ↦ ⟦ λ ↦ rust, 𝛼0 ↦ ν3(𝜋) ⟧
+        ν3(𝜋) ↦ ⟦ Δ ↦ 0x002A ⟧
+    "
+    .parse()
+    .expect("the program must parse");
+    emu.opt(Opt::StopWhenTooManyCycles);
+    let _ = emu.dataize().0;
+}
+
+#[test]
 fn dataizes_rust_atom_reading_one_attribute() {
     let source = r#"
 pub fn atom(uni: &Universe, v: u32) -> Result<i16, String> {

@@ -122,17 +122,17 @@ impl RustEngine {
 
 /// The `rust` atom: dataizes an object backed by a compiled Rust atom.
 ///
-/// Returns `None` while the engine, the registration, or any `𝛼` of the
-/// object is not ready yet, exactly like the built-in atoms do. Once every
-/// `𝛼` carries data, the engine seeds a fresh vertex of the [`Universe`]
-/// with one labelled edge per `𝛼`, compiles the atom if needed, and calls
-/// it; the atom then reads its arguments through `uni.dataize("vN.𝛼0")`.
+/// Returns `None` while any `𝛼` of the object is not dataized yet,
+/// exactly like the built-in atoms do. Once every `𝛼` carries data, the
+/// engine seeds a fresh vertex of the [`Universe`] with one labelled edge
+/// per `𝛼`, compiles the atom if needed, and calls it; the atom then
+/// reads its arguments through `uni.dataize("vN.𝛼0")`.
 ///
 /// # Panics
 ///
-/// Panics with a descriptive message when compilation or execution of a
-/// ready atom fails, the same way the emulator panics on unresolvable
-/// states.
+/// Panics with a descriptive message when the atom of the object was
+/// never registered, or when compilation or execution of a ready atom
+/// fails, the same way the emulator panics on unresolvable states.
 ///
 /// # Examples
 ///
@@ -153,8 +153,8 @@ impl RustEngine {
 /// ```
 pub fn rust_atom(emu: &mut Emu, bk: Bk) -> Option<Data> {
     let ob = emu.basket(bk).ob;
-    if !emu.rust.as_ref().is_some_and(|engine| engine.contains(ob)) {
-        return None;
+    if emu.rust.as_ref().is_none_or(|engine| !engine.contains(ob)) {
+        panic!("The Rust atom of ν{ob} is not registered; call Emu::register_rust_atom first");
     }
     let attrs: Vec<i8> = emu
         .object(ob)
