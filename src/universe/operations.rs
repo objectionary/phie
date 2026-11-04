@@ -129,12 +129,13 @@ impl Operations {
     /// ops.put(v, 42).unwrap();
     /// ```
     pub fn put(&mut self, v: VertexId, data: Data) -> Result<(), String> {
-        self.cache.put(v, data);
         let bytes = data.to_be_bytes().to_vec();
         let hex = Hex::from_vec(bytes);
         self.sodg
             .put(v, &hex)
-            .map_err(|e| format!("Failed to put data: {e}"))
+            .map_err(|e| format!("Failed to put data: {e}"))?;
+        self.cache.put(v, data);
+        Ok(())
     }
 
     /// Retrieves and dataizes a vertex value.
@@ -224,46 +225,88 @@ impl Operations {
             .map_err(|e| format!("Failed to bind: {e}"))
     }
 
-    /// Parses a vertex path string into a vertex ID.
+    /// Resolves a vertex path to the vertex ID it points at.
     ///
-    /// Supports simple vertex references in the format "vN" where N
-    /// is the vertex ID number. More complex path navigation is not
-    /// yet implemented.
+    /// The path starts with a vertex reference `vN`, where N is the vertex
+    /// ID number, and may continue with edge labels separated by dots,
+    /// such as `v1.𝛼0` or `v1.𝛼0.𝛼1`. Every label is followed through
+    /// the graph edges with `Sodg::kid`, and a missing edge is an error.
     ///
     /// # Arguments
     ///
-    /// * `path` - Path string (e.g., "v0", "v42")
+    /// * `path` - Path string (e.g., "v0", "v1.𝛼0")
     ///
     /// # Returns
     ///
-    /// The parsed vertex ID
+    /// The ID of the vertex the path points at
     ///
     /// # Errors
     ///
     /// Returns an error if:
-    /// - The path doesn't start with 'v'
-    /// - The ID portion is not a valid number
+    /// - The path doesn't start with `v` followed by a number
+    /// - Any label along the path has no matching edge
     ///
     /// # Examples
     ///
     /// ```
     /// use phie::universe::Operations;
     ///
-    /// let ops = Operations::new();
-    /// assert_eq!(ops.parse_path("v0").unwrap(), 0);
-    /// assert_eq!(ops.parse_path("v123").unwrap(), 123);
-    /// assert!(ops.parse_path("invalid").is_err());
+    /// let mut ops = Operations::new();
+    /// let v1 = ops.next_id();
+    /// let v2 = ops.next_id();
+    /// ops.add(v1).unwrap();
+    /// ops.add(v2).unwrap();
+    /// ops.bind(v1, v2, "𝛼0").unwrap();
+    /// assert_eq!(ops.resolve_path("v0").unwrap(), 0);
+    /// assert_eq!(ops.resolve_path("v0.𝛼0").unwrap(), 1);
+    /// assert!(ops.resolve_path("v0.𝛼1").is_err());
     /// ```
-    pub fn parse_path(&self, path: &str) -> Result<VertexId, String> {
-        if !path.starts_with('v') {
+    pub fn resolve_path(&self, path: &str) -> Result<VertexId, String> {
+        let mut parts = path.split('.');
+        let head = parts.next().unwrap_or_default();
+        if !head.starts_with('v') {
             return Err(format!("Invalid path format: {path}"));
         }
-
-        let parts: Vec<&str> = path.split('.').collect();
-        let id_str = &parts[0][1..];
-        id_str
+        let mut v = head[1..]
             .parse::<VertexId>()
-            .map_err(|e| format!("Invalid vertex ID: {e}"))
+            .map_err(|e| format!("Invalid vertex ID: {e}"))?;
+        for label in parts {
+            v = self
+                .sodg
+                .kid(v, label)
+                .ok_or_else(|| format!("No edge '{label}' from vertex {v} in path: {path}"))?;
+        }
+        Ok(v)
+    }
+
+    /// Dataizes the vertex a path points at.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - Path string (e.g., "v0", "v1.𝛼0")
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the path cannot be resolved or the vertex
+    /// reached holds no data of the right length.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use phie::universe::Operations;
+    ///
+    /// let mut ops = Operations::new();
+    /// let v1 = ops.next_id();
+    /// let v2 = ops.next_id();
+    /// ops.add(v1).unwrap();
+    /// ops.add(v2).unwrap();
+    /// ops.bind(v1, v2, "𝛼0").unwrap();
+    /// ops.put(v2, 42).unwrap();
+    /// assert_eq!(ops.dataize_path("v0.𝛼0").unwrap(), 42);
+    /// ```
+    pub fn dataize_path(&mut self, path: &str) -> Result<Data, String> {
+        let v = self.resolve_path(path)?;
+        self.dataize(v)
     }
 }
 
@@ -372,20 +415,80 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_path_valid() {
+    fn test_resolve_path_valid() {
         let ops = Operations::new();
-        assert_eq!(ops.parse_path("v0").unwrap(), 0);
-        assert_eq!(ops.parse_path("v1").unwrap(), 1);
-        assert_eq!(ops.parse_path("v999").unwrap(), 999);
+        assert_eq!(ops.resolve_path("v0").unwrap(), 0);
+        assert_eq!(ops.resolve_path("v1").unwrap(), 1);
+        assert_eq!(ops.resolve_path("v999").unwrap(), 999);
     }
 
     #[test]
-    fn test_parse_path_invalid() {
+    fn test_resolve_path_invalid() {
         let ops = Operations::new();
-        assert!(ops.parse_path("invalid").is_err());
-        assert!(ops.parse_path("x123").is_err());
-        assert!(ops.parse_path("").is_err());
-        assert!(ops.parse_path("vabc").is_err());
+        assert!(ops.resolve_path("invalid").is_err());
+        assert!(ops.resolve_path("x123").is_err());
+        assert!(ops.resolve_path("").is_err());
+        assert!(ops.resolve_path("vabc").is_err());
+    }
+
+    #[test]
+    fn test_resolve_path_walks_edges() {
+        let mut ops = Operations::new();
+        let v1 = ops.next_id();
+        let v2 = ops.next_id();
+        let v3 = ops.next_id();
+        ops.add(v1).unwrap();
+        ops.add(v2).unwrap();
+        ops.add(v3).unwrap();
+        ops.bind(v1, v2, "𝛼0").unwrap();
+        ops.bind(v2, v3, "𝛼1").unwrap();
+        assert_eq!(ops.resolve_path("v0.𝛼0").unwrap(), 1);
+        assert_eq!(ops.resolve_path("v0.𝛼0.𝛼1").unwrap(), 2);
+    }
+
+    #[test]
+    fn test_resolve_path_fails_on_missing_edge() {
+        let mut ops = Operations::new();
+        let v1 = ops.next_id();
+        let v2 = ops.next_id();
+        ops.add(v1).unwrap();
+        ops.add(v2).unwrap();
+        ops.bind(v1, v2, "𝛼0").unwrap();
+        let err = ops.resolve_path("v0.𝛼1").unwrap_err();
+        assert!(err.contains("No edge '𝛼1'"), "{err}");
+    }
+
+    #[test]
+    fn test_dataize_path_returns_edge_target_data() {
+        let mut ops = Operations::new();
+        let v1 = ops.next_id();
+        let v2 = ops.next_id();
+        ops.add(v1).unwrap();
+        ops.add(v2).unwrap();
+        ops.bind(v1, v2, "𝛼0").unwrap();
+        ops.put(v1, 10).unwrap();
+        ops.put(v2, 42).unwrap();
+        assert_eq!(ops.dataize_path("v0.𝛼0").unwrap(), 42);
+        assert_eq!(ops.dataize_path("v0").unwrap(), 10);
+    }
+
+    #[test]
+    fn test_dataize_path_fails_on_missing_edge() {
+        let mut ops = Operations::new();
+        let v1 = ops.next_id();
+        ops.add(v1).unwrap();
+        assert!(ops.dataize_path("v0.𝛼0").is_err());
+    }
+
+    #[test]
+    fn test_put_fails_on_unknown_vertex_without_caching() {
+        let mut ops = Operations::new();
+        let v = ops.next_id();
+        assert!(ops.put(v, 42).is_err());
+        assert!(
+            ops.dataize(v).is_err(),
+            "the cache must not hold a rejected value"
+        );
     }
 
     #[test]
