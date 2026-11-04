@@ -11,9 +11,11 @@
 //! a type-safe interface for Rust atoms to perform graph operations during
 //! dataization.
 
+mod abi;
 mod cache;
 mod operations;
 
+pub use abi::{UniverseVTable, ABI_ERR, ABI_OK};
 pub use cache::Cache;
 pub use operations::Operations;
 
@@ -134,6 +136,10 @@ impl Universe {
 
     /// Retrieves and dataizes a vertex by path.
     ///
+    /// The path starts with a vertex reference `vN` and may continue with
+    /// edge labels, such as `v1.𝛼0`; every label is resolved through the
+    /// graph edges and a missing edge is an error.
+    ///
     /// # Arguments
     ///
     /// * `path` - Path to the vertex (e.g., "v1.𝛼0")
@@ -150,8 +156,7 @@ impl Universe {
     /// assert_eq!(uni.dataize("v0").unwrap(), 42);
     /// ```
     pub fn dataize(&mut self, path: &str) -> Result<Data, String> {
-        let v = self.ops.parse_path(path)?;
-        self.dataize_vertex(v)
+        self.ops.dataize_path(path)
     }
 
     /// Retrieves data from a vertex by ID.
