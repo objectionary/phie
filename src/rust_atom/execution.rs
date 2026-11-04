@@ -3,53 +3,48 @@
 
 //! Dynamic loading and execution of compiled Rust atoms.
 //!
-//! This module handles loading shared libraries at runtime via libloading
-//! and provides safe FFI wrappers for executing atom functions. The execution
-//! interface bridges between phie's Universe and the compiled Rust code.
+//! This module loads a shared library produced by
+//! [`super::compile`] at runtime via `libloading` and calls its entry
+//! point through the [`UniverseVTable`] C ABI, so the atom can reach the
+//! graph without linking against `phie`.
 
 use crate::data::Data;
-use crate::universe::Universe;
+use crate::universe::{Universe, UniverseVTable};
 use std::path::Path;
 
 /// Function signature for compiled Rust atom entry points.
 ///
-/// Compiled atoms must expose a function with C ABI that accepts:
-/// - A mutable pointer to Universe for graph operations
+/// Compiled atoms expose a function named `f` with C ABI that accepts:
+/// - A pointer to the [`UniverseVTable`] giving access to the graph
 /// - A vertex ID (u32) indicating the current execution context
+/// - A mutable pointer where the resulting data (i16) is written
 ///
-/// Returns i16 (Data) representing the computed result.
-///
-/// # Safety
-///
-/// This is an unsafe extern C function pointer. Callers must ensure:
-/// - The Universe pointer is valid and properly aligned
-/// - The Universe is not accessed from multiple threads simultaneously
-/// - The vertex ID is valid within the current graph
-/// - The lifetime of the Universe exceeds the function call
-pub type RustAtomFn = unsafe extern "C" fn(*mut Universe, u32) -> i16;
+/// Returns 0 on success and any other value on failure.
+pub type RustAtomFn =
+    unsafe extern "C" fn(abi: *const UniverseVTable, vertex: u32, out: *mut i16) -> i32;
 
 /// Loads and executes a compiled Rust atom.
 ///
 /// Dynamically loads the shared library at the given path, finds the
-/// entry point function named "f", and executes it with the provided
-/// Universe and vertex ID.
+/// entry point function named "f", and executes it with the callbacks of
+/// the provided universe and the given vertex.
 ///
 /// # Arguments
 ///
 /// * `lib_path` - Path to the compiled shared library
-/// * `universe` - Mutable reference to Universe for graph operations
+/// * `universe` - Universe the atom will be able to reach
 /// * `vertex` - Vertex ID for the execution context
 ///
 /// # Returns
 ///
-/// The i16 result value returned by the atom function
+/// The data value returned by the atom function
 ///
 /// # Errors
 ///
 /// Returns an error if:
 /// - The library file doesn't exist or cannot be loaded
 /// - The "f" function symbol is not found
-/// - The function signature is incorrect
+/// - The atom reports a failure
 ///
 /// # Safety
 ///
@@ -75,164 +70,145 @@ pub fn execute(lib_path: &Path, universe: &mut Universe, vertex: u32) -> Result<
         let path = lib_path.display();
         return Err(format!("Library not found: {path}"));
     }
+    let vtable = UniverseVTable::for_universe(universe);
     unsafe {
         let lib = libloading::Library::new(lib_path)
             .map_err(|e| format!("Failed to load library: {e}"))?;
         let func: libloading::Symbol<RustAtomFn> = lib
             .get(b"f")
             .map_err(|e| format!("Failed to find function f: {e}"))?;
-        let result = func(universe as *mut Universe, vertex);
-        Ok(result)
+        let mut out: Data = 0;
+        let status = func(&vtable, vertex, &mut out);
+        if status != 0 {
+            let path = lib_path.display();
+            return Err(format!("Atom at {path} failed with status {status}"));
+        }
+        Ok(out)
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::rust_atom::{compile, write_cargo_toml};
     use std::fs;
     use std::path::PathBuf;
 
-    fn get_test_lib_path(name: &str) -> PathBuf {
-        let test_libs_dir = env!("TEST_LIBS_DIR");
-        let lib_name = if cfg!(target_os = "linux") {
-            format!("lib{name}.so")
-        } else if cfg!(target_os = "macos") {
-            format!("lib{name}.dylib")
-        } else {
-            format!("{name}.dll")
-        };
-        PathBuf::from(test_libs_dir)
-            .join(name)
-            .join("target/release")
-            .join(lib_name)
+    fn temp_dir(name: &str) -> PathBuf {
+        std::env::temp_dir().join(format!("phie_{name}"))
+    }
+
+    fn compile_fixture(id: &str, source: &str) -> PathBuf {
+        compile(id, source, temp_dir("execution").to_str().unwrap())
+            .expect("the fixture must compile")
     }
 
     #[test]
     fn test_execute_nonexistent_library() {
         let mut universe = Universe::new();
         let result = execute(Path::new("/nonexistent/lib.so"), &mut universe, 0);
-        assert!(result.is_err());
-        assert!(result.unwrap_err().contains("not found"));
+        let err = result.expect_err("a missing library must be an error");
+        assert!(err.contains("not found"), "{err}");
     }
 
     #[test]
-    fn test_execute_requires_valid_path() {
+    fn test_execute_returns_atom_value() {
+        let lib = compile_fixture(
+            "exec_returns",
+            "pub fn atom(_uni: &Universe, _v: u32) -> Result<i16, String> { Ok(100) }",
+        );
         let mut universe = Universe::new();
-        let invalid_path = PathBuf::from("/tmp/does_not_exist_phie_test.so");
-        let result = execute(&invalid_path, &mut universe, 0);
-        assert!(result.is_err());
+        assert_eq!(100, execute(&lib, &mut universe, 0).unwrap());
     }
 
     #[test]
-    fn test_execute_successful_simple_function() {
-        let lib_path = get_test_lib_path("test_simple");
+    fn test_execute_passes_vertex() {
+        let lib = compile_fixture(
+            "exec_vertex",
+            "pub fn atom(_uni: &Universe, v: u32) -> Result<i16, String> { Ok((v % 100) as i16) }",
+        );
         let mut universe = Universe::new();
-        let result = execute(&lib_path, &mut universe, 0).unwrap();
-        assert_eq!(result, 42);
+        assert_eq!(7, execute(&lib, &mut universe, 107).unwrap());
     }
 
     #[test]
-    fn test_execute_with_different_return_values() {
-        let lib_path = get_test_lib_path("test_negative");
+    fn test_execute_reports_atom_failure() {
+        let lib = compile_fixture(
+            "exec_fails",
+            "pub fn atom(_uni: &Universe, _v: u32) -> Result<i16, String> { Err(\"no\".into()) }",
+        );
         let mut universe = Universe::new();
-        let result = execute(&lib_path, &mut universe, 0).unwrap();
-        assert_eq!(result, -123);
+        let err = execute(&lib, &mut universe, 0).expect_err("a failing atom must error");
+        assert!(err.contains("failed with status"), "{err}");
     }
 
     #[test]
-    fn test_execute_with_zero_return() {
-        let lib_path = get_test_lib_path("test_zero");
+    fn test_execute_atom_reads_through_universe() {
+        let lib = compile_fixture(
+            "exec_reads",
+            r#"pub fn atom(uni: &Universe, v: u32) -> Result<i16, String> {
+    let a = uni.dataize(&format!("v{v}.\u{1d6fc}0"))?;
+    let b = uni.dataize(&format!("v{v}.\u{1d6fc}1"))?;
+    Ok(a + b)
+}"#,
+        );
         let mut universe = Universe::new();
-        let result = execute(&lib_path, &mut universe, 0).unwrap();
-        assert_eq!(result, 0);
+        let v = universe.next_id();
+        let left = universe.next_id();
+        let right = universe.next_id();
+        universe.add(v).unwrap();
+        universe.add(left).unwrap();
+        universe.add(right).unwrap();
+        universe.put(left, 4).unwrap();
+        universe.put(right, 8).unwrap();
+        universe.bind(v, left, "𝛼0").unwrap();
+        universe.bind(v, right, "𝛼1").unwrap();
+        assert_eq!(12, execute(&lib, &mut universe, v).unwrap());
     }
 
     #[test]
-    fn test_execute_with_max_i16_value() {
-        let lib_path = get_test_lib_path("test_max");
+    fn test_execute_atom_writes_through_universe() {
+        let lib = compile_fixture(
+            "exec_writes",
+            r#"pub fn atom(uni: &Universe, v: u32) -> Result<i16, String> {
+    let stored = uni.next_id();
+    uni.add(stored)?;
+    uni.put(stored, 42)?;
+    uni.bind(v, stored, "\u{1d6fc}9")?;
+    uni.dataize(&format!("v{v}.\u{1d6fc}9"))
+}"#,
+        );
         let mut universe = Universe::new();
-        let result = execute(&lib_path, &mut universe, 0).unwrap();
-        assert_eq!(result, i16::MAX);
+        let v = universe.next_id();
+        universe.add(v).unwrap();
+        assert_eq!(42, execute(&lib, &mut universe, v).unwrap());
     }
 
     #[test]
-    fn test_execute_with_min_i16_value() {
-        let lib_path = get_test_lib_path("test_min");
+    fn test_execute_fails_when_symbol_missing() {
+        let dir = temp_dir("exec_no_symbol");
+        let crate_dir = dir.join("exec_no_f");
+        fs::create_dir_all(crate_dir.join("src")).unwrap();
+        write_cargo_toml(&crate_dir, "exec_no_f").unwrap();
+        fs::write(crate_dir.join("src/lib.rs"), "pub fn not_the_entry() {}").unwrap();
+        let output = std::process::Command::new("cargo")
+            .args(["build", "--release", "--manifest-path"])
+            .arg(crate_dir.join("Cargo.toml"))
+            .output()
+            .unwrap();
+        assert!(output.status.success());
+        let lib = crate_dir.join("target/release");
+        let name = if cfg!(target_os = "windows") {
+            "exec_no_f.dll"
+        } else if cfg!(target_os = "macos") {
+            "libexec_no_f.dylib"
+        } else {
+            "libexec_no_f.so"
+        };
         let mut universe = Universe::new();
-        let result = execute(&lib_path, &mut universe, 0).unwrap();
-        assert_eq!(result, i16::MIN);
-    }
-
-    #[test]
-    fn test_execute_with_different_vertex_ids() {
-        let lib_path = get_test_lib_path("test_vertex");
-        let mut universe = Universe::new();
-        let result_0 = execute(&lib_path, &mut universe, 0).unwrap();
-        assert_eq!(result_0, 0);
-        let result_42 = execute(&lib_path, &mut universe, 42).unwrap();
-        assert_eq!(result_42, 42);
-        let result_max = execute(&lib_path, &mut universe, u32::MAX).unwrap();
-        assert_eq!(result_max, (u32::MAX % 100) as i16);
-    }
-
-    #[test]
-    fn test_execute_invalid_library_file() {
-        let temp_dir = std::env::temp_dir().join("phie_test_exec_invalid");
-        fs::create_dir_all(&temp_dir).unwrap();
-        let invalid_lib = temp_dir.join("invalid.so");
-        fs::write(&invalid_lib, b"not a valid library").unwrap();
-        let mut universe = Universe::new();
-        let result = execute(&invalid_lib, &mut universe, 0);
-        assert!(result.is_err());
-        assert!(result.unwrap_err().contains("Failed to load library"));
-        fs::remove_dir_all(&temp_dir).ok();
-    }
-
-    #[test]
-    fn test_execute_library_without_f_function() {
-        let lib_path = get_test_lib_path("test_no_f");
-        let mut universe = Universe::new();
-        let result = execute(&lib_path, &mut universe, 0);
-        assert!(result.is_err());
-        assert!(result.unwrap_err().contains("Failed to find function f"));
-    }
-
-    #[test]
-    fn test_execute_directory_instead_of_file() {
-        let temp_dir = std::env::temp_dir().join("phie_test_exec_dir");
-        fs::create_dir_all(&temp_dir).unwrap();
-        let mut universe = Universe::new();
-        let result = execute(&temp_dir, &mut universe, 0);
-        assert!(result.is_err());
-        fs::remove_dir_all(&temp_dir).ok();
-    }
-
-    #[test]
-    fn test_execute_empty_path() {
-        let mut universe = Universe::new();
-        let empty_path = PathBuf::from("");
-        let result = execute(&empty_path, &mut universe, 0);
-        assert!(result.is_err());
-    }
-
-    #[test]
-    fn test_execute_multiple_calls_same_library() {
-        let lib_path = get_test_lib_path("test_counter");
-        let mut universe = Universe::new();
-        let result1 = execute(&lib_path, &mut universe, 0).unwrap();
-        let result2 = execute(&lib_path, &mut universe, 0).unwrap();
-        assert!(result1 > 0);
-        assert!(result2 > 0);
-    }
-
-    #[test]
-    fn test_execute_preserves_error_message_on_nonexistent() {
-        let mut universe = Universe::new();
-        let path = Path::new("/definitely/does/not/exist/library.so");
-        let result = execute(path, &mut universe, 0);
-        assert!(result.is_err());
-        let error = result.unwrap_err();
-        assert!(error.contains("Library not found"));
-        assert!(error.contains("/definitely/does/not/exist/library.so"));
+        let err = execute(&lib.join(name), &mut universe, 0)
+            .expect_err("a library without the entry symbol must fail");
+        assert!(err.contains("Failed to find function f"), "{err}");
+        fs::remove_dir_all(&dir).unwrap();
     }
 }

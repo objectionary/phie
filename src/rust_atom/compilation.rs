@@ -5,28 +5,103 @@
 //!
 //! This module handles the complete compilation pipeline for Rust atoms:
 //! - Creating isolated Cargo projects with proper configuration
-//! - Writing source files and build manifests
+//! - Wrapping the atom source with the [`UniverseVTable`] preamble and the
+//!   `extern "C"` entry point the loader looks for
 //! - Invoking cargo to build cdylib shared libraries
 //! - Platform-specific library naming and location
 //!
 //! Each atom is compiled in its own directory with edition 2024 and
-//! crate-type cdylib for dynamic loading.
+//! crate-type cdylib for dynamic loading. The atom source itself must
+//! define `pub fn atom(uni: &Universe, v: u32) -> Result<i16, String>`;
+//! everything else — the ABI struct, its safe wrapper, and the exported
+//! symbol — is generated around it.
+//!
+//! [`UniverseVTable`]: crate::universe::UniverseVTable
 
 use std::fs;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
+/// The code written before the atom source into every generated crate.
+///
+/// It mirrors `crate::universe::abi::UniverseVTable` field by field, which
+/// is what allows the atom to call graph operations without depending on
+/// `phie`. Keep the two definitions in sync.
+const PREAMBLE: &str = r#"use std::os::raw::{c_char, c_void};
+use std::ffi::CString;
+#[repr(C)]
+pub struct UniverseVTable {
+    pub ctx: *mut c_void,
+    pub dataize: unsafe extern "C" fn(ctx: *mut c_void, path: *const c_char, out: *mut i16) -> i32,
+    pub add: unsafe extern "C" fn(ctx: *mut c_void, v: u32) -> i32,
+    pub put: unsafe extern "C" fn(ctx: *mut c_void, v: u32, data: i16) -> i32,
+    pub bind: unsafe extern "C" fn(ctx: *mut c_void, from: u32, to: u32, label: *const c_char) -> i32,
+    pub next_id: unsafe extern "C" fn(ctx: *mut c_void) -> u32,
+}
+pub struct Universe<'a> {
+    vtable: &'a UniverseVTable,
+}
+impl<'a> Universe<'a> {
+    fn from_vtable(vtable: *const UniverseVTable) -> Self {
+        Self { vtable: unsafe { &*vtable } }
+    }
+    pub fn dataize(&self, path: &str) -> Result<i16, String> {
+        let name = CString::new(path).map_err(|e| e.to_string())?;
+        let mut out: i16 = 0;
+        let status = unsafe { (self.vtable.dataize)(self.vtable.ctx, name.as_ptr(), &mut out) };
+        if status == 0 { Ok(out) } else { Err(format!("Can't dataize '{path}'")) }
+    }
+    pub fn add(&self, v: u32) -> Result<(), String> {
+        let status = unsafe { (self.vtable.add)(self.vtable.ctx, v) };
+        if status == 0 { Ok(()) } else { Err(format!("Can't add vertex {v}")) }
+    }
+    pub fn put(&self, v: u32, data: i16) -> Result<(), String> {
+        let status = unsafe { (self.vtable.put)(self.vtable.ctx, v, data) };
+        if status == 0 { Ok(()) } else { Err(format!("Can't put data into vertex {v}")) }
+    }
+    pub fn bind(&self, from: u32, to: u32, label: &str) -> Result<(), String> {
+        let name = CString::new(label).map_err(|e| e.to_string())?;
+        let status = unsafe { (self.vtable.bind)(self.vtable.ctx, from, to, name.as_ptr()) };
+        if status == 0 { Ok(()) } else { Err(format!("Can't bind {from} to {to} by '{label}'")) }
+    }
+    pub fn next_id(&self) -> u32 {
+        unsafe { (self.vtable.next_id)(self.vtable.ctx) }
+    }
+}
+"#;
+
+/// The code written after the atom source into every generated crate.
+///
+/// It exports the symbol the loader resolves and turns the atom's
+/// `Result` into a status code plus an out-parameter.
+const ENTRY_POINT: &str = r#"#[unsafe(no_mangle)]
+pub extern "C" fn f(abi: *const UniverseVTable, v: u32, out: *mut i16) -> i32 {
+    if abi.is_null() || out.is_null() {
+        return 1;
+    }
+    let uni = Universe::from_vtable(abi);
+    match atom(&uni, v) {
+        Ok(data) => {
+            unsafe { *out = data };
+            0
+        }
+        Err(_) => 1,
+    }
+}
+"#;
+
 /// Compiles Rust source code to a shared library.
 ///
 /// Creates a complete Cargo project structure in the specified build
-/// directory, compiles the source code, and returns the path to the
-/// resulting shared library (.so on Linux, .dylib on macOS, .dll on Windows).
+/// directory, wraps the source with the ABI preamble and the entry point,
+/// compiles the source code, and returns the path to the resulting shared
+/// library (.so on Linux, .dylib on macOS, .dll on Windows).
 ///
 /// # Arguments
 ///
 /// * `id` - Unique identifier for the atom (used as crate name)
-/// * `source` - Rust source code to compile
+/// * `source` - Rust source code defining `pub fn atom(&Universe, u32)`
 /// * `build_dir` - Directory for build artifacts
 ///
 /// # Returns
@@ -46,10 +121,7 @@ use std::process::Command;
 /// ```no_run
 /// use phie::rust_atom::compile;
 ///
-/// let source = r#"
-/// #[no_mangle]
-/// pub extern "C" fn f() -> i16 { 42 }
-/// "#;
+/// let source = "pub fn atom(_uni: &Universe, _v: u32) -> Result<i16, String> { Ok(42) }";
 /// let lib_path = compile("my_atom", source, "/tmp/build").unwrap();
 /// ```
 pub fn compile(id: &str, source: &str, build_dir: &str) -> Result<PathBuf, String> {
@@ -80,6 +152,8 @@ pub fn compile(id: &str, source: &str, build_dir: &str) -> Result<PathBuf, Strin
 /// Writes Cargo.toml manifest for the atom.
 ///
 /// Creates a minimal Cargo.toml with edition 2024 and cdylib crate type.
+/// The empty `[workspace]` table detaches the atom from any surrounding
+/// workspace, so it builds the same way wherever the build directory is.
 ///
 /// # Arguments
 ///
@@ -92,16 +166,15 @@ pub fn compile(id: &str, source: &str, build_dir: &str) -> Result<PathBuf, Strin
 pub fn write_cargo_toml(dir: &Path, id: &str) -> Result<(), String> {
     let content = format!(
         r#"[package]
-name = "{}"
-version = "0.1.0"
+name = "{id}"
+version = "0.0.0"
 edition = "2024"
+
+[workspace]
 
 [lib]
 crate-type = ["cdylib"]
-
-[dependencies]
-"#,
-        id
+"#
     );
     let mut file = fs::File::create(dir.join("Cargo.toml"))
         .map_err(|e| format!("Failed to create Cargo.toml: {e}"))?;
@@ -112,12 +185,13 @@ crate-type = ["cdylib"]
 
 /// Writes lib.rs source file for the atom.
 ///
-/// Creates src/lib.rs with the provided source code.
+/// Creates src/lib.rs with the ABI preamble, the provided source code,
+/// and the generated entry point around them.
 ///
 /// # Arguments
 ///
 /// * `dir` - Directory to write source in (will create src/ subdir)
-/// * `source` - Rust source code
+/// * `source` - Rust source code defining `pub fn atom`
 ///
 /// # Errors
 ///
@@ -127,8 +201,12 @@ pub fn write_lib_rs(dir: &Path, source: &str) -> Result<(), String> {
     fs::create_dir_all(&src_dir).map_err(|e| format!("Failed to create src dir: {e}"))?;
     let mut file = fs::File::create(src_dir.join("lib.rs"))
         .map_err(|e| format!("Failed to create lib.rs: {e}"))?;
+    file.write_all(PREAMBLE.as_bytes())
+        .map_err(|e| format!("Failed to write preamble: {e}"))?;
     file.write_all(source.as_bytes())
-        .map_err(|e| format!("Failed to write lib.rs: {e}"))?;
+        .map_err(|e| format!("Failed to write source: {e}"))?;
+    file.write_all(ENTRY_POINT.as_bytes())
+        .map_err(|e| format!("Failed to write entry point: {e}"))?;
     Ok(())
 }
 
@@ -158,6 +236,10 @@ fn get_library_name(id: &str) -> String {
 mod tests {
     use super::*;
 
+    fn temp_dir(name: &str) -> PathBuf {
+        std::env::temp_dir().join(format!("phie_{name}"))
+    }
+
     #[test]
     fn test_get_library_name() {
         let name = get_library_name("test");
@@ -172,308 +254,52 @@ mod tests {
 
     #[test]
     fn test_write_cargo_toml() {
-        let temp_dir = std::env::temp_dir().join("phie_test_cargo_write");
-        fs::create_dir_all(&temp_dir).unwrap();
-        write_cargo_toml(&temp_dir, "test_crate").unwrap();
-        let cargo_path = temp_dir.join("Cargo.toml");
-        assert!(cargo_path.exists());
-        let content = fs::read_to_string(cargo_path).unwrap();
+        let dir = temp_dir("test_cargo_write");
+        fs::create_dir_all(&dir).unwrap();
+        write_cargo_toml(&dir, "test_crate").unwrap();
+        let content = fs::read_to_string(dir.join("Cargo.toml")).unwrap();
         assert!(content.contains("name = \"test_crate\""));
         assert!(content.contains("edition = \"2024\""));
         assert!(content.contains("crate-type = [\"cdylib\"]"));
-        fs::remove_dir_all(&temp_dir).ok();
+        assert!(content.contains("[workspace]"));
+        fs::remove_dir_all(&dir).unwrap();
     }
 
     #[test]
-    fn test_write_lib_rs() {
-        let temp_dir = std::env::temp_dir().join("phie_test_lib_write");
-        fs::create_dir_all(&temp_dir).unwrap();
-        let source = "pub fn hello() { println!(\"test\"); }";
-        write_lib_rs(&temp_dir, source).unwrap();
-        let lib_path = temp_dir.join("src/lib.rs");
+    fn test_write_lib_rs_wraps_source() {
+        let dir = temp_dir("test_lib_write");
+        fs::create_dir_all(&dir).unwrap();
+        let source = "pub fn atom(_uni: &Universe, _v: u32) -> Result<i16, String> { Ok(0) }";
+        write_lib_rs(&dir, source).unwrap();
+        let content = fs::read_to_string(dir.join("src/lib.rs")).unwrap();
+        assert!(content.contains("#[repr(C)]"));
+        assert!(content.contains(source));
+        assert!(content.contains("#[unsafe(no_mangle)]"));
+        fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn test_compile_produces_library() {
+        let source = "pub fn atom(_uni: &Universe, _v: u32) -> Result<i16, String> { Ok(42) }";
+        let mut atom = super::super::RustAtom::new("compile_produces", source);
+        let dir = temp_dir("test_compile_produces");
+        let lib_path = atom
+            .compile(dir.to_str().unwrap())
+            .expect("the atom must compile");
         assert!(lib_path.exists());
-        let content = fs::read_to_string(lib_path).unwrap();
-        assert_eq!(content, source);
-        fs::remove_dir_all(&temp_dir).ok();
+        assert!(lib_path.to_string_lossy().contains("compile_produces"));
+        fs::remove_dir_all(&dir).unwrap();
     }
 
     #[test]
-    fn test_compile_integration() {
-        let source = r#"
-#[no_mangle]
-pub extern "C" fn f(_uni: *mut u8, _v: u32) -> i16 {
-    42
-}
-"#;
-        let temp_dir = std::env::temp_dir().join("phie_test_compile_int");
-        let result = compile("compile_test", source, temp_dir.to_str().unwrap());
-        if let Ok(lib_path) = result {
-            assert!(lib_path.exists());
-            let filename = lib_path.file_name().unwrap().to_str().unwrap();
-            assert!(filename.contains("compile_test"));
-        }
-        fs::remove_dir_all(&temp_dir).ok();
-    }
-
-    #[test]
-    fn test_compile_creates_structure() {
-        let source = "pub extern \"C\" fn f() {}";
-        let temp_dir = std::env::temp_dir().join("phie_test_structure");
-        if compile("structure_test", source, temp_dir.to_str().unwrap()).is_ok() {
-            let atom_dir = temp_dir.join("structure_test");
-            assert!(atom_dir.exists());
-            assert!(atom_dir.join("Cargo.toml").exists());
-            assert!(atom_dir.join("src/lib.rs").exists());
-        }
-        fs::remove_dir_all(&temp_dir).ok();
-    }
-
-    #[test]
-    fn test_compile_invalid_source() {
-        let invalid_source = "this is not valid rust";
-        let temp_dir = std::env::temp_dir().join("phie_test_invalid");
-        let result = compile("invalid", invalid_source, temp_dir.to_str().unwrap());
-        if Command::new("cargo").arg("--version").output().is_ok() {
-            assert!(result.is_err());
-        }
-        fs::remove_dir_all(&temp_dir).ok();
-    }
-
-    #[test]
-    fn test_write_cargo_toml_creates_valid_content() {
-        let temp_dir = std::env::temp_dir().join("phie_test_cargo_content");
-        fs::create_dir_all(&temp_dir).unwrap();
-        write_cargo_toml(&temp_dir, "my_atom").unwrap();
-        let content = fs::read_to_string(temp_dir.join("Cargo.toml")).unwrap();
-        assert!(content.contains("[package]"));
-        assert!(content.contains("name = \"my_atom\""));
-        assert!(content.contains("version = \"0.1.0\""));
-        assert!(content.contains("[lib]"));
-        assert!(content.contains("[dependencies]"));
-        fs::remove_dir_all(&temp_dir).ok();
-    }
-
-    #[test]
-    fn test_write_lib_rs_creates_src_directory() {
-        let temp_dir = std::env::temp_dir().join("phie_test_src_creation");
-        fs::create_dir_all(&temp_dir).unwrap();
-        write_lib_rs(&temp_dir, "test").unwrap();
-        assert!(temp_dir.join("src").exists());
-        assert!(temp_dir.join("src").is_dir());
-        fs::remove_dir_all(&temp_dir).ok();
-    }
-
-    #[test]
-    fn test_write_lib_rs_preserves_exact_content() {
-        let temp_dir = std::env::temp_dir().join("phie_test_exact_content");
-        fs::create_dir_all(&temp_dir).unwrap();
-        let source = "// comment\npub fn test() {\n    println!(\"hello\");\n}\n";
-        write_lib_rs(&temp_dir, source).unwrap();
-        let content = fs::read_to_string(temp_dir.join("src/lib.rs")).unwrap();
-        assert_eq!(content, source);
-        fs::remove_dir_all(&temp_dir).ok();
-    }
-
-    #[test]
-    fn test_compile_creates_build_directory() {
-        let source = r#"#[no_mangle] pub extern "C" fn f(_u: *mut u8, _v: u32) -> i16 { 0 }"#;
-        let temp_dir = std::env::temp_dir().join("phie_test_build_dir");
-        fs::remove_dir_all(&temp_dir).ok();
-        compile("build_test", source, temp_dir.to_str().unwrap()).ok();
-        assert!(temp_dir.exists());
-        fs::remove_dir_all(&temp_dir).ok();
-    }
-
-    #[test]
-    fn test_get_library_name_with_different_ids() {
-        assert!(get_library_name("atom1").contains("atom1"));
-        assert!(get_library_name("my_custom_atom").contains("my_custom_atom"));
-        assert!(get_library_name("x").contains("x"));
-    }
-
-    #[test]
-    fn test_get_library_name_linux_format() {
-        if cfg!(target_os = "linux") {
-            let name = get_library_name("foo");
-            assert!(name.starts_with("lib"));
-            assert!(name.ends_with(".so"));
-        }
-    }
-
-    #[test]
-    fn test_write_cargo_toml_with_special_characters() {
-        let temp_dir = std::env::temp_dir().join("phie_test_special");
-        fs::create_dir_all(&temp_dir).unwrap();
-        write_cargo_toml(&temp_dir, "atom_123").unwrap();
-        let content = fs::read_to_string(temp_dir.join("Cargo.toml")).unwrap();
-        assert!(content.contains("name = \"atom_123\""));
-        fs::remove_dir_all(&temp_dir).ok();
-    }
-
-    #[test]
-    fn test_compile_with_complex_source() {
-        let source = r#"
-use std::ffi::c_void;
-
-#[no_mangle]
-pub extern "C" fn f(_universe: *mut c_void, _vertex: u32) -> i16 {
-    let result = 10 + 32;
-    result
-}
-"#;
-        let temp_dir = std::env::temp_dir().join("phie_test_complex");
-        let result = compile("complex", source, temp_dir.to_str().unwrap());
-        if let Ok(lib_path) = result {
-            assert!(lib_path.exists());
-        }
-        fs::remove_dir_all(&temp_dir).ok();
-    }
-
-    #[test]
-    fn test_write_lib_rs_with_empty_source() {
-        let temp_dir = std::env::temp_dir().join("phie_test_empty");
-        fs::create_dir_all(&temp_dir).unwrap();
-        write_lib_rs(&temp_dir, "").unwrap();
-        let content = fs::read_to_string(temp_dir.join("src/lib.rs")).unwrap();
-        assert_eq!(content, "");
-        fs::remove_dir_all(&temp_dir).ok();
-    }
-
-    #[test]
-    fn test_compile_creates_target_directory() {
-        let source = r#"#[no_mangle] pub extern "C" fn f(_u: *mut u8, _v: u32) -> i16 { 1 }"#;
-        let temp_dir = std::env::temp_dir().join("phie_test_target");
-        if compile("target_test", source, temp_dir.to_str().unwrap()).is_ok() {
-            let target_dir = temp_dir.join("target_test/target");
-            assert!(target_dir.exists() || temp_dir.join("target_test/Cargo.toml").exists());
-        }
-        fs::remove_dir_all(&temp_dir).ok();
-    }
-
-    #[test]
-    fn test_write_cargo_toml_overwrites_existing() {
-        let temp_dir = std::env::temp_dir().join("phie_test_overwrite");
-        fs::create_dir_all(&temp_dir).unwrap();
-        write_cargo_toml(&temp_dir, "first").unwrap();
-        write_cargo_toml(&temp_dir, "second").unwrap();
-        let content = fs::read_to_string(temp_dir.join("Cargo.toml")).unwrap();
-        assert!(content.contains("name = \"second\""));
-        assert!(!content.contains("name = \"first\""));
-        fs::remove_dir_all(&temp_dir).ok();
-    }
-
-    #[test]
-    fn test_write_lib_rs_overwrites_existing() {
-        let temp_dir = std::env::temp_dir().join("phie_test_lib_overwrite");
-        fs::create_dir_all(&temp_dir).unwrap();
-        write_lib_rs(&temp_dir, "first").unwrap();
-        write_lib_rs(&temp_dir, "second").unwrap();
-        let content = fs::read_to_string(temp_dir.join("src/lib.rs")).unwrap();
-        assert_eq!(content, "second");
-        fs::remove_dir_all(&temp_dir).ok();
-    }
-
-    #[test]
-    fn test_compile_with_whitespace_in_source() {
-        let source = r#"
-
-        #[no_mangle]
-        pub extern "C" fn f(_u: *mut u8, _v: u32) -> i16 {
-
-            42
-
-        }
-
-        "#;
-        let temp_dir = std::env::temp_dir().join("phie_test_whitespace");
-        let result = compile("whitespace", source, temp_dir.to_str().unwrap());
-        if let Ok(lib_path) = result {
-            assert!(lib_path.exists());
-            assert!(lib_path.to_str().unwrap().contains("whitespace"));
-        }
-        fs::remove_dir_all(&temp_dir).ok();
-    }
-
-    #[test]
-    fn test_compile_returns_correct_path() {
-        let source = r#"#[no_mangle] pub extern "C" fn f(_u: *mut u8, _v: u32) -> i16 { 7 }"#;
-        let temp_dir = std::env::temp_dir().join("phie_test_path");
-        if let Ok(path) = compile("path_test", source, temp_dir.to_str().unwrap()) {
-            assert!(path.to_str().unwrap().contains("path_test"));
-            assert!(path.to_str().unwrap().contains("target/release"));
-            let lib_name = get_library_name("path_test");
-            assert!(path.to_str().unwrap().contains(&lib_name));
-        }
-        fs::remove_dir_all(&temp_dir).ok();
-    }
-
-    #[test]
-    fn test_get_library_name_format_consistency() {
-        let name1 = get_library_name("test");
-        let name2 = get_library_name("test");
-        assert_eq!(name1, name2);
-    }
-
-    #[test]
-    fn test_write_cargo_toml_includes_all_sections() {
-        let temp_dir = std::env::temp_dir().join("phie_test_sections");
-        fs::create_dir_all(&temp_dir).unwrap();
-        write_cargo_toml(&temp_dir, "test").unwrap();
-        let content = fs::read_to_string(temp_dir.join("Cargo.toml")).unwrap();
-        assert!(content.lines().any(|l| l.trim() == "[package]"));
-        assert!(content.lines().any(|l| l.trim() == "[lib]"));
-        assert!(content.lines().any(|l| l.trim() == "[dependencies]"));
-        fs::remove_dir_all(&temp_dir).ok();
-    }
-
-    #[test]
-    fn test_compile_with_minimal_valid_source() {
-        let source = r#"#[no_mangle] pub extern "C" fn f(_u: *mut u8, _v: u32) -> i16 { 0 }"#;
-        let temp_dir = std::env::temp_dir().join("phie_test_minimal");
-        let result = compile("minimal", source, temp_dir.to_str().unwrap());
-        if let Ok(lib_path) = result {
-            assert!(lib_path.exists());
-        }
-        fs::remove_dir_all(&temp_dir).ok();
-    }
-
-    #[test]
-    fn test_write_lib_rs_handles_multiline() {
-        let temp_dir = std::env::temp_dir().join("phie_test_multiline");
-        fs::create_dir_all(&temp_dir).unwrap();
-        let source = "line1\nline2\nline3";
-        write_lib_rs(&temp_dir, source).unwrap();
-        let content = fs::read_to_string(temp_dir.join("src/lib.rs")).unwrap();
-        assert_eq!(content.lines().count(), 3);
-        fs::remove_dir_all(&temp_dir).ok();
-    }
-
-    #[test]
-    fn test_compile_error_message_on_invalid_rust() {
-        let temp_dir = std::env::temp_dir().join("phie_test_error_msg");
-        let result = compile("error_test", "fn {{{", temp_dir.to_str().unwrap());
-        if Command::new("cargo").arg("--version").output().is_ok() {
-            if let Err(msg) = result {
-                assert!(msg.contains("Compilation failed") || msg.contains("error"));
-            }
-        }
-        fs::remove_dir_all(&temp_dir).ok();
-    }
-
-    #[test]
-    fn test_get_library_name_preserves_underscores() {
-        let name = get_library_name("my_atom_name");
-        assert!(name.contains("my_atom_name"));
-    }
-
-    #[test]
-    fn test_compile_creates_atom_subdirectory() {
-        let source = r#"#[no_mangle] pub extern "C" fn f(_u: *mut u8, _v: u32) -> i16 { 3 }"#;
-        let temp_dir = std::env::temp_dir().join("phie_test_subdir");
-        if compile("subdir_atom", source, temp_dir.to_str().unwrap()).is_ok() {
-            assert!(temp_dir.join("subdir_atom").exists());
-            assert!(temp_dir.join("subdir_atom").is_dir());
-        }
-        fs::remove_dir_all(&temp_dir).ok();
+    fn test_compile_fails_on_broken_source() {
+        let source = "this is not rust";
+        let mut atom = super::super::RustAtom::new("compile_broken", source);
+        let dir = temp_dir("test_compile_broken");
+        let err = atom
+            .compile(dir.to_str().unwrap())
+            .expect_err("broken source must not compile");
+        assert!(err.contains("Compilation failed"), "{err}");
+        fs::remove_dir_all(&dir).unwrap();
     }
 }

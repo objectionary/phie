@@ -9,6 +9,38 @@
 //!
 //! The RustAtom struct coordinates between the compilation and execution
 //! subsystems, managing the lifecycle of dynamically loaded code.
+//!
+//! # Atom contract
+//!
+//! The atom source defines a single function:
+//!
+//! ```ignore
+//! pub fn atom(uni: &Universe, v: u32) -> Result<i16, String>
+//! ```
+//!
+//! The `Universe` it receives is a safe wrapper over the [`UniverseVTable`]
+//! callbacks the host passes at call time, so `uni.dataize("v1.𝛼0")`,
+//! `uni.add`, `uni.put`, `uni.bind`, and `uni.next_id` reach the live graph.
+//! The generated crate adds the `extern "C"` entry point around this
+//! function; the atom source itself never mentions `no_mangle`.
+//!
+//! [`UniverseVTable`]: crate::universe::UniverseVTable
+//!
+//! # Examples
+//!
+//! ```no_run
+//! use phie::rust_atom::RustAtom;
+//!
+//! let source = r#"
+//! pub fn atom(uni: &Universe, v: u32) -> Result<i16, String> {
+//!     let a = uni.dataize(&format!("v{v}.\u{1d6fc}0"))?;
+//!     let b = uni.dataize(&format!("v{v}.\u{1d6fc}1"))?;
+//!     Ok(a + b)
+//! }
+//! "#;
+//! let mut atom = RustAtom::new("sum", source);
+//! atom.compile("/tmp/phie-atoms").unwrap();
+//! ```
 
 mod compilation;
 mod execution;
@@ -37,18 +69,11 @@ use std::path::PathBuf;
 ///
 /// # Examples
 ///
-/// ```no_run
+/// ```
 /// use phie::rust_atom::RustAtom;
 ///
-/// let source = r#"
-/// #[no_mangle]
-/// pub extern "C" fn f(_uni: *mut u8, _v: u32) -> i16 {
-///     42
-/// }
-/// "#;
-///
-/// let mut atom = RustAtom::new("my_atom", source);
-/// atom.compile("/tmp/build").unwrap();
+/// let atom = RustAtom::new("sum", "pub fn atom(_u: &Universe, _v: u32) -> Result<i16, String> { Ok(0) }");
+/// assert_eq!(atom.id, "sum");
 /// ```
 pub struct RustAtom {
     /// Unique identifier for this atom
@@ -65,14 +90,14 @@ impl RustAtom {
     /// # Arguments
     ///
     /// * `id` - Unique identifier for this atom
-    /// * `source` - Rust source code
+    /// * `source` - Rust source code defining `pub fn atom`
     ///
     /// # Examples
     ///
     /// ```
     /// use phie::rust_atom::RustAtom;
     ///
-    /// let atom = RustAtom::new("sum", "pub fn f() { }");
+    /// let atom = RustAtom::new("sum", "pub fn atom(_u: &Universe, _v: u32) -> Result<i16, String> { Ok(0) }");
     /// ```
     pub fn new(id: &str, source: &str) -> Self {
         RustAtom {
@@ -80,6 +105,20 @@ impl RustAtom {
             source: source.to_string(),
             lib_path: None,
         }
+    }
+
+    /// Tells whether the atom is already compiled.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use phie::rust_atom::RustAtom;
+    ///
+    /// let atom = RustAtom::new("sum", "");
+    /// assert!(!atom.is_compiled());
+    /// ```
+    pub fn is_compiled(&self) -> bool {
+        self.lib_path.is_some()
     }
 
     /// Compiles the Rust source code to a shared library.
@@ -93,7 +132,7 @@ impl RustAtom {
     /// ```no_run
     /// use phie::rust_atom::RustAtom;
     ///
-    /// let mut atom = RustAtom::new("sum", "pub extern \"C\" fn f() -> i16 { 42 }");
+    /// let mut atom = RustAtom::new("sum", "pub fn atom(_u: &Universe, _v: u32) -> Result<i16, String> { Ok(42) }");
     /// atom.compile("/tmp/phie").unwrap();
     /// ```
     pub fn compile(&mut self, build_dir: &str) -> Result<PathBuf, String> {
@@ -106,7 +145,7 @@ impl RustAtom {
     ///
     /// # Arguments
     ///
-    /// * `universe` - Universe instance for SODG operations
+    /// * `universe` - Universe instance the atom will reach through the ABI
     /// * `vertex` - Vertex ID to operate on
     ///
     /// # Errors
@@ -124,6 +163,10 @@ mod tests {
     use super::*;
     use std::fs;
 
+    fn temp_dir(name: &str) -> PathBuf {
+        std::env::temp_dir().join(format!("phie_{name}"))
+    }
+
     #[test]
     fn test_rust_atom_creation() {
         let atom = RustAtom::new("test", "fn main() {}");
@@ -136,6 +179,7 @@ mod tests {
     fn test_new_atom_has_no_lib_path() {
         let atom = RustAtom::new("test", "");
         assert!(atom.lib_path.is_none());
+        assert!(!atom.is_compiled());
     }
 
     #[test]
@@ -158,52 +202,37 @@ mod tests {
 
     #[test]
     fn test_compile_workflow() {
-        let source = r#"
-#[no_mangle]
-pub extern "C" fn f(_uni: *mut u8, _v: u32) -> i16 {
-    42
-}
-"#;
+        let source = "pub fn atom(_uni: &Universe, _v: u32) -> Result<i16, String> { Ok(42) }";
         let mut atom = RustAtom::new("workflow_test", source);
-        let temp_dir = std::env::temp_dir().join("phie_workflow_test");
-        let result = atom.compile(temp_dir.to_str().unwrap());
-        if result.is_ok() {
-            assert!(atom.lib_path.is_some());
-            assert!(atom.lib_path.as_ref().unwrap().exists());
-        }
-        fs::remove_dir_all(&temp_dir).ok();
+        let dir = temp_dir("test_compile_workflow");
+        atom.compile(dir.to_str().unwrap()).expect("must compile");
+        assert!(atom.is_compiled());
+        assert!(atom.lib_path.as_ref().unwrap().exists());
+        fs::remove_dir_all(&dir).unwrap();
     }
 
     #[test]
     fn test_execute_workflow() {
-        let source = r#"
-#[no_mangle]
-pub extern "C" fn f(_uni: *mut u8, _v: u32) -> i16 {
-    100
-}
-"#;
+        let source = "pub fn atom(_uni: &Universe, _v: u32) -> Result<i16, String> { Ok(100) }";
         let mut atom = RustAtom::new("exec_workflow", source);
-        let temp_dir = std::env::temp_dir().join("phie_exec_workflow");
-        if atom.compile(temp_dir.to_str().unwrap()).is_ok() {
-            let mut uni = Universe::new();
-            let result = atom.execute(&mut uni, 0);
-            if let Ok(value) = result {
-                assert_eq!(value, 100);
-            }
-        }
-        fs::remove_dir_all(&temp_dir).ok();
+        let dir = temp_dir("test_execute_workflow");
+        atom.compile(dir.to_str().unwrap()).expect("must compile");
+        let mut uni = Universe::new();
+        assert_eq!(100, atom.execute(&mut uni, 0).unwrap());
+        fs::remove_dir_all(&dir).unwrap();
     }
 
     #[test]
     fn test_compile_sets_lib_path() {
-        let mut atom = RustAtom::new("lib_path_test", "pub extern \"C\" fn f() {}");
-        let temp_dir = std::env::temp_dir().join("phie_lib_path_test");
-        if atom.compile(temp_dir.to_str().unwrap()).is_ok() {
-            assert!(atom.lib_path.is_some());
-            let lib_path = atom.lib_path.unwrap();
-            assert!(lib_path.exists());
-            assert!(lib_path.to_string_lossy().contains("lib_path_test"));
-        }
-        fs::remove_dir_all(&temp_dir).ok();
+        let mut atom = RustAtom::new(
+            "lib_path_test",
+            "pub fn atom(_uni: &Universe, _v: u32) -> Result<i16, String> { Ok(0) }",
+        );
+        let dir = temp_dir("test_compile_sets_lib_path");
+        atom.compile(dir.to_str().unwrap()).expect("must compile");
+        let lib_path = atom.lib_path.unwrap();
+        assert!(lib_path.exists());
+        assert!(lib_path.to_string_lossy().contains("lib_path_test"));
+        fs::remove_dir_all(&dir).unwrap();
     }
 }
