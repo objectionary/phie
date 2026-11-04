@@ -5,6 +5,7 @@ use crate::atom::*;
 use crate::data::Data;
 use crate::loc::Loc;
 use crate::locator::Locator;
+use crate::rust_engine::rust_atom;
 use itertools::Itertools;
 use regex::Regex;
 use rstest::rstest;
@@ -176,6 +177,7 @@ impl FromStr for Object {
                         "int-neg" => int_neg,
                         "bool-if" => bool_if,
                         "int-less" => int_less,
+                        "rust" => rust_atom,
                         _ => return Err(format!("Unknown lambda '{}' in '{}'", p, s)),
                     };
                     obj = Object::atomic(p.to_string(), lambda_fn);
