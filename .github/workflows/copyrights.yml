@@ -10,10 +10,13 @@ name: copyrights
   pull_request:
     branches:
       - master
+concurrency:
+  group: copyrights-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   copyrights:
     timeout-minutes: 15
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@v5
       - uses: yegor256/copyrights-action@0.0.12

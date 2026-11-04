@@ -6,10 +6,13 @@ name: tarpaulin
 'on':
   push:
   pull_request:
+concurrency:
+  group: tarpaulin-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   check:
     timeout-minutes: 15
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@v5
       - name: Install OpenSSL 1.1
@@ -25,4 +28,5 @@ jobs:
           args: '--all-features --exclude-files src/lib.rs -- --test-threads 1'
       - uses: codecov/codecov-action@v5
         with:
+          token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: true
