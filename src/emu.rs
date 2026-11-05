@@ -10,6 +10,7 @@ use crate::basket::{Basket, Bk, Kid};
 use crate::data::Data;
 use crate::loc::Loc;
 use crate::object::{Ob, Object};
+use crate::rust_engine::RustEngine;
 use arr_macro::arr;
 use log::trace;
 use regex::Regex;
@@ -35,6 +36,8 @@ pub struct Emu {
     pub objects: [Object; MAX_OBJECTS],
     pub baskets: [Basket; MAX_BASKETS],
     pub opts: HashSet<Opt>,
+    /// The engine behind `λ ↦ rust` atoms, created on first registration.
+    pub rust: Option<RustEngine>,
 }
 
 impl fmt::Display for Emu {
@@ -114,6 +117,7 @@ impl Emu {
             objects: arr![Object::open(); 16],
             baskets: arr![Basket::empty(); 128],
             opts: HashSet::new(),
+            rust: None,
         };
         let mut basket = Basket::start(0, 0);
         basket.kids.insert(Loc::Phi, Kid::Rqtd);
@@ -133,6 +137,34 @@ impl Emu {
             ob
         );
         self.objects[ob] = obj;
+        self
+    }
+
+    /// Register the Rust source of the atom of object `ν{ob}`.
+    ///
+    /// The object must carry the `λ ↦ rust` lambda; when the emulator
+    /// dataizes it, the source is compiled into a shared library and
+    /// called with the dataized attributes of the object visible in the
+    /// graph as `𝛼N` edges.
+    ///
+    /// # Arguments
+    ///
+    /// * `ob` - The object number the atom implements
+    /// * `source` - Rust source code defining `pub fn atom`
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use phie::emu::Emu;
+    ///
+    /// let mut emu = Emu::empty();
+    /// emu.register_rust_atom(2, "pub fn atom(_u: &Universe, _v: u32) -> Result<i16, String> { Ok(0) }");
+    /// ```
+    pub fn register_rust_atom(&mut self, ob: Ob, source: &str) -> &mut Emu {
+        let build_dir = std::env::temp_dir().join("phie-atoms");
+        self.rust
+            .get_or_insert_with(|| RustEngine::new(&build_dir.to_string_lossy()))
+            .register(ob, source);
         self
     }
 
